@@ -149,10 +149,17 @@ async function parseCase(url) {
   // Try direct fetch first
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept-Language': 'ru-RU,ru;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
     }
   });
+  
+  console.log('Status:', response.status);
+  console.log('Headers:', response.headers.get('content-type'));
   
   if (!response.ok) {
     throw new Error(`HTTP error: ${response.status}`);
@@ -161,9 +168,12 @@ async function parseCase(url) {
   const buffer = await response.arrayBuffer();
   const html = decodeWindows1251(new Uint8Array(buffer));
   
+  console.log('HTML length:', html.length);
+  console.log('HTML preview:', html.substring(0, 500));
+  
   // Check if we got valid data
   if (!html.includes('cont1') && !html.includes('tablcont')) {
-    throw new Error('Invalid response - no case data found');
+    throw new Error('Invalid response - no case data found. Site may be blocking requests or requiring JS.');
   }
   
   console.log('Direct fetch successful');
