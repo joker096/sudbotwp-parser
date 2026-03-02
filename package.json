@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "vite --host=127.0.0.1",
+    "start": "node render-server.js",
     "server": "node simple-server.js",
     "dev": "vite --host=127.0.0.1",
     "build": "vite build && node generate-sitemap.js",
