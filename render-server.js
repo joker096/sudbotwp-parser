@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import puppeteer from 'puppeteer';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -143,56 +142,32 @@ function parseSudrfHtml(html, url) {
   };
 }
 
-// Main parser with fallback to puppeteer
+// Main parser - direct fetch only
 async function parseCase(url) {
   console.log('Parsing:', url);
   
   // Try direct fetch first
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept-Language': 'ru-RU,ru;q=0.9',
-      }
-    });
-    
-    if (response.ok) {
-      const buffer = await response.arrayBuffer();
-      const html = decodeWindows1251(new Uint8Array(buffer));
-      
-      // Check if we got valid data
-      if (html.includes('cont1') || html.includes('tablcont')) {
-        console.log('Direct fetch successful');
-        return parseSudrfHtml(html, url);
-      }
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'ru-RU,ru;q=0.9',
     }
-  } catch (e) {
-    console.log('Direct fetch failed:', e.message);
-  }
-  
-  // Fallback to puppeteer
-  console.log('Using Puppeteer...');
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
   
-  try {
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
-    // Wait for content
-    await page.waitForSelector('#cont1, .casenumber', { timeout: 30000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
-    
-    const html = await page.content();
-    await browser.close();
-    
-    return parseSudrfHtml(html, url);
-  } catch (e) {
-    await browser.close();
-    throw e;
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
   }
+  
+  const buffer = await response.arrayBuffer();
+  const html = decodeWindows1251(new Uint8Array(buffer));
+  
+  // Check if we got valid data
+  if (!html.includes('cont1') && !html.includes('tablcont')) {
+    throw new Error('Invalid response - no case data found');
+  }
+  
+  console.log('Direct fetch successful');
+  return parseSudrfHtml(html, url);
 }
 
 // POST /parse-case endpoint
