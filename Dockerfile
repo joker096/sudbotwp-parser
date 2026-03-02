@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy only package files first for better caching
-COPY render-package.json ./
+# Copy render package files
+COPY render-package.json ./package.json
 RUN npm install
 
-COPY . .
+COPY render-server.js ./
 
 EXPOSE 3000
 
