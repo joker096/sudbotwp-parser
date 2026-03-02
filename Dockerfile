@@ -1,6 +1,6 @@
-FROM node:18-bullseye
+FROM node:20-bullseye
 
-# Install dependencies
+# Install dependencies for Chrome
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY package*.json ./
+# Copy only package files first for better caching
 COPY render-package.json ./
-RUN npm install --only=prod
+RUN npm install
 
 COPY . .
 
