@@ -159,20 +159,31 @@ async function parseCase(url) {
   });
   
   console.log('Status:', response.status);
-  console.log('Headers:', response.headers.get('content-type'));
+  console.log('Status text:', response.statusText);
+  const contentType = response.headers.get('content-type');
+  console.log('Content-Type:', contentType);
+  console.log('Redirected:', response.redirected);
+  console.log('URL:', response.url);
   
   if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status}`);
+    throw new Error(`HTTP error: ${response.status} - ${response.statusText}`);
   }
   
   const buffer = await response.arrayBuffer();
   const html = decodeWindows1251(new Uint8Array(buffer));
   
   console.log('HTML length:', html.length);
-  console.log('HTML preview:', html.substring(0, 500));
+  console.log('HTML preview:', html.substring(0, 1000));
   
   // Check if we got valid data
   if (!html.includes('cont1') && !html.includes('tablcont')) {
+    // Check for other patterns
+    if (html.includes('Доступ к информации') || html.includes('403') || html.includes('Forbidden')) {
+      throw new Error('Site is blocking access - 403 Forbidden or access denied');
+    }
+    if (html.includes('redirect') || html.includes('location')) {
+      throw new Error('Site is redirecting - may require authentication');
+    }
     throw new Error('Invalid response - no case data found. Site may be blocking requests or requiring JS.');
   }
   
