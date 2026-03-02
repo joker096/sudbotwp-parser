@@ -1,10 +1,11 @@
 services:
   - type: web
     name: sudbot-parser
-    env: node
+    env: docker
     region: frankfurt
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: |
+      docker build -t sudbot-parser .
+    startCommand: node render-server.js
     envVars:
       - key: NODE_VERSION
         value: "20"

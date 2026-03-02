@@ -6,6 +6,9 @@ import fetch from 'node-fetch';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ScrapingBee API - free tier 100 requests/month
+const SCRAPINGBEE_API_KEY = process.env.SCRAPINGBEE_API_KEY || '';
+
 app.use(express.json());
 app.use(cors());
 
@@ -142,52 +145,59 @@ function parseSudrfHtml(html, url) {
   };
 }
 
-// Main parser - direct fetch only
+// Fetch with ScrapingBee (renders JS)
+async function fetchWithScrapingBee(url) {
+  const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_API_KEY}&url=${encodeURIComponent(url)}&render_js=true`;
+  
+  const response = await fetch(apiUrl);
+  if (!response.ok) {
+    throw new Error(`ScrapingBee error: ${response.status}`);
+  }
+  
+  return response.text();
+}
+
+// Main parser
 async function parseCase(url) {
   console.log('Parsing:', url);
   
-  // Try direct fetch first
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Connection': 'keep-alive',
-      'Upgrade-Insecure-Requests': '1',
+  let html;
+  
+  // Try with ScrapingBee first if API key is set
+  if (SCRAPINGBEE_API_KEY) {
+    try {
+      console.log('Trying ScrapingBee...');
+      html = await fetchWithScrapingBee(url);
+      console.log('ScrapingBee successful');
+    } catch (e) {
+      console.log('ScrapingBee failed:', e.message);
     }
-  });
-  
-  console.log('Status:', response.status);
-  console.log('Status text:', response.statusText);
-  const contentType = response.headers.get('content-type');
-  console.log('Content-Type:', contentType);
-  console.log('Redirected:', response.redirected);
-  console.log('URL:', response.url);
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status} - ${response.statusText}`);
   }
   
-  const buffer = await response.arrayBuffer();
-  const html = decodeWindows1251(new Uint8Array(buffer));
-  
-  console.log('HTML length:', html.length);
-  console.log('HTML preview:', html.substring(0, 1000));
+  // Fallback to direct fetch
+  if (!html) {
+    console.log('Trying direct fetch...');
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept-Language': 'ru-RU,ru;q=0.9',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+    
+    const buffer = await response.arrayBuffer();
+    html = decodeWindows1251(new Uint8Array(buffer));
+  }
   
   // Check if we got valid data
   if (!html.includes('cont1') && !html.includes('tablcont')) {
-    // Check for other patterns
-    if (html.includes('Доступ к информации') || html.includes('403') || html.includes('Forbidden')) {
-      throw new Error('Site is blocking access - 403 Forbidden or access denied');
-    }
-    if (html.includes('redirect') || html.includes('location')) {
-      throw new Error('Site is redirecting - may require authentication');
-    }
-    throw new Error('Invalid response - no case data found. Site may be blocking requests or requiring JS.');
+    throw new Error('Invalid response - no case data found');
   }
   
-  console.log('Direct fetch successful');
+  console.log('Parsing successful');
   return parseSudrfHtml(html, url);
 }
 
@@ -218,10 +228,11 @@ app.post('/parse-case', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', scrapingbee: !!SCRAPINGBEE_API_KEY });
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('POST /parse-case - Parse court case');
+  console.log('ScrapingBee API:', SCRAPINGBEE_API_KEY ? 'Configured' : 'Not configured (using direct fetch)');
 });
