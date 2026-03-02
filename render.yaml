@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: sudbot-parser
+    env: node
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "18"
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: "false"
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/google-chrome-stable
+    autoDeploy: false
+    plan: starter

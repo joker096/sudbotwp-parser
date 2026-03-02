@@ -1,0 +1,13 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://cvr.name/sitemap.xml
+
+# Disallow admin/private areas
+Disallow: /profile
+Disallow: /messages
+Disallow: /leads
+Disallow: /monitoring
+Disallow: /auth/

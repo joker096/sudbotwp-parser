@@ -1,0 +1,4 @@
+name: yookassa
+version: 0.1.0
+main: index.ts
+node_version: "20"

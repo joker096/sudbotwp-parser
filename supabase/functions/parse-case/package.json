@@ -1,0 +1,6 @@
+{
+  "name": "parse-case",
+  "version": "1.0.0",
+  "description": "Function to parse case data from court websites",
+  "type": "module"
+}

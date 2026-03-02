@@ -1,0 +1,14 @@
+name: parse-case
+version: 1.0.0
+runtime: deno
+memory: 256
+timeout: 120
+schedule: ""
+max_concurrency: 50
+verify_jwt: false
+secrets:
+  - BROWSERLESS_TOKEN
+  - SCRAPINGBEE_API_KEY
+.headers:
+  - name: Content-Type
+    value: application/json

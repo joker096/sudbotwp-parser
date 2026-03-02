@@ -1,0 +1,15 @@
+name: telegram-webhook
+version: 0.0.1
+runtime: deno
+memory: 256
+timeout: 30
+schedule: ""
+max_concurrency: 10
+verify_jwt: false
+secrets:
+  - TELEGRAM_BOT_TOKEN
+  - TELEGRAM_WEBHOOK_SECRET
+  - SERVICE_ROLE_KEY
+.headers:
+  - name: Content-Type
+    value: application/json
