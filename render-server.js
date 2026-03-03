@@ -168,6 +168,8 @@ async function parseCase(url) {
     try {
       console.log('Trying ScrapingBee...');
       html = await fetchWithScrapingBee(url);
+      console.log('ScrapingBee response length:', html.length);
+      console.log('ScrapingBee preview:', html.substring(0, 500));
       console.log('ScrapingBee successful');
     } catch (e) {
       console.log('ScrapingBee failed:', e.message);
