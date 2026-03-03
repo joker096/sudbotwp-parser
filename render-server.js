@@ -154,6 +154,18 @@ async function fetchWithScrapingBee(url) {
     throw new Error(`ScrapingBee error: ${response.status}`);
   }
   
+  // Get the content-type header
+  const contentType = response.headers.get('content-type') || '';
+  
+  // If it's HTML, we need to handle encoding
+  if (contentType.includes('text/html')) {
+    const buffer = await response.arrayBuffer();
+    
+    // Try to detect encoding
+    const decoder = new TextDecoder('windows-1251');
+    return decoder.decode(buffer);
+  }
+  
   return response.text();
 }
 
