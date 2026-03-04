@@ -2,13 +2,21 @@ import express from 'express';
 import cors from 'cors';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import puppeteer from 'puppeteer';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ScrapingBee API - free tier 100 requests/month
+const SCRAPINGBEE_API_KEY = process.env.SCRAPINGBEE_API_KEY || '';
+
 app.use(express.json());
 app.use(cors());
+
+// Decode windows-1251 to utf-8
+function decodeWindows1251(buffer) {
+  const decoder = new TextDecoder('windows-1251');
+  return decoder.decode(buffer);
+}
 
 // Court name mapping
 const courtMap = {
@@ -28,10 +36,10 @@ const courtMap = {
   'nnov': 'Нижегородский областной суд',
   'spb': 'Санкт-Петербургский городской суд',
   'msk': 'Московский городской суд',
-  'mo': 'Московская область',
+  'mo': 'Московский областной суд',
 };
 
-// Parse HTML
+// Parse HTML directly
 function parseSudrfHtml(html, url) {
   const $ = cheerio.load(html);
   
@@ -50,22 +58,30 @@ function parseSudrfHtml(html, url) {
     const hostname = new URL(url).hostname;
     const sub = hostname.split('.')[0];
     const normalizedSub = sub.replace(/[-]+/g, '-').toLowerCase();
-    if (courtMap[normalizedSub]) court = courtMap[normalizedSub];
-    else if (normalizedSub.includes('oblsud')) court = 'Ленинградский областной суд';
+    
+    if (courtMap[normalizedSub]) {
+      court = courtMap[normalizedSub];
+    } else if (normalizedSub.includes('oblsud')) {
+      court = 'Ленинградский областной суд';
+    }
   } catch (e) {}
 
-  // Get court from heading
+  // Get court from heading (overrides URL)
   const headingElement = $('.heading.heading_caps.heading_title');
   if (headingElement.length) {
     const headingText = headingElement.text().trim();
-    if (headingText && headingText.length > 5) court = headingText;
+    if (headingText && headingText.length > 5) {
+      court = headingText;
+    }
   }
 
   // Parse case number
   const caseNumberElement = $('.casenumber');
-  if (caseNumberElement.length) number = caseNumberElement.text().trim();
+  if (caseNumberElement.length) {
+    number = caseNumberElement.text().trim();
+  }
 
-  // Parse main info
+  // Parse main info (cont1)
   $('#cont1 #tablcont tr').each((index, element) => {
     const cells = $(element).find('td');
     if (cells.length >= 2) {
@@ -77,6 +93,7 @@ function parseSudrfHtml(html, url) {
       if (label.includes('Судья')) judge = value;
       if (label.includes('Результат рассмотрения')) status = value;
       
+      // Get judicialUid from link
       if (label.includes('Уникальный идентификатор')) {
         const link = cells.eq(1).find('a');
         if (link.length) {
@@ -84,11 +101,15 @@ function parseSudrfHtml(html, url) {
           const match = href.match(/judicial_uid=([^&]+)/i);
           if (match) judicialUid = match[1];
         }
+        if (!judicialUid) {
+          const uidMatch = value.match(/^\d{2}[A-Z0-9]+-\d{4}-\d+$/i);
+          if (uidMatch) judicialUid = value;
+        }
       }
     }
   });
 
-  // Parse parties
+  // Parse parties (cont3)
   $('#cont3 #tablcont tr').each((index, element) => {
     const cells = $(element).find('td');
     if (cells.length >= 2) {
@@ -99,7 +120,7 @@ function parseSudrfHtml(html, url) {
     }
   });
 
-  // Parse events
+  // Parse events (cont2)
   const events = [];
   $('#cont2 #tablcont tr').each((index, element) => {
     const cells = $(element).find('td');
@@ -124,82 +145,80 @@ function parseSudrfHtml(html, url) {
   };
 }
 
-// Parse with Puppeteer
-async function parseWithPuppeteer(url) {
-  console.log('Launching Puppeteer...');
+// Fetch with ScrapingBee (renders JS)
+async function fetchWithScrapingBee(url) {
+  const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_API_KEY}&url=${encodeURIComponent(url)}&render_js=true`;
   
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
-  
-  try {
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
-    // Wait for content
-    await page.waitForSelector('#cont1, .casenumber', { timeout: 30000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 2000));
-    
-    const html = await page.content();
-    console.log('Got HTML with Puppeteer, length:', html.length);
-    
-    return parseSudrfHtml(html, url);
-  } finally {
-    await browser.close();
-  }
-}
-
-// Parse with direct fetch
-async function parseDirect(url) {
-  console.log('Trying direct fetch...');
-  
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept-Language': 'ru-RU,ru;q=0.9',
-    }
-  });
-  
+  const response = await fetch(apiUrl);
   if (!response.ok) {
-    throw new Error(`HTTP error: ${response.status}`);
+    throw new Error(`ScrapingBee error: ${response.status}`);
   }
   
-  const buffer = await response.arrayBuffer();
-  const decoder = new TextDecoder('windows-1251');
-  const html = decoder.decode(buffer);
-  
-  if (!html.includes('cont1') && !html.includes('tablcont')) {
-    throw new Error('No case data in direct response');
-  }
-  
-  return parseSudrfHtml(html, url);
+  return response.text();
 }
 
-// Main parser - try direct first, fallback to Puppeteer
+// Main parser
 async function parseCase(url) {
   console.log('Parsing:', url);
   
-  try {
-    return await parseDirect(url);
-  } catch (e) {
-    console.log('Direct failed:', e.message);
-    console.log('Trying Puppeteer...');
-    return await parseWithPuppeteer(url);
+  let html;
+  
+  // Try with ScrapingBee first if API key is set
+  if (SCRAPINGBEE_API_KEY) {
+    try {
+      console.log('Trying ScrapingBee...');
+      html = await fetchWithScrapingBee(url);
+      console.log('ScrapingBee successful');
+    } catch (e) {
+      console.log('ScrapingBee failed:', e.message);
+    }
   }
+  
+  // Fallback to direct fetch
+  if (!html) {
+    console.log('Trying direct fetch...');
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept-Language': 'ru-RU,ru;q=0.9',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+    
+    const buffer = await response.arrayBuffer();
+    html = decodeWindows1251(new Uint8Array(buffer));
+  }
+  
+  // Check if we got valid data
+  if (!html.includes('cont1') && !html.includes('tablcont')) {
+    throw new Error('Invalid response - no case data found');
+  }
+  
+  console.log('Parsing successful');
+  return parseSudrfHtml(html, url);
 }
 
-// POST /parse-case
+// POST /parse-case endpoint
 app.post('/parse-case', async (req, res) => {
   req.setTimeout(120000);
   
   try {
     const { url } = req.body;
     
-    if (!url) return res.status(400).json({ error: 'URL required' });
-    if (!url.includes('sudrf.ru')) return res.status(400).json({ error: 'Only sudrf.ru courts supported' });
+    if (!url) {
+      return res.status(400).json({ error: 'URL required' });
+    }
     
+    if (!url.includes('sudrf.ru')) {
+      return res.status(400).json({ error: 'Only sudrf.ru courts supported' });
+    }
+    
+    console.log('Received:', url);
     const data = await parseCase(url);
+    
     res.json(data);
   } catch (error) {
     console.error('Error:', error.message);
@@ -209,9 +228,11 @@ app.post('/parse-case', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', scrapingbee: !!SCRAPINGBEE_API_KEY });
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('POST /parse-case - Parse court case');
+  console.log('ScrapingBee API:', SCRAPINGBEE_API_KEY ? 'Configured' : 'Not configured (using direct fetch)');
 });
