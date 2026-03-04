@@ -154,7 +154,9 @@ async function fetchWithScrapingBee(url) {
     throw new Error(`ScrapingBee error: ${response.status}`);
   }
   
-  return response.text();
+  // Use arrayBuffer to properly handle windows-1251 encoding
+  const buffer = await response.arrayBuffer();
+  return decodeWindows1251(new Uint8Array(buffer));
 }
 
 // Main parser
