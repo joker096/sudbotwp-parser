@@ -147,16 +147,28 @@ function parseSudrfHtml(html, url) {
 
 // Fetch with ScrapingBee (renders JS)
 async function fetchWithScrapingBee(url) {
-  const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_API_KEY}&url=${encodeURIComponent(url)}&render_js=true`;
+  // Add wait parameter for slow court sites and premium_proxy for reliability
+  const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_API_KEY}&url=${encodeURIComponent(url)}&render_js=true&wait=8000&premium_proxy=true`;
   
-  const response = await fetch(apiUrl);
-  if (!response.ok) {
-    throw new Error(`ScrapingBee error: ${response.status}`);
+  // Add timeout for the fetch
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 100000); // 100 second timeout
+  
+  try {
+    const response = await fetch(apiUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`ScrapingBee error: ${response.status}`);
+    }
+    
+    // Use arrayBuffer to properly handle windows-1251 encoding
+    const buffer = await response.arrayBuffer();
+    return decodeWindows1251(new Uint8Array(buffer));
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
   }
-  
-  // Use arrayBuffer to properly handle windows-1251 encoding
-  const buffer = await response.arrayBuffer();
-  return decodeWindows1251(new Uint8Array(buffer));
 }
 
 // Main parser
@@ -179,12 +191,19 @@ async function parseCase(url) {
   // Fallback to direct fetch
   if (!html) {
     console.log('Trying direct fetch...');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept-Language': 'ru-RU,ru;q=0.9',
-      }
+      },
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error(`HTTP error: ${response.status}`);
@@ -205,7 +224,9 @@ async function parseCase(url) {
 
 // POST /parse-case endpoint
 app.post('/parse-case', async (req, res) => {
-  req.setTimeout(120000);
+  // Set timeout to 180 seconds for very slow court sites
+  req.setTimeout(180000);
+  res.setTimeout(180000);
   
   try {
     const { url } = req.body;

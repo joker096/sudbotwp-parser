@@ -19,26 +19,9 @@ interface CaseCardProps {
   onDateDoubleClick?: (date: string, time?: string) => void;
 }
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring' as const,
-      damping: 15,
-      stiffness: 100,
-      when: "beforeChildren",
-      staggerChildren: 0.1,
-    },
-  },
-  exit: { opacity: 0, y: -20, transition: { duration: 0.2 } },
-};
-
-const itemVariants = {
-  hidden: { y: 15, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: 'spring' as const, stiffness: 120 } },
-};
+// Анимации отключены
+const cardVariants = {};
+const itemVariants = {};
 
 function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onShowPaymentModal, onDeleteCase, onRefreshCase, onDateDoubleClick }: CaseCardProps) {
   const [activeTab, setActiveTab] = useState('Движение дела');
@@ -235,15 +218,10 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
   };
 
   return (
-    <motion.div
-      key="parsed"
-      variants={cardVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
+    <div
       className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 flex flex-col w-full"
     >
-      <motion.div variants={itemVariants} className="flex items-center gap-3 mb-6 p-6 sm:p-8 pb-0 shrink-0">
+      <div className="flex items-center gap-3 mb-6 p-6 sm:p-8 pb-0 shrink-0">
         <div className="bg-accent/10 p-1.5 rounded-2xl">
           <Scale className="w-4 h-4 text-accent" />
         </div>
@@ -283,10 +261,10 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
             </p>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Tabs for Case Details */}
-       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row flex-wrap gap-2 pb-2 mb-6 border-b border-slate-100 dark:border-slate-800 shrink-0 px-6 sm:px-8">
+       <div className="flex flex-col sm:flex-row flex-wrap gap-2 pb-2 mb-6 border-b border-slate-100 dark:border-slate-800 shrink-0 px-6 sm:px-8">
          {['Информация', 'Движение дела', 'Стороны', 'Обжалование', 'Комментарии'].map((tab) => (
            <button
              key={tab}
@@ -303,13 +281,13 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
              )}
            </button>
          ))}
-       </motion.div>
+       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 dark:scrollbar-thumb-slate-600 dark:scrollbar-track-slate-800">
-        <div className="px-6 sm:px-8">
-          <AnimatePresence mode="wait">
-            {activeTab === 'Информация' && (
-              <motion.div key="info" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8">
+     <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 dark:scrollbar-thumb-slate-600 dark:scrollbar-track-slate-800">
+       <div className="px-6 sm:px-8">
+         <div>
+           {activeTab === 'Информация' && (
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3">
                 <Building className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
                 <div className="flex-1">
@@ -465,11 +443,11 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{localCaseData.status}</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
             )}
 
             {activeTab === 'Движение дела' && (
-              <motion.div key="events" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="pb-8">
+              <div className="pb-8">
               {localCaseData.events && localCaseData.events.length > 0 ? (
                 <>
                   {localCaseData.events.map((event: CaseEvent, index: number) => (
@@ -525,11 +503,11 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
                   <p>Нет данных о движении дела</p>
                 </div>
               )}
-            </motion.div>
+            </div>
             )}
 
             {activeTab === 'Стороны' && (
-              <motion.div key="parties" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-4 pb-8">
+              <div className="space-y-4 pb-8">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-center gap-4">
                 <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500">
                   <User className="w-5 h-5" />
@@ -611,11 +589,11 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
                   <p className="text-sm font-bold text-slate-400">Информация скрыта</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
             )}
 
             {activeTab === 'Обжалование' && (
-              <motion.div key="appeals" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-4 pb-8">
+              <div className="space-y-4 pb-8">
               {localCaseData.appeals && localCaseData.appeals.length > 0 ? (
                 <>
                   {localCaseData.appeals.map((appeal: CaseAppeal) => (
@@ -641,12 +619,12 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
                   <p>Нет данных об обжаловании</p>
                 </div>
               )}
-            </motion.div>
+            </div>
             )}
 
             {/* Вкладка Комментарии */}
             {activeTab === 'Комментарии' && (
-              <motion.div key="comments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="pb-4">
+              <div className="pb-4">
                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-3">
                   <div className="flex items-center gap-2 mb-2">
                     <MessageSquare className="w-4 h-4 text-accent" />
@@ -751,13 +729,13 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
                     </button>
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-1.5 shrink-0 p-3 pt-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-1.5 shrink-0 p-3 pt-2">
          <button
            onClick={onAddCase}
            disabled={isAdded || isLoading}
@@ -917,9 +895,9 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
              <span className="hidden sm:inline">Скрыть</span>
            </button>
          )}
-       </motion.div>
+       </div>
 
-      {/* Подтверждение удаления */}
+     {/* Подтверждение удаления */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <motion.div
@@ -1141,7 +1119,7 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 

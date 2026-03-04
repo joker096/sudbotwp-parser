@@ -134,19 +134,23 @@ export async function parseWithFullFallback(url: string): Promise<{
     console.log('[Parse] Client-side failed:', clientError.message);
   }
 
-  // 2. Server-side parsing (Edge Function with Browserless/ScrapingBee support)
+  // 2. Server-side parsing (Render.com server with Browserless/ScrapingBee support)
   // This is the main fallback - it handles all the heavy lifting server-side
   try {
     console.log('[Parse] Trying server-side (with Browserless/ScrapingBee)...');
-    const parseUrl = import.meta.env.DEV 
-      ? 'http://localhost:3000/parse-case' 
-      : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-case`;
+    // Use Render.com server in production (no timeout limits like Supabase Edge Functions)
+    const parseUrl = import.meta.env.DEV
+      ? 'http://localhost:3000/parse-case'
+      : (import.meta.env.VITE_PARSE_CASE_URL || 'https://sudbotwp-parser.onrender.com/parse-case');
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     
-    if (!import.meta.env.DEV) {
+    // Render.com server doesn't need Authorization header
+    // Only add auth for Supabase Edge Functions (if still using them)
+    const isSupabaseUrl = parseUrl.includes('supabase');
+    if (!import.meta.env.DEV && isSupabaseUrl) {
       headers['Authorization'] = `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`;
     }
 

@@ -357,23 +357,27 @@ export const checkCourtSiteAvailability = async (url?: string): Promise<{ availa
   return { available: true, message: 'Проверка доступности сайта пропущена', url };
 };
 
-// Парсинг через сервер (Edge Function или локальный)
+// Парсинг через сервер (Render.com или локальный)
 async function parseCaseServer(url: string): Promise<{ data: any; error: any }> {
   try {
     console.log('Server-side parsing:', url);
     
-    // Определяем URL в зависимости от окружения
-    const parseUrl = import.meta.env.DEV ? 'http://localhost:3000/parse-case' : PARSE_CASE_URL;
+    // Используем Render.com сервер в production (без ограничений по таймауту)
+    const parseUrl = import.meta.env.DEV
+      ? 'http://localhost:3000/parse-case'
+      : (import.meta.env.VITE_PARSE_CASE_URL || 'https://sudbotwp-parser.onrender.com/parse-case');
     console.log('Parsing from server URL:', parseUrl);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 180 секунд для медленных судебных сайтов
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     
-    if (!import.meta.env.DEV) {
+    // Render.com сервер не требует авторизации, только Supabase Edge Function
+    const isSupabaseUrl = parseUrl.includes('supabase');
+    if (!import.meta.env.DEV && isSupabaseUrl) {
       headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
     }
     
