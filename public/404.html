@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - Страница не найдена | Судовой Бот</title>
     <meta name="description" content="Запрашиваемая страница не найдена. Возможно, она была перемещена или удалена.">
+    <meta name="robots" content="noindex, follow">
     <style>
         * {
             margin: 0;
@@ -136,6 +137,62 @@
             text-decoration: underline;
         }
         
+        .help-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: left;
+        }
+        
+        .help-section h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .help-section h5 {
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .help-section h6 {
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        
+        .help-section ul {
+            list-style: disc;
+            margin-left: 20px;
+            color: #777;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .help-section p {
+            color: #777;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
         @media (max-width: 480px) {
             .container {
                 padding: 40px 25px;
@@ -193,13 +250,30 @@
         
         <div class="links">
             <div class="links-title">Возможно, вам будут полезны:</div>
+            <h3 class="sr-only">Полезные разделы</h3>
             <div class="links-list">
+                <a href="/">Главная</a>
                 <a href="/search">Поиск дел</a>
                 <a href="/lawyers">Юристы</a>
                 <a href="/calculator">Калькулятор</a>
                 <a href="/blog">Блог</a>
                 <a href="/help">Помощь</a>
             </div>
+        </div>
+        
+        <div class="help-section">
+            <h4>Что делать?</h4>
+            <h5>Если вы уверены, что страница должна существовать:</h5>
+            <ul>
+                <li>Проверьте правильность написания адреса</li>
+                <li>Используйте поиск по сайту</li>
+                <li>Перейдите на главную страницу</li>
+            </ul>
+            
+            <h6>Контакты:</h6>
+            <p>
+                Если проблема повторяется, свяжитесь с нами через Telegram бот.
+            </p>
         </div>
     </div>
 </body>

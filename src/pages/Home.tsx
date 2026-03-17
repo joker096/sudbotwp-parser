@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw } from 'lucide-react';
+import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdBanner from '../components/AdBanner';
-import { supabase, cases, refreshCase } from '../lib/supabase';
+import { supabase, cases, refreshCase, parseCase } from '../lib/supabase';
 import { ParsedCase } from '../types';
 import CaseCard from '../components/CaseCard';
 import { useSeo } from '../hooks/useSeo';
@@ -111,9 +111,83 @@ export default function Home() {
 
   const handleTrackCase = async () => {
     if (!caseUrl.trim()) return;
+    
+    // Если пользователь не авторизован - перенаправляем на страницу поиска
+    if (!user) {
+      navigate(`/search?q=${encodeURIComponent(caseUrl)}`);
+      return;
+    }
+    
     setIsLoadingCase(true);
     try {
-      navigate(`/search?q=${encodeURIComponent(caseUrl)}`);
+      showToast('Поиск дела...');
+      
+      // Парсим дело напрямую
+      const { data, error } = await parseCase(caseUrl);
+      
+      if (error) {
+        console.error('Error parsing case:', error);
+        if (error.message.includes('URL is required') || error.message.includes('Invalid URL format')) {
+          showToast('Пожалуйста, введите корректную ссылку на дело');
+        } else if (error.message.includes('Connection refused') || error.message.includes('Network') || error.message.includes('503')) {
+          showToast('Сервер временно недоступен. Попробуйте позже.');
+        } else if (error.message.includes('404') || error.message.includes('Failed to fetch')) {
+          showToast('Не удалось найти дело. Проверьте ссылку.');
+        } else {
+          showToast(error.message || 'Ошибка при поиске дела');
+        }
+        return;
+      }
+      
+      if (!data) {
+        showToast('Не удалось получить данные о деле');
+        return;
+      }
+      
+      // Проверяем, не существует ли уже это дело
+      const { data: existingCases } = await cases.getCasesByUser(user.id);
+      const caseNumber = data.number?.toLowerCase().trim();
+      const exists = existingCases?.some((c: ParsedCase) => c.number?.toLowerCase().trim() === caseNumber);
+      
+      if (exists) {
+        showToast('Это дело уже есть в Моих делах');
+        return;
+      }
+      
+      // Сохраняем дело
+      const { data: newCase, error: createError } = await cases.createCase({
+        user_id: user.id,
+        ...data,
+      });
+      
+      if (createError) {
+        console.error('Error creating case:', createError);
+        showToast('Ошибка при сохранении дела');
+        return;
+      }
+      
+      showToast('Дело успешно добавлено в Мои дела!');
+      
+      // Инвалидируем кеш для обновления списка дел
+      queryClient.invalidateQueries({ queryKey: ['userCases', user.id] });
+      
+      // Обновляем локальное состояние
+      if (newCase) {
+        setUserCases(prev => [{
+          ...data,
+          id: newCase.id,
+          status: 'active',
+          events: data.events || [],
+          appeals: data.appeals || [],
+        }, ...prev]);
+      }
+      
+      // Очищаем поле ввода
+      setCaseUrl('');
+      
+    } catch (err) {
+      console.error('Error adding case:', err);
+      showToast('Произошла ошибка при добавлении дела');
     } finally {
       setIsLoadingCase(false);
     }
@@ -278,6 +352,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Hero Banner Image - Telegram Bot Interface */}
+      <div className="w-full overflow-hidden rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-700">
+        <img 
+          src="https://lh3.googleusercontent.com/pw/AP1GczN7QF3mMXeel62r3mfhQzkX6rIiJ8EM0bnCG3GamxG16L7umRNIjTqs2YRdLT_TKMKQEmgTh6nqGs48JzwdThtFAcOlBb6n4n5CiWUS4zOR-tA3xgE=s0" 
+          alt="Интерфейс Telegram бота для мониторинга судебных дел - отслеживайте дела в мессенджере" 
+          className="w-full h-auto object-cover"
+          loading="eager"
+        />
+      </div>
+
       {/* Add Case Section */}
       <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 transition-colors duration-300">
         <div className="flex items-center gap-4 mb-6">
@@ -304,9 +388,10 @@ export default function Home() {
           <button 
             onClick={handleTrackCase}
             disabled={isLoadingCase}
-            className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:opacity-50 text-white px-8 py-4 rounded-2xl text-sm font-bold transition-colors shadow-sm shrink-0"
+            className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:opacity-50 text-white px-8 py-4 rounded-2xl text-sm font-bold transition-colors shadow-sm shrink-0 flex items-center gap-2"
           >
-            {isLoadingCase ? 'Загрузка...' : 'Отслеживать'}
+            {isLoadingCase ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {isLoadingCase ? 'Добавление...' : 'Отслеживать'}
           </button>
         </div>
       </div>
@@ -439,6 +524,11 @@ export default function Home() {
                     </div>
                     <div className="flex flex-col items-end shrink-0 gap-1">
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{caseItem.date}</span>
+                      {caseItem.updated_at && (
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium" title="Дата обновления">
+                          Обновл: {new Date(caseItem.updated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
                       {canManualRefresh ? (
                         <button
                           onClick={(e) => {

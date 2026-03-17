@@ -328,8 +328,8 @@ let lastUpdateId = 0;
 
 async function getUpdates() {
   try {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&limit=10&timeout=10`;
-    const response = await retryWithBackoff(() => fetch(url), 3, 2000);
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&limit=1&timeout=1`;
+    const response = await fetch(url);
 
     if (!response.ok) {
       console.error('Failed to get updates:', response.status);
@@ -369,7 +369,7 @@ async function getUpdates() {
       }
     }
   } catch (error) {
-    console.error('Error in getUpdates:', error);
+    console.error('Error in getUpdates:', error.message);
   }
 }
 
@@ -422,7 +422,7 @@ async function startPolling() {
 
   while (true) {
     await getUpdates();
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 }
 

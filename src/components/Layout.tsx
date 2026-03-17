@@ -1,7 +1,7 @@
 import { useState, useEffect, memo } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Home, Search, Users, Calculator, Scale, Sun, Moon, BookOpen, MessageCircle, LogIn, Shield, Target, HelpCircle, UserCheck, AtSign, Phone, MapPin, Send, MessageSquare, ExternalLink } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Home, Search, Users, Calculator, Scale, Sun, Moon, BookOpen, MessageCircle, LogIn, Shield, Target, HelpCircle, UserCheck, AtSign, Phone, MapPin, Send, MessageSquare, ExternalLink, ChevronUp, ChevronDown, Menu, X, Sparkles, FolderOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import FloatingButtons from './FloatingButtons';
 import { useAuth } from '../hooks/useAuth';
 import { useNofollowLinks } from '../hooks/useNofollowLinks';
@@ -9,6 +9,9 @@ import GoogleAnalytics from './GoogleAnalytics';
 
 export default memo(function Layout() {
   const location = useLocation();
+  
+  // Состояние для мобильного меню - по умолчанию скрыто
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Custom scroll function that handles footer links better
   const scrollToTop = () => {
@@ -33,8 +36,12 @@ export default memo(function Layout() {
   
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' || 
-             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        return savedTheme === 'dark';
+      }
+      // Если нет сохранённой темы, проверяем системные настройки
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
   });
@@ -57,8 +64,8 @@ export default memo(function Layout() {
     { path: '/leads', label: 'Лиды', icon: Target },
     { path: '/monitoring', label: 'Мониторинг', icon: Shield },
     { path: '/calculator', label: 'Пошлины', icon: Calculator },
+    { path: '/documents', label: 'Документы', icon: FolderOpen },
     { path: '/blog', label: 'Блог', icon: BookOpen },
-    { path: '/help', label: 'Помощь', icon: HelpCircle },
   ];
 
   const navContainerVariants = {
@@ -85,10 +92,10 @@ export default memo(function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] dark:bg-black font-sans flex flex-col relative transition-colors duration-300">
+    <div className="min-h-screen bg-[#f8f9fa] dark:bg-black font-sans flex flex-col relative transition-colors duration-300 overflow-x-hidden">
       <GoogleAnalytics />
       {/* Desktop Header */}
-      <header className="hidden md:block bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-300">
+      <header className="hidden md:block bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-300 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/" className="flex items-center gap-2 mr-6">
@@ -162,13 +169,29 @@ export default memo(function Layout() {
 
       {/* Mobile Header */}
       <header className="md:hidden bg-[#f8f9fa] dark:bg-black px-6 pt-6 pb-2 flex justify-between items-center sticky top-0 z-40 transition-colors duration-300">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="bg-accent/10 p-1.5 rounded-lg">
-            <Scale className="w-5 h-5 text-accent" />
-          </div>
-        </Link>
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle Button - Mobile */}
+        <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="bg-accent/10 p-1.5 rounded-lg">
+              <Scale className="w-5 h-5 text-accent" />
+            </div>
+          </Link>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Mobile Menu Toggle Button */}
+          <motion.button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-slate-500 dark:text-slate-400 transition-colors rounded-full bg-white dark:bg-slate-900 shadow-sm"
+            aria-label={isMobileMenuOpen ? "Свернуть меню" : "Развернуть меню"}
+            title={isMobileMenuOpen ? "Свернуть меню" : "Показать меню"}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isMobileMenuOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <Menu className="w-4 h-4" />
+            )}
+          </motion.button>
+          {/* Theme Toggle Button - Mobile */}
             <motion.button
               onClick={() => setIsDark(!isDark)} 
               initial={{ rotate: 0 }}
@@ -217,35 +240,59 @@ export default memo(function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8 pb-28 md:pb-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8 pb-28 md:pb-12 overflow-hidden">
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <motion.nav 
-        className="md:hidden fixed bottom-0 w-full bg-slate-900 dark:bg-slate-900 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] px-4 py-4 flex justify-between items-center z-50 transition-colors duration-300 border-t border-slate-800"
-        variants={navContainerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-          return (
-            <motion.div key={item.path} variants={navItemVariants} className="flex-1">
-              <Link
-                to={item.path}
-                className={`flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-purple-500' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                <div className={`p-2 rounded-2xl transition-all ${isActive ? 'bg-purple-500/10' : ''}`}>
-                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${isActive ? 'fill-purple-500/20' : ''}`} />
-                </div>
-                <span className="text-[10px] font-medium">{item.label}</span>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </motion.nav>
+      {/* Mobile Bottom Navigation - Collapsible */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.nav 
+            className="md:hidden fixed bottom-0 w-full bg-slate-900 dark:bg-slate-900 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] px-4 py-4 flex justify-between items-center z-50 transition-colors duration-300 border-t border-slate-800"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+              return (
+                <motion.div key={item.path} variants={navItemVariants} className="flex-1">
+                  <Link
+                    to={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-purple-500' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    <div className={`p-2 rounded-2xl transition-all ${isActive ? 'bg-purple-500/10' : ''}`}>
+                      <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${isActive ? 'fill-purple-500/20' : ''}`} />
+                    </div>
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </motion.nav>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile collapsed menu indicator */}
+      {!isMobileMenuOpen && (
+        <motion.div 
+          className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-xs font-medium rounded-full shadow-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Menu className="w-3 h-3" />
+            Меню
+          </button>
+        </motion.div>
+      )}
 
       {/* Footer - Desktop */}
       <footer className="hidden md:block bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto transition-colors duration-300">
@@ -295,14 +342,9 @@ export default memo(function Layout() {
                   </Link>
                 </li>
                 <li>
-                  <a href="https://ej.cvr.name" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
-                    Электронный журнал
-                  </a>
-                </li>
-                <li>
-                  <a href="https://online.cvr.name" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
                     Онлайн-консультация
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -334,6 +376,16 @@ export default memo(function Layout() {
                 <li>
                   <Link to="/leads" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
                     Заявки юристам
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                    ИИ-Юрист
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/documents" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                    Документы
                   </Link>
                 </li>
               </ul>

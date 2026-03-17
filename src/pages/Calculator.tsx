@@ -1,11 +1,30 @@
-import { useState, useEffect } from 'react';
-import { FileText, ArrowRight, Calculator as CalcIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { FileText, ArrowRight, Calculator as CalcIcon, ChevronDown, Search, Loader2 } from 'lucide-react';
 import { useSeo } from '../hooks/useSeo';
+import { courts } from '../lib/supabase';
+import { Court } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
+import SafeLink from '../components/SafeLink';
 
 type CourtType = 'common' | 'arbitration';
 type PlaintiffType = 'individual' | 'company';
 type ClaimType = 'property' | 'property_no_value' | 'non_property';
 type DiscountType = 'none' | 'minus25k' | '30percent' | '50percent';
+type SelectedCourt = {
+  id: string;
+  name: string;
+  courtType: CourtType;
+};
+
+// Соответствие типов юрисдикции для судов
+const getCourtJurisdiction = (jurisdiction: string | null): CourtType => {
+  if (!jurisdiction) return 'common';
+  const j = jurisdiction.toLowerCase();
+  if (j.includes('арбитраж') || j === 'arbitration') {
+    return 'arbitration';
+  }
+  return 'common';
+};
 
 // Расчет госпошлины для судов общей юрисдикции (ГПК РФ)
 const calculateCommonCourtFee = (amount: number, isCompany: boolean): number => {
@@ -78,6 +97,198 @@ const applyDiscount = (fee: number, discount: DiscountType): number => {
   }
 };
 
+// Реквизиты суда для квитанции
+interface CourtRequisites {
+  name: string;
+  bik: string;
+  inn: string;
+  kpp: string;
+  account: string;
+  correspondentAccount: string;
+  bankName: string;
+  okato: string;
+  kb: string;
+}
+
+// Дефолтные реквизиты для случаев без выбора суда или без реквизитов в базе
+const defaultCourtRequisites: CourtRequisites = {
+  name: 'Мировой суд',
+  bik: '044525000',
+  inn: '7702019950',
+  kpp: '770201001',
+  account: '03100643000000017300',
+  correspondentAccount: '40102810845370000003',
+  bankName: 'ГУ Банка России по ЦФО',
+  okato: '45286555',
+  kb: '18210803010011000110'
+};
+
+// Форматирование значения для квитанции (добавляет прочерк для пустых значений)
+const formatRequisite = (value: string | undefined): string => {
+  return value && value.trim() ? value : '—';
+};
+
+// Генерация квитанции госпошлины
+const generateDutyReceipt = (
+  amount: number,
+  courtType: CourtType,
+  plaintiffType: PlaintiffType,
+  claimType: ClaimType,
+  claimAmount: number | undefined,
+  courtRequisites: CourtRequisites,
+  payerName: string
+): string => {
+  const court = courtRequisites;
+  
+  const isCompany = plaintiffType === 'company';
+  const plaintiffTypeLabel = isCompany ? 'Юридическое лицо' : 'Физическое лицо';
+  
+  let claimTypeLabel = '';
+  switch (claimType) {
+    case 'property':
+      claimTypeLabel = `Имущественное требование (цена иска: ${(claimAmount || 0).toLocaleString('ru-RU')} руб.)`;
+      break;
+    case 'property_no_value':
+      claimTypeLabel = 'Имущественное требование без оценки';
+      break;
+    case 'non_property':
+      claimTypeLabel = 'Неимущественное требование';
+      break;
+  }
+
+  const dateStr = new Date().toLocaleDateString('ru-RU');
+  const html = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Квитанция об уплате государственной пошлины</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 5px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 18px; text-align: center; margin-bottom: 15px; font-weight: 700; }
+    .field { margin-bottom: 12px; }
+    .label { font-size: 11px; color: #6c757d; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+    .value { font-size: 14px; font-weight: 600; color: #212529; padding: 8px 0; border-bottom: 1px solid #dee2e6; }
+    .amount-box { background-color: #f8f9fa; padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0; }
+    .amount-label { font-size: 11px; color: #6c757d; margin-bottom: 3px; }
+    .amount-value { font-size: 13px; font-weight: 700; color: #212529; }
+    .amount-value span { color: #5856d6; font-size: 15px; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 11px; color: #6c757d; text-align: center; }
+    @media print { 
+      body { 
+        background-color: #fff; 
+        padding: 0;
+        margin: 0;
+      } 
+      .container { 
+        box-shadow: none; 
+        padding: 10px;
+        margin: 0;
+      } 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>КВИТАНЦИЯ об уплате государственной пошлины</h1>
+    
+    <div class="field">
+      <div class="label">Наименование суда</div>
+      <div class="value">${formatRequisite(court.name)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">ИНН</div>
+      <div class="value">${formatRequisite(court.inn)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">КПП</div>
+      <div class="value">${formatRequisite(court.kpp)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">Наименование банка</div>
+      <div class="value">${formatRequisite(court.bankName)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">БИК</div>
+      <div class="value">${formatRequisite(court.bik)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">Номер счёта получателя платежа</div>
+      <div class="value">${formatRequisite(court.account)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">Номер корреспондентского счёта банка</div>
+      <div class="value">${formatRequisite(court.correspondentAccount)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">ОКТМО</div>
+      <div class="value">${formatRequisite(court.okato)}</div>
+    </div>
+    
+    <div class="amount-box">
+      <div class="amount-value">Сумма государственной пошлины: <span>${amount.toLocaleString('ru-RU')}</span> руб.</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">Плательщик</div>
+      <div class="value">${payerName} (${plaintiffTypeLabel})</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">Вид платежа</div>
+      <div class="value">${claimTypeLabel}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">КБК</div>
+      <div class="value">${formatRequisite(court.kb)}</div>
+    </div>
+    
+    <div class="field">
+      <div class="label">Дата уплаты</div>
+      <div class="value">${dateStr}</div>
+    </div>
+    
+    <div class="footer">
+      <p style="color: #dc2626; font-weight: bold;">⚠️ ВНИМАНИЕ: Квитанция сформирована автоматически. Перед оплатой обязательно проверьте все реквизиты на официальном сайте суда!</p>
+    </div>
+  </div>
+  
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>
+  `;
+  
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+  
+  return html;
+};
+
 export default function Calculator() {
   const { setSeo } = useSeo('/calculator');
   const [amount, setAmount] = useState('');
@@ -87,6 +298,16 @@ export default function Calculator() {
   const [claimType, setClaimType] = useState<ClaimType>('property');
   const [discount, setDiscount] = useState<DiscountType>('none');
   const [calculationDetails, setCalculationDetails] = useState<string>('');
+  const [selectedCourt, setSelectedCourt] = useState<SelectedCourt | null>(null);
+  const [payerName, setPayerName] = useState('');
+  
+  // Состояния для dropdown с поиском судов
+  const [courtList, setCourtList] = useState<Court[]>([]);
+  const [filteredCourts, setFilteredCourts] = useState<Court[]>([]);
+  const [courtSearch, setCourtSearch] = useState('');
+  const [showCourtDropdown, setShowCourtDropdown] = useState(false);
+  const [isLoadingCourts, setIsLoadingCourts] = useState(false);
+  const courtDropdownRef = useRef<HTMLDivElement>(null);
 
   // Установка SEO мета тегов
   useEffect(() => {
@@ -98,6 +319,55 @@ export default function Calculator() {
       ogDescription: 'Удобный калькулятор для расчёта государственной пошлины.',
     });
   }, [setSeo]);
+
+  // Загрузка списка судов
+  useEffect(() => {
+    loadCourts();
+  }, []);
+
+  // Фильтрация судов по поиску
+  useEffect(() => {
+    if (courtSearch.trim()) {
+      const searchLower = courtSearch.toLowerCase();
+      const filtered = courtList.filter(court => 
+        court.name.toLowerCase().includes(searchLower)
+      );
+      setFilteredCourts(filtered);
+    } else {
+      setFilteredCourts([]);
+    }
+  }, [courtSearch, courtList]);
+
+  // Закрытие dropdown при клике вне
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (courtDropdownRef.current && !courtDropdownRef.current.contains(event.target as Node)) {
+        setShowCourtDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const loadCourts = async () => {
+    setIsLoadingCourts(true);
+    const { data, error } = await courts.getAll();
+    if (data) {
+      setCourtList(data);
+    }
+    setIsLoadingCourts(false);
+  };
+
+  const handleCourtSelect = (court: Court) => {
+    const jurisdiction = getCourtJurisdiction(court.jurisdiction);
+    setSelectedCourt({
+      id: court.id,
+      name: court.name,
+      courtType: jurisdiction
+    });
+    setCourtSearch(court.name);
+    setShowCourtDropdown(false);
+  };
 
   const calculateFee = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,11 +413,83 @@ export default function Calculator() {
     setAmount('');
     setResult(null);
     setCourtType('common');
+    setSelectedCourt(null);
+    setCourtSearch('');
     setPlaintiffType('individual');
     setClaimType('property');
     setDiscount('none');
     setCalculationDetails('');
+    setPayerName('');
   };
+
+  // Обработчик кнопки "Квитанция"
+  const handleGenerateReceipt = () => {
+    if (result === null) return;
+    
+    // Проверка заполнения имени плательщика
+    if (!payerName.trim()) {
+      alert('Пожалуйста, введите ФИО плательщика (для физического лица) или наименование организации (для юридического лица)');
+      return;
+    }
+    
+    // Проверка выбора суда - это обязательно для получения корректных реквизитов
+    if (!selectedCourt) {
+      alert('Пожалуйста, выберите суд из списка. Квитанция должна содержать реквизиты конкретного суда, в который подаётся иск.');
+      return;
+    }
+    
+    // Получаем реквизиты выбранного суда
+    const court = courtList.find(c => c.id === selectedCourt?.id);
+    
+    if (!court) {
+      alert('Суд не найден в базе данных. Пожалуйста, выберите суд из списка.');
+      return;
+    }
+    
+    // Проверяем, есть ли у суда реквизиты в базе данных
+    const hasRequisites = (
+      court.recipient_bik || 
+      court.recipient_inn || 
+      court.recipient_kpp || 
+      court.recipient_account || 
+      court.recipient_bank || 
+      court.treasury_account || 
+      court.oktmo || 
+      court.kbk
+    );
+    
+    // Если реквизиты отсутствуют - сообщаем пользователю и не даём сформировать квитанцию
+    if (!hasRequisites) {
+      alert('У выбранного суда отсутствуют реквизиты в базе данных. Пожалуйста, выберите другой суд или обратитесь к администратору для добавления реквизитов.');
+      return;
+    }
+    
+    const courtRequisites: CourtRequisites = {
+      name: court.name,
+      bik: court.recipient_bik || '',
+      inn: court.recipient_inn || '',
+      kpp: court.recipient_kpp || '',
+      account: court.recipient_account || '',
+      correspondentAccount: court.treasury_account || '',
+      bankName: court.recipient_bank || '',
+      okato: court.oktmo || '',
+      kb: court.kbk || ''
+    };
+    
+    const claimAmount = claimType === 'property' ? parseFloat(amount) : undefined;
+    generateDutyReceipt(
+      result,
+      courtType,
+      plaintiffType,
+      claimType,
+      claimAmount,
+      courtRequisites,
+      payerName
+    );
+  };
+
+  // Обработчик кнопки "Оплатить" - перенаправление на официальный сайт госпошлины
+  // Теперь используется SafeLink в JSX
 
   return (
     <div className="space-y-6 transition-colors duration-300">
@@ -159,31 +501,90 @@ export default function Calculator() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden max-w-4xl mx-auto border border-transparent dark:border-slate-800 transition-colors">
-        <div className="p-6 sm:p-8">
-          <form onSubmit={calculateFee} className="space-y-5 sm:space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+        <div className="p-4 sm:p-8">
+          <form onSubmit={calculateFee} className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Тип суда
                 </label>
                 <select 
                   value={courtType}
                   onChange={(e) => setCourtType(e.target.value as CourtType)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
                 >
                   <option value="common">Суд общей юрисдикции (ГПК РФ)</option>
                   <option value="arbitration">Арбитражный суд (АПК РФ)</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Суд
+                </label>
+                <div className="relative" ref={courtDropdownRef}>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={courtSearch}
+                      onChange={(e) => {
+                        setCourtSearch(e.target.value);
+                        setShowCourtDropdown(true);
+                      }}
+                      onFocus={() => setShowCourtDropdown(true)}
+                      placeholder="Поиск суда..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 py-2 pl-10 pr-4 rounded-lg border border-transparent focus:border-accent/30 focus:outline-none focus:ring-2 focus:ring-accent/20 text-xs font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <AnimatePresence>
+                    {showCourtDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto z-50 border border-slate-200 dark:border-slate-700"
+                      >
+                        {isLoadingCourts ? (
+                          <div className="p-4 flex items-center justify-center">
+                            <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                          </div>
+                        ) : filteredCourts.length > 0 ? (
+                          filteredCourts.map(court => (
+                            <div
+                              key={court.id}
+                              onClick={() => handleCourtSelect(court)}
+                              className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-xs border-b border-slate-100 dark:border-slate-700 last:border-0"
+                            >
+                              <div className="font-medium text-slate-900 dark:text-white">{court.name}</div>
+                              {court.full_address && (
+                                <div className="text-slate-500 dark:text-slate-400 text-[10px] mt-0.5 truncate">{court.full_address}</div>
+                              )}
+                            </div>
+                          ))
+                        ) : courtSearch.trim() ? (
+                          <div className="p-4 text-xs text-slate-500 dark:text-slate-400">
+                            Суд не найден. Попробуйте изменить запрос.
+                          </div>
+                        ) : (
+                          <div className="p-4 text-xs text-slate-500 dark:text-slate-400">
+                            Введите название суда для поиска
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Истец
                 </label>
                 <select 
                   value={plaintiffType}
                   onChange={(e) => setPlaintiffType(e.target.value as PlaintiffType)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
                 >
                   <option value="individual">Физическое лицо</option>
                   <option value="company">Юридическое лицо</option>
@@ -191,14 +592,27 @@ export default function Calculator() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {plaintiffType === 'individual' ? 'ФИО плательщика' : 'Наименование организации'}
+              </label>
+              <input
+                type="text"
+                value={payerName}
+                onChange={(e) => setPayerName(e.target.value)}
+                placeholder={plaintiffType === 'individual' ? 'Иванов Иван Иванович' : 'ООО "Ромашка"'}
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Тип требования
               </label>
               <select 
                 value={claimType}
                 onChange={(e) => setClaimType(e.target.value as ClaimType)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
               >
                 <option value="property">Имущественное (с оценкой)</option>
                 <option value="property_no_value">Имущественное (без оценки)</option>
@@ -207,8 +621,8 @@ export default function Calculator() {
             </div>
 
             {claimType === 'property' && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Цена иска (руб.)
                 </label>
                 <div className="relative">
@@ -219,76 +633,76 @@ export default function Calculator() {
                     placeholder="Например: 150000"
                     min="0"
                     step="1"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-bold">₽</span>
                 </div>
               </div>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Льготы (применимы)
               </label>
-              <div className="flex flex-wrap gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex flex-wrap gap-1.5">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="radio"
                     name="discount"
                     value="none"
                     checked={discount === 'none'}
                     onChange={(e) => setDiscount(e.target.value as DiscountType)}
-                    className="w-4 h-4 text-accent focus:ring-accent"
+                    className="w-3 h-3 text-accent focus:ring-accent"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Нет</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Нет</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="radio"
                     name="discount"
                     value="minus25k"
                     checked={discount === 'minus25k'}
                     onChange={(e) => setDiscount(e.target.value as DiscountType)}
-                    className="w-4 h-4 text-accent focus:ring-accent"
+                    className="w-3 h-3 text-accent focus:ring-accent"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">−25 000 ₽</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">−25к</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="radio"
                     name="discount"
                     value="30percent"
                     checked={discount === '30percent'}
                     onChange={(e) => setDiscount(e.target.value as DiscountType)}
-                    className="w-4 h-4 text-accent focus:ring-accent"
+                    className="w-3 h-3 text-accent focus:ring-accent"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">30%</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">30%</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="radio"
                     name="discount"
                     value="50percent"
                     checked={discount === '50percent'}
                     onChange={(e) => setDiscount(e.target.value as DiscountType)}
-                    className="w-4 h-4 text-accent focus:ring-accent"
+                    className="w-3 h-3 text-accent focus:ring-accent"
                   />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">50%</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">50%</span>
                 </label>
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button 
                 type="submit" 
-                className="flex-1 bg-accent hover:bg-accent-light text-white rounded-2xl py-4 font-bold text-sm transition-colors shadow-lg shadow-accent/30"
+                className="flex-1 bg-accent hover:bg-accent-light text-white rounded-lg py-2 font-bold text-xs transition-colors shadow-sm"
               >
-                Рассчитать пошлину
+                Рассчитать
               </button>
               <button 
                 type="button"
                 onClick={resetCalculator}
-                className="px-6 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl py-4 font-bold text-sm transition-colors"
+                className="px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg py-2 font-bold text-xs transition-colors"
               >
                 Очистить
               </button>
@@ -297,31 +711,45 @@ export default function Calculator() {
         </div>
 
         {result !== null && (
-          <div className="bg-slate-900 dark:bg-slate-950 p-6 sm:p-8 text-white border-t border-slate-800 transition-colors">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="bg-slate-900 dark:bg-slate-950 p-3 sm:p-8 text-white border-t border-slate-800 transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6">
               <div className="text-center sm:text-left">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Размер пошлины</p>
-                <p className="text-4xl sm:text-5xl font-extrabold tracking-tight">
+                <p className="text-2xl sm:text-5xl font-extrabold tracking-tight">
                   {result.toLocaleString('ru-RU')} <span className="text-accent">₽</span>
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 sm:w-auto w-full">
-                <button className="flex-1 sm:flex-none sm:px-6 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5">
-                  <FileText className="w-4 h-4" />
+              <div className="flex gap-2 sm:gap-3 sm:w-auto w-full">
+                <button 
+                  onClick={handleGenerateReceipt}
+                  className="flex-1 sm:flex-none px-3 bg-white/10 hover:bg-white/20 text-white py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                >
+                  <FileText className="w-3 h-3" />
                   Квитанция
                 </button>
-                <button className="flex-1 sm:flex-none sm:px-8 bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-accent/30">
-                  Оплатить <ArrowRight className="w-4 h-4" />
-                </button>
+                <SafeLink 
+                  href="https://www.gosuslugi.ru/category/payment"
+                  className="flex-1 sm:flex-none px-4 bg-accent hover:bg-accent-light text-white py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 shadow-sm"
+                >
+                  Госуслуги <ArrowRight className="w-3 h-3" />
+                </SafeLink>
               </div>
             </div>
             
             {calculationDetails && (
-              <div className="mt-6 pt-6 border-t border-slate-800">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Детали расчета</p>
-                <p className="text-sm text-slate-300 whitespace-pre-line">{calculationDetails}</p>
+              <div className="mt-3 pt-3 border-t border-slate-800">
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Детали расчета</p>
+                <p className="text-xs text-slate-300 whitespace-pre-line">{calculationDetails}</p>
               </div>
             )}
+
+            {/* Предупреждение о проверке реквизитов */}
+            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <p className="text-xs text-amber-200">
+                ⚠️ <strong>Внимание:</strong> Все реквизиты в квитанции предоставлены автоматически и могут содержать ошибки. 
+                Перед оплатой обязательно проверьте реквизиты на официальном сайте суда!
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -311,10 +311,10 @@ async function parseCase(url) {
   try {
     console.log('Trying direct fetch first...');
     
-    const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
+    const fetchWithTimeout = async (url, options = {}, timeout = 20000) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
-      
+
       try {
         const response = await fetch(url, { ...options, signal: controller.signal });
         clearTimeout(id);
@@ -324,7 +324,7 @@ async function parseCase(url) {
         throw error;
       }
     };
-    
+
     const response = await retryWithBackoff(
       () => fetchWithTimeout(url, {
         headers: {
@@ -332,9 +332,9 @@ async function parseCase(url) {
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
         }
-      }, 30000),
-      3,
-      2000
+      }, 20000), // 20 seconds for direct fetch (faster fallback to Puppeteer)
+      2, // Reduce retries to speed up fallback
+      1500
     );
     
     if (!response.ok) {
@@ -383,11 +383,11 @@ async function parseCase(url) {
           headless: 'new',
           args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
         });
-        
+
         const page = await browser.newPage();
-        await page.setDefaultNavigationTimeout(60000);
-        
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.setDefaultNavigationTimeout(90000); // 90 seconds
+
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 75000 }); // 75 seconds for slow court sites
 
         try {
           await page.waitForSelector('#cont1 table#tablcont, #cont1 table, .case-info', { timeout: 30000 });
@@ -763,8 +763,8 @@ app.post('/add-case-manual', async (req, res) => {
 
 app.post('/parse-case', async (req, res) => {
   console.log('Received request:', req.body);
-  
-  req.setTimeout(120000, () => {
+
+  req.setTimeout(180000, () => { // 180 seconds (3 minutes) for full parsing chain
     console.error('Request timeout');
     res.status(504).json({ error: 'Превышен таймаут запроса. Судный сайт работает медленно, попробуйте позже.' });
   });
@@ -1193,30 +1193,56 @@ app.put('/api/seo/:pagePath(*)', async (req, res) => {
 
 app.get('/sitemap.xml', async (req, res) => {
   try {
+    console.log('Generating dynamic sitemap...');
+    
     const baseUrl = process.env.SERVER_URL || 'https://cvr.name';
     let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
     sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
-    const pages = [
+    const staticPages = [
       { path: '/', priority: '1.0', frequency: 'daily' },
-      { path: '/lawyers', priority: '0.9', frequency: 'daily' },
-      { path: '/cases', priority: '0.9', frequency: 'daily' },
+      { path: '/search', priority: '0.9', frequency: 'daily' },
+      { path: '/lawyers', priority: '0.8', frequency: 'weekly' },
+      { path: '/calculator', priority: '0.8', frequency: 'monthly' },
       { path: '/blog', priority: '0.8', frequency: 'weekly' },
-      { path: '/monitoring', priority: '0.8', frequency: 'daily' },
-      { path: '/leads', priority: '0.7', frequency: 'daily' },
-      { path: '/calculator', priority: '0.7', frequency: 'monthly' },
-      { path: '/help', priority: '0.6', frequency: 'monthly' },
-      { path: '/profile', priority: '0.5', frequency: 'weekly' },
-      { path: '/login', priority: '0.3', frequency: 'yearly' }
+      { path: '/help', priority: '0.7', frequency: 'monthly' },
+      { path: '/login', priority: '0.6', frequency: 'monthly' },
+      { path: '/taxpayer', priority: '0.8', frequency: 'daily' },
+      { path: '/privacy', priority: '0.5', frequency: 'monthly' },
     ];
     
-    for (const page of pages) {
+    for (const page of staticPages) {
       sitemap += `  <url>\n`;
       sitemap += `    <loc>${baseUrl}${page.path}</loc>\n`;
       sitemap += `    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n`;
       sitemap += `    <changefreq>${page.frequency}</changefreq>\n`;
       sitemap += `    <priority>${page.priority}</priority>\n`;
       sitemap += `  </url>\n`;
+    }
+    
+    // Add blog posts from database
+    if (supabase) {
+      console.log('Fetching published blog posts from database...');
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('id, created_at, updated_at')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.warn('Error fetching blog posts:', error.message);
+      } else if (data && data.length > 0) {
+        console.log(`Adding ${data.length} blog posts to sitemap`);
+        data.forEach(post => {
+          const lastmod = post.updated_at ? new Date(post.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+          sitemap += `  <url>\n`;
+          sitemap += `    <loc>${baseUrl}/blog?post=${post.id}</loc>\n`;
+          sitemap += `    <lastmod>${lastmod}</lastmod>\n`;
+          sitemap += `    <changefreq>weekly</changefreq>\n`;
+          sitemap += `    <priority>0.7</priority>\n`;
+          sitemap += `  </url>\n`;
+        });
+      }
     }
     
     sitemap += '</urlset>';

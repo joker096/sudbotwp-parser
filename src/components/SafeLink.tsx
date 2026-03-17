@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useExternalLinksAdSettings } from '../hooks/useExternalLinksAdSettings';
 
 interface SafeLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
   children: React.ReactNode;
+  /** Отключить рекламу для этой ссылки (например, для партнёрских ссылок) */
+  noAd?: boolean;
 }
 
 /**
  * Компонент SafeLink - безопасная ссылка с автоматическим добавлением 
- * rel="nofollow noopener noreferrer" для внешних ссылок и предупреждением
+ * rel="nofollow noopener noreferrer" для внешних ссылок и настраиваемым
+ * показом рекламы при переходе.
+ * 
+ * Поддерживает 3 режима:
+ * - modal: показ модального окна с рекламой перед переходом
+ * - direct: прямой переход без рекламы
+ * - interstitial: межстраничная реклама (переход с задержкой)
  */
-export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkProps) {
-  const [showWarning, setShowWarning] = useState(false);
+export function SafeLink({ href, children, rel, onClick, noAd = false, ...props }: SafeLinkProps) {
+  const [showModal, setShowModal] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const { settings, isLoading } = useExternalLinksAdSettings();
   
   const isExternal = href.startsWith('http://') || href.startsWith('https://');
   const isAnchor = href.startsWith('#');
@@ -24,7 +35,7 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
     href.includes('court') || 
     href.includes('sud') ||
     (href.includes('rf') && href.includes('.'))
-  );
+  ) && !href.includes('gosuslugi');
   
   // Проверяем, является ли ссылкой на карты (Яндекс.Карты, Google Maps)
   const isMapLink = isExternal && (
@@ -34,35 +45,85 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
     href.includes('maps.yandex')
   );
   
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Для всех внешних ссылок показываем модальное окно с рекламой
-    if (isExternal) {
+  // Определяем, показывать ли рекламу
+  const shouldShowAd = !noAd && !isCourtLink && !isMapLink && settings.adEnabled;
+
+  // Обработчик клика для прямого перехода
+  const handleDirectClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (isExternal && shouldShowAd && settings.adType === 'direct') {
+      // Для прямого перехода просто открываем ссылку
+      if (onClick) {
+        onClick(e);
+      }
+      // Ссылка откроется сама, так как мы не вызываем preventDefault
+      return;
+    }
+    
+    if (isExternal && shouldShowAd && settings.adType === 'interstitial') {
       e.preventDefault();
       setPendingHref(href);
-      setShowWarning(true);
+      setCountdown(3); // 3 секунды ожидания
+      setShowModal(true);
       
       if (onClick) {
         onClick(e);
       }
+      return;
+    }
+    
+    if (isExternal && shouldShowAd && settings.adType === 'modal') {
+      e.preventDefault();
+      setPendingHref(href);
+      setShowModal(true);
+      
+      if (onClick) {
+        onClick(e);
+      }
+      return;
     }
   };
-  
+
+  // Обработчик перехода
   const handleProceed = () => {
-    setShowWarning(false);
+    setShowModal(false);
     if (pendingHref) {
       window.open(pendingHref, '_blank');
       setPendingHref(null);
     }
   };
-  
+
   const handleCancel = () => {
-    setShowWarning(false);
+    setShowModal(false);
     setPendingHref(null);
+    setCountdown(0);
   };
-  
+
+  // Обработчик для CTA кнопки
+  const handleCtaClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowModal(false);
+    setPendingHref(null);
+    setCountdown(0);
+    // Переходим по CTA URL
+    window.location.href = settings.ctaUrl;
+  };
+
+  // Таймер для interstitial режима
+  useEffect(() => {
+    if (showModal && settings.adType === 'interstitial' && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showModal && settings.adType === 'interstitial' && countdown === 0 && pendingHref) {
+      // Автоматический переход после таймера
+      handleProceed();
+    }
+  }, [showModal, countdown, pendingHref, settings.adType]);
+
   // Для внешних ссылок добавляем rel="nofollow noopener noreferrer"
-  // Модальное окно показываем для всех внешних ссылок
-  if (isExternal) {
+  if (isExternal && !noAd) {
     const securityRel = 'nofollow noopener noreferrer';
     const customRel = rel ? `${rel} ${securityRel}` : securityRel;
     
@@ -72,13 +133,13 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
           href={href} 
           rel={customRel} 
           target="_blank"
-          onClick={handleClick}
+          onClick={handleDirectClick}
           {...props}
         >
           {children}
         </a>
         
-        {showWarning && (
+        {showModal && !isLoading && (
           <div className="modal-overlay" onClick={handleCancel} style={{
             position: 'fixed',
             top: 0,
@@ -100,31 +161,35 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}>
-              <div style={{
-                backgroundColor: '#fff3cd',
-                border: '1px solid #ffc107',
-                borderRadius: '8px',
-                padding: '16px',
-                marginBottom: '20px',
-              }}>
-                <h3 style={{
-                  margin: '0 0 8px 0',
-                  color: '#856404',
-                  fontSize: '18px',
-                  fontWeight: 600,
+              {/* Предупреждение о переходе */}
+              {settings.showWarning && (
+                <div style={{
+                  backgroundColor: '#fff3cd',
+                  border: '1px solid #ffc107',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginBottom: '20px',
                 }}>
-                  ⚠️ Внимание!
-                </h3>
-                <p style={{
-                  margin: 0,
-                  color: '#856404',
-                  fontSize: '14px',
-                  lineHeight: 1.5,
-                }}>
-                  Вы переходите на внешний сайт. Мы не несем ответственности за информацию, размещенную на сторонних ресурсах.
-                </p>
-              </div>
+                  <h3 style={{
+                    margin: '0 0 8px 0',
+                    color: '#856404',
+                    fontSize: '18px',
+                    fontWeight: 600,
+                  }}>
+                    ⚠️ Внимание!
+                  </h3>
+                  <p style={{
+                    margin: 0,
+                    color: '#856404',
+                    fontSize: '14px',
+                    lineHeight: 1.5,
+                  }}>
+                    Вы переходите на внешний сайт. Мы не несем ответственности за информацию, размещенную на сторонних ресурсах.
+                  </p>
+                </div>
+              )}
               
+              {/* Рекламный блок */}
               <div style={{
                 background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)',
                 borderRadius: '12px',
@@ -145,10 +210,10 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
                   fontSize: '14px',
                   lineHeight: 1.5,
                 }}>
-                  Хотите получать уведомления о новых событиях по вашему делу?
+                  {settings.adText}
                 </p>
                 <a 
-                  href="/monitoring" 
+                  href={settings.ctaUrl}
                   style={{
                     display: 'inline-block',
                     fontSize: '13px',
@@ -156,16 +221,13 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
                     color: '#059669',
                     textDecoration: 'underline',
                   }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleCancel();
-                    window.location.href = '/monitoring';
-                  }}
+                  onClick={handleCtaClick}
                 >
-                  Подключить мониторинг →
+                  {settings.ctaText} →
                 </a>
               </div>
               
+              {/* Кнопки действий */}
               <div style={{
                 display: 'flex',
                 gap: '12px',
@@ -188,18 +250,21 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
                 </button>
                 <button
                   onClick={handleProceed}
+                  disabled={settings.adType === 'interstitial' && countdown > 0}
                   style={{
                     padding: '10px 20px',
                     borderRadius: '6px',
                     border: 'none',
-                    backgroundColor: '#007bff',
+                    backgroundColor: countdown > 0 ? '#ccc' : '#007bff',
                     color: 'white',
                     fontSize: '14px',
-                    cursor: 'pointer',
+                    cursor: countdown > 0 ? 'not-allowed' : 'pointer',
                     fontWeight: 500,
                   }}
                 >
-                  Перейти
+                  {settings.adType === 'interstitial' 
+                    ? `Переход через ${countdown}...` 
+                    : 'Перейти'}
                 </button>
               </div>
             </div>
@@ -209,6 +274,24 @@ export function SafeLink({ href, children, rel, onClick, ...props }: SafeLinkPro
     );
   }
   
+  // Для внешних ссылок без рекламы (noAd=true)
+  if (isExternal && noAd) {
+    const securityRel = 'noopener noreferrer';
+    const customRel = rel ? `${rel} ${securityRel}` : securityRel;
+    
+    return (
+      <a 
+        href={href} 
+        rel={customRel} 
+        target="_blank"
+        onClick={onClick}
+        {...props}
+      >
+        {children}
+      </a>
+    );
+  }
+
   // Для якорных ссылок, тел и mailto - стандартные атрибуты
   return (
     <a href={href} {...props}>

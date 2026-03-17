@@ -29,23 +29,46 @@ CREATE POLICY "Public read published posts"
     ON blog_posts FOR SELECT
     USING (published = true);
 
--- Только авторизованные могут читать все статьи
+-- Только авторизованные могут читать все статьи (в том числе черновики)
 CREATE POLICY "Auth read all posts"
     ON blog_posts FOR SELECT
     USING (auth.role() = 'authenticated');
 
--- Только админы могут создавать/обновлять/удалять
+-- Только админы могут создавать статьи
 CREATE POLICY "Admin insert posts"
     ON blog_posts FOR INSERT
-    WITH CHECK (auth.role() = 'authenticated');
+    WITH CHECK (
+        auth.role() = 'authenticated' AND
+        (
+            SELECT role FROM profiles WHERE id = auth.uid()
+        ) = 'admin'
+    );
 
+-- Только админы могут обновлять статьи
 CREATE POLICY "Admin update posts"
     ON blog_posts FOR UPDATE
-    USING (auth.role() = 'authenticated');
+    USING (
+        auth.role() = 'authenticated' AND
+        (
+            SELECT role FROM profiles WHERE id = auth.uid()
+        ) = 'admin'
+    )
+    WITH CHECK (
+        auth.role() = 'authenticated' AND
+        (
+            SELECT role FROM profiles WHERE id = auth.uid()
+        ) = 'admin'
+    );
 
+-- Только админы могут удалять статьи
 CREATE POLICY "Admin delete posts"
     ON blog_posts FOR DELETE
-    USING (auth.role() = 'authenticated');
+    USING (
+        auth.role() = 'authenticated' AND
+        (
+            SELECT role FROM profiles WHERE id = auth.uid()
+        ) = 'admin'
+    );
 
 -- Индексы для производительности
 CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published) WHERE published = true;

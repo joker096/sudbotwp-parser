@@ -22,8 +22,11 @@ const Help = lazy(() => import('./pages/Help'));
 const Login = lazy(() => import('./pages/Login'));
 const Messages = lazy(() => import('./pages/Messages'));
 const Profile = lazy(() => import('./pages/Profile'));
+const AILawyer = lazy(() => import('./pages/AILawyer'));
+const DocumentsLibrary = lazy(() => import('./pages/DocumentsLibrary'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const TestEditor = lazy(() => import('./pages/TestEditor'));
 
 export default function App() {
   return (
@@ -40,12 +43,28 @@ export default function App() {
                   <Route path="lawyers" element={<Lawyers />} />
                   <Route path="calculator" element={<Calculator />} />
                   <Route path="blog" element={<Blog />} />
-                  <Route path="admin/blog" element={<AdminBlog />} />
-                  <Route path="admin/blog/:id" element={<AdminBlog />} />
+                  <Route path="blog/:slug" element={<Blog />} />
+                   <Route 
+                     path="admin/blog" 
+                     element={
+                       <ProtectedRoute>
+                         <AdminBlog />
+                       </ProtectedRoute>
+                     } 
+                   />
+                   <Route 
+                     path="admin/blog/:id" 
+                     element={
+                       <ProtectedRoute>
+                         <AdminBlog />
+                       </ProtectedRoute>
+                     } 
+                   />
                   <Route path="help" element={<Help />} />
                   <Route path="login" element={<Login />} />
                   <Route path="taxpayer" element={<TaxpayerCheck />} />
                   <Route path="privacy" element={<Privacy />} />
+                  <Route path="test-editor" element={<TestEditor />} />
                   
                   {/* Protected routes */}
                   <Route 
@@ -77,6 +96,22 @@ export default function App() {
                     element={
                       <ProtectedRoute>
                         <Monitoring />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="ai-lawyer" 
+                    element={
+                      <ProtectedRoute>
+                        <AILawyer />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="documents" 
+                    element={
+                      <ProtectedRoute>
+                        <DocumentsLibrary />
                       </ProtectedRoute>
                     } 
                   />

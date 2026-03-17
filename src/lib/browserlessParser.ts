@@ -1,74 +1,12 @@
 /**
- * Парсинг через Browserless.io (облачный headless Chrome)
- * Fallback между клиентским парсингом и Edge Function
- * 
- * Требует: VITE_BROWSERLESS_TOKEN в .env
- * Стоимость: ~$0.005 за запрос (пакеты от $50/мес)
- * Надёжность: ~95% (ротация IP, полный Chrome)
+ * Парсинг через ScrapingBee и серверный fallback
+ * Fallback между клиентским парсингом и сервером
+ *
+ * Требует: VITE_SCRAPINGBEE_API_KEY в .env
  */
 
 import { ParsedCaseData } from './clientParser';
 
-const BROWSERLESS_TOKEN = import.meta.env.VITE_BROWSERLESS_TOKEN;
-const BROWSERLESS_URL = 'https://chrome.browserless.io/content';
-
-export function isBrowserlessConfigured(): boolean {
-  return !!BROWSERLESS_TOKEN && BROWSERLESS_TOKEN !== 'your_token_here';
-}
-
-export async function parseWithBrowserless(url: string): Promise<ParsedCaseData> {
-  if (!isBrowserlessConfigured()) {
-    throw new Error('Browserless not configured');
-  }
-
-  console.log('Parsing via Browserless:', url);
-
-  const response = await fetch(`${BROWSERLESS_URL}?token=${BROWSERLESS_TOKEN}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url,
-      gotoOptions: {
-        waitUntil: 'networkidle2',
-        timeout: 60000,
-      },
-      // Дополнительные опции для сложных сайтов
-      addStyleTag: [
-        { content: '* { scroll-behavior: auto !important; }' }
-      ],
-      setJavaScriptEnabled: true,
-      viewport: {
-        width: 1920,
-        height: 1080,
-      },
-      // Ждём загрузки таблиц с данными
-      waitForSelector: '#tablcont, .casenumber, #cont1',
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Browserless error:', response.status, errorText);
-    throw new Error(`Browserless error: ${response.status}`);
-  }
-
-  const html = await response.text();
-  
-  // Проверяем, что получили реальные данные, а не капчу/ошибку
-  if (html.includes('captcha') || html.includes('Доступ ограничен')) {
-    throw new Error('Browserless blocked by court site');
-  }
-
-  // Используем тот же парсер, что и для клиентского
-  const { parseCaseHtml } = await import('./clientParser');
-  return parseCaseHtml(html, url);
-}
-
-/**
- * Парсинг через ScrapingBee (альтернатива Browserless)
- */
 const SCRAPINGBEE_API_KEY = import.meta.env.VITE_SCRAPINGBEE_API_KEY;
 
 export function isScrapingBeeConfigured(): boolean {
@@ -103,41 +41,76 @@ export async function parseWithScrapingBee(url: string): Promise<ParsedCaseData>
 }
 
 /**
+ * Проверяет, является ли URL сайтом российского суда
+ * Сайты судов не поддерживают CORS, поэтому клиентский парсинг будет всегда падать
+ */
+function isCourtSite(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    // Проверяем домены судов
+    return hostname.includes('sudrf.ru') ||
+           hostname.includes('mos-sud.ru') ||
+           hostname.includes('arbitr.ru') ||
+           hostname.includes('msudrf.ru') ||
+           hostname.endsWith('.sudrf.ru');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Универсальная функция парсинга с полной цепочкой fallback
- * 
+ *
  * Priority:
- * 1. Клиентский парсинг (бесплатно)
- * 2. Browserless.io ($0.005/запрос)
- * 3. ScrapingBee (альтернатива)
- * 4. Edge Function/Local server (бесплатно)
- * 5. Ошибка с инструкцией
+ * 1. Клиентский парсинг (только для НЕ-судебных сайтов)
+ * 2. ScrapingBee клиент-side (если настроен)
+ * 3. Серверный парсинг (Render.com с ScrapingBee fallback)
+ * 4. Ошибка с инструкцией
  */
 export async function parseWithFullFallback(url: string): Promise<{
   data: ParsedCaseData | null;
   error: { message: string } | null;
-  source?: 'client' | 'browserless' | 'scrapingbee' | 'server';
+  source?: 'client' | 'scrapingbee' | 'server';
 }> {
   // Check what's configured
-  const browserlessConfigured = isBrowserlessConfigured();
   const scrapingbeeConfigured = isScrapingBeeConfigured();
-  
-  console.log('[Parse] Configuration check:', { browserlessConfigured, scrapingbeeConfigured });
-  
-  // 1. Client-side parsing (this might work for some court sites)
-  try {
-    console.log('[Parse] Trying client-side...');
-    const { parseCaseClient } = await import('./clientParser');
-    const data = await parseCaseClient(url);
-    console.log('[Parse] Client-side success');
-    return { data, error: null, source: 'client' };
-  } catch (clientError: any) {
-    console.log('[Parse] Client-side failed:', clientError.message);
+  const isCourt = isCourtSite(url);
+
+  console.log('[Parse] Configuration check:', { scrapingbeeConfigured, isCourtSite: isCourt });
+
+  // 1. Client-side parsing (только для не-судебных сайтов)
+  // Судебные сайты (sudrf.ru) не поддерживают CORS, поэтому пропускаем клиентский парсинг
+  if (!isCourt) {
+    try {
+      console.log('[Parse] Trying client-side...');
+      const { parseCaseClient } = await import('./clientParser');
+      const data = await parseCaseClient(url);
+      console.log('[Parse] Client-side success');
+      return { data, error: null, source: 'client' };
+    } catch (clientError: any) {
+      console.log('[Parse] Client-side failed:', clientError.message);
+    }
+  } else {
+    console.log('[Parse] Skipping client-side parsing for court site (CORS restriction)');
   }
 
-  // 2. Server-side parsing (Render.com server with Browserless/ScrapingBee support)
-  // This is the main fallback - it handles all the heavy lifting server-side
+  // 2. Try ScrapingBee client-side (if configured)
+  // Для судебных сайтов ScrapingBee тоже может не сработать из-за CORS на их стороне,
+  // но попробуем на всякий случай
+  if (scrapingbeeConfigured && !isCourt) {
+    try {
+      console.log('[Parse] Trying ScrapingBee client-side...');
+      const data = await parseWithScrapingBee(url);
+      console.log('[Parse] ScrapingBee client-side success');
+      return { data, error: null, source: 'scrapingbee' };
+    } catch (scrapingbeeError: any) {
+      console.log('[Parse] ScrapingBee client-side failed:', scrapingbeeError.message);
+    }
+  }
+
+  // 3. Server-side parsing (Render.com server with ScrapingBee support)
   try {
-    console.log('[Parse] Trying server-side (with Browserless/ScrapingBee)...');
+    console.log('[Parse] Trying server-side (with ScrapingBee)...');
     // Use Render.com server in production (no timeout limits like Supabase Edge Functions)
     const parseUrl = import.meta.env.DEV
       ? 'http://localhost:3000/parse-case'
@@ -146,7 +119,7 @@ export async function parseWithFullFallback(url: string): Promise<{
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     // Render.com server doesn't need Authorization header
     // Only add auth for Supabase Edge Functions (if still using them)
     const isSupabaseUrl = parseUrl.includes('supabase');
@@ -156,7 +129,7 @@ export async function parseWithFullFallback(url: string): Promise<{
 
     // Use AbortController with longer timeout for court sites
     const controller = new AbortController();
-    const timeoutMs = 120000; // 120 seconds for slow court sites with Browserless
+    const timeoutMs = 180000; // 180 seconds (3 minutes) for slow court sites with full fallback chain
     const timeoutId = setTimeout(() => {
       console.log('[Parse] Server-side timeout, aborting...');
       controller.abort();
@@ -182,7 +155,7 @@ export async function parseWithFullFallback(url: string): Promise<{
       return { data, error: null, source: 'server' };
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
-      
+
       // Check if it was aborted
       if (fetchError.name === 'AbortError') {
         console.log('[Parse] Server-side request aborted (timeout)');
@@ -194,7 +167,7 @@ export async function parseWithFullFallback(url: string): Promise<{
     console.log('[Parse] Server-side failed:', serverError.message);
   }
 
-  // 3. Everything failed - provide detailed error message
+  // 4. Everything failed - provide detailed error message
   return {
     data: null,
     error: {

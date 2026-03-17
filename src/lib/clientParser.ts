@@ -21,7 +21,7 @@ export interface ParsedCaseData {
   plaintiff: string;
   defendant: string;
   link: string;
-  judicialUid?: string;
+  judicial_uid?: string;
   events: Array<{
     date: string;
     time: string;
@@ -157,7 +157,7 @@ export function parseCaseHtml(html: string, url: string): ParsedCaseData {
   let judge = 'Судья не указан';
   let plaintiff = 'Информация скрыта';
   let defendant = 'Информация скрыта';
-  let judicialUid = undefined;
+  let judicial_uid = undefined;
 
   // Parse case number
   const caseNumberElement = $('.casenumber');
@@ -187,12 +187,12 @@ export function parseCaseHtml(html: string, url: string): ParsedCaseData {
         if (link.length) {
           const href = link.attr('href') || '';
           const uidMatch = href.match(/judicial_uid=([^&]+)/i);
-          if (uidMatch) judicialUid = uidMatch[1];
+          if (uidMatch) judicial_uid = uidMatch[1];
         }
         // Fallback to text content
-        if (!judicialUid) {
+        if (!judicial_uid) {
           const uidMatch = value.match(/^\d{2}[A-Z0-9]+-\d{4}-\d+$/i);
-          if (uidMatch) judicialUid = value;
+          if (uidMatch) judicial_uid = value;
         }
       }
     }
@@ -258,7 +258,7 @@ export function parseCaseHtml(html: string, url: string): ParsedCaseData {
     plaintiff,
     defendant,
     link: url,
-    judicialUid,
+    judicial_uid,
     events: events.length > 0 ? events : [{ 
       date: date || 'Дата не указана', 
       time: '', 

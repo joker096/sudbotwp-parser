@@ -17,13 +17,31 @@ interface CaseCardProps {
   onDeleteCase?: () => void;
   onRefreshCase?: () => void;
   onDateDoubleClick?: (date: string, time?: string) => void;
+  userId?: string;
+  subscriptionTier?: string;
+  canRefresh?: boolean;
+  refreshLimitReason?: string;
 }
 
 // Анимации отключены
 const cardVariants = {};
 const itemVariants = {};
 
-function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onShowPaymentModal, onDeleteCase, onRefreshCase, onDateDoubleClick }: CaseCardProps) {
+function CaseCard({ 
+  caseData, 
+  isAdded, 
+  isLoading, 
+  onAddCase, 
+  onUpdateCase, 
+  onShowPaymentModal, 
+  onDeleteCase, 
+  onRefreshCase, 
+  onDateDoubleClick,
+  userId,
+  subscriptionTier,
+  canRefresh,
+  refreshLimitReason,
+}: CaseCardProps) {
   const [activeTab, setActiveTab] = useState('Движение дела');
   const [editingField, setEditingField] = useState<'plaintiff' | 'defendant' | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -235,15 +253,36 @@ function CaseCard({ caseData, isAdded, isLoading, onAddCase, onUpdateCase, onSho
             ><Copy className="w-4 h-4" /></button>
             {isAdded && onRefreshCase && (
               <button
-                onClick={onRefreshCase}
+                onClick={() => {
+                  // Проверяем ограничения перед обновлением
+                  if (subscriptionTier === 'free') {
+                    showToast('Ручное обновление доступно только для подписчиков. Оформите подписку или дождитесь автоматического обновления (1 раз в день).', 'info');
+                    return;
+                  }
+                  if (canRefresh === false) {
+                    showToast(refreshLimitReason || 'Вы уже обновляли дело сегодня. Следующее обновление будет доступно завтра.', 'info');
+                    return;
+                  }
+                  onRefreshCase();
+                }}
                 disabled={isRefreshing}
-                className="p-1.5 text-slate-400 hover:text-accent transition-colors disabled:opacity-50"
-                title="Обновить данные дела"
+                className="p-1.5 text-slate-400 hover:text-accent transition-colors disabled:opacity-50 relative"
+                title={subscriptionTier === 'free' 
+                  ? 'Ручное обновление доступно только для подписчиков' 
+                  : canRefresh === false 
+                    ? refreshLimitReason || 'Лимит обновлений исчерпан'
+                    : 'Обновить данные дела'}
               >
                 {isRefreshing ? (
                   <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <RotateCcw className="w-4 h-4" />
+                  <>
+                    <RotateCcw className={`w-4 h-4 ${subscriptionTier === 'free' || canRefresh === false ? 'opacity-50' : ''}`} />
+                    {/* Иконка замка для бесплатных пользователей */}
+                    {(subscriptionTier === 'free' || canRefresh === false) && (
+                      <span className="absolute -bottom-1 -right-1 text-[8px] text-slate-400">🔒</span>
+                    )}
+                  </>
                 )}
               </button>
             )}

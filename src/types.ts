@@ -48,11 +48,13 @@ export interface ParsedCase {
   plaintiff: string;
   defendant: string;
   link: string;
-  judicialUid?: string;
+  judicial_uid?: string;
   events: CaseEvent[];
   appeals: CaseAppeal[];
   comment?: string;
   updated_at?: string;
+  last_manual_refresh_at?: string;
+  auto_refresh_enabled?: boolean;
 }
 
 export interface CourtRegion {

@@ -1,7 +1,1257 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap');
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Editor placeholder styles */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  pointer-events: none;
+  display: block;
+}
+
+.dark [contenteditable][data-placeholder]:empty:before {
+  color: #64748b;
+}
+
+/* ============================================
+   ШОРТКОДЫ И ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ БЛОГА
+   ============================================ */
+
+/* ============================================
+   ЦЕНТРИРОВАНИЕ ЭЛЕМЕНТОВ ПО УМОЛЧАНИЮ
+   ============================================ */
+
+/* Центрирование изображений */
+.prose img,
+.article-content img,
+.blog-content img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Центрирование видео (iframe) */
+.prose iframe,
+.article-content iframe,
+.blog-content iframe,
+.prose video,
+.article-content video,
+.blog-content video {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Центрирование кнопок и ссылок с классами кнопок */
+.prose a[href],
+.article-content a[href],
+.blog-content a[href],
+.prose .inline-flex,
+.article-content .inline-flex,
+.blog-content .inline-flex {
+  display: inline-flex;
+}
+
+/* Обёртка для кнопок - центрирование */
+.prose p:has(a[class*="inline-flex"]),
+.article-content p:has(a[class*="inline-flex"]),
+.blog-content p:has(a[class*="inline-flex"]) {
+  text-align: center;
+}
+
+/* Кнопки по центру */
+.prose p a[class*="bg-"],
+.prose p a[class*="btn"],
+.prose p a[class*="button"],
+.article-content p a[class*="bg-"],
+.article-content p a[class*="btn"],
+.article-content p a[class*="button"],
+.blog-content p a[class*="bg-"],
+.blog-content p a[class*="btn"],
+.blog-content p a[class*="button"] {
+  display: inline-block;
+  text-align: center;
+  margin: 10px auto;
+}
+
+/* div обёртка для кнопок по центру */
+.prose div:has(> a[class*="inline-flex"]),
+.article-content div:has(> a[class*="inline-flex"]),
+.blog-content div:has(> a[class*="inline-flex"]) {
+  text-align: center !important;
+}
+
+/* ============================================
+   CTA БЛОК ДЛЯ КАЛЬКУЛЯТОРА ГОСПОШЛИНЫ
+   ============================================ */
+
+/* CTA Box - калькулятор госпошлины (большой, синий) */
+.cta-box-calculator {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  padding: 30px;
+  border-radius: 24px;
+  text-align: center;
+  margin: 30px 0;
+  box-shadow: 0 10px 40px -5px rgba(59, 130, 246, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dark mode для cta-box-calculator */
+.dark .cta-box-calculator {
+  box-shadow: 0 10px 40px -5px rgba(59, 130, 246, 0.3);
+}
+
+.cta-box-calculator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-box-calculator p {
+  margin: 0 0 20px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.cta-box-calculator strong {
+  font-size: 1.5rem;
+}
+
+.cta-box-calculator .cta-button,
+.cta-box-calculator a[href] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white !important;
+  color: #2563eb !important;
+  padding: 16px 40px !important;
+  border-radius: 50px !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 3px solid transparent !important;
+  margin: 10px auto !important;
+  min-width: 200px;
+}
+
+.cta-box-calculator .cta-button:hover,
+.cta-box-calculator a[href]:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  background: #f0f9ff !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* CTA Box - блок призыва к действию */
+.cta-box {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  padding: 30px;
+  border-radius: 24px;
+  text-align: center;
+  margin: 30px 0;
+  box-shadow: 0 10px 40px -5px rgba(59, 130, 246, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dark mode для основного CTA Box */
+.dark .cta-box {
+  box-shadow: 0 10px 40px -5px rgba(59, 130, 246, 0.3);
+}
+
+/* Мобильные стили для cta-box-calculator */
+@media (max-width: 640px) {
+  .cta-box-calculator {
+    padding: 20px 15px;
+    margin: 20px 0;
+    border-radius: 16px;
+  }
+  
+  .cta-box-calculator p {
+    margin: 0 0 15px;
+    font-size: 1.1rem;
+  }
+  
+  .cta-box-calculator strong {
+    font-size: 1.15rem;
+  }
+  
+  .cta-box-calculator .cta-button,
+  .cta-box-calculator a[href] {
+    padding: 12px 24px !important;
+    font-size: 0.95rem !important;
+    min-width: 160px;
+    border-radius: 40px !important;
+  }
+}
+
+/* ============================================
+   CTA БЛОК ДЛЯ ГОСУСЛУГ
+   ============================================ */
+
+/* CTA Box - гоуслуги (компактный, зелёный) */
+.cta-box-gosuslugi {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  text-align: center;
+  margin: 15px 0;
+  box-shadow: 0 4px 15px -3px rgba(5, 150, 105, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-box-gosuslugi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-box-gosuslugi p {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cta-box-gosuslugi strong {
+  font-size: 1.1rem;
+}
+
+.cta-box-gosuslugi .cta-button,
+.cta-box-gosuslugi a[href] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white !important;
+  color: #059669 !important;
+  padding: 10px 24px !important;
+  border-radius: 10px !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border: 2px solid transparent !important;
+  margin: 8px auto !important;
+  min-width: 160px;
+}
+
+.cta-box-gosuslugi .cta-button:hover,
+.cta-box-gosuslugi a[href]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+  background: #ecfdf5 !important;
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+
+/* Мобильные стили для cta-box-gosuslugi */
+@media (max-width: 640px) {
+  .cta-box-gosuslugi {
+    padding: 12px 15px;
+    margin: 12px 0;
+    border-radius: 10px;
+  }
+  
+  .cta-box-gosuslugi p {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  
+  .cta-box-gosuslugi strong {
+    font-size: 1rem;
+  }
+  
+  .cta-box-gosuslugi .cta-button,
+  .cta-box-gosuslugi a[href] {
+    padding: 8px 18px !important;
+    font-size: 0.85rem !important;
+    min-width: 140px;
+  }
+}
+
+/* CTA Box - акцентная версия (emerald/green) */
+.cta-box-accent,
+.cta-box.bg-accent {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 10px 40px -5px rgba(5, 150, 105, 0.5);
+}
+
+/* CTA Box - фиолетовая версия */
+.cta-box-purple {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  box-shadow: 0 10px 40px -5px rgba(124, 58, 237, 0.5);
+}
+
+/* CTA Box - оранжевая версия */
+.cta-box-orange {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  box-shadow: 0 10px 40px -5px rgba(234, 88, 12, 0.5);
+}
+
+/* Мобильные стили для CTA Box */
+@media (max-width: 640px) {
+  .cta-box {
+    padding: 20px 15px;
+    margin: 20px 0;
+    border-radius: 16px;
+  }
+  
+  .cta-box p {
+    margin: 0 0 15px;
+    font-size: 1.1rem;
+  }
+  
+  .cta-box strong {
+    font-size: 1.15rem;
+  }
+  
+  /* Компактные кнопки в CTA на мобильных */
+  .cta-box .cta-button,
+  .cta-box a[href] {
+    padding: 12px 24px !important;
+    font-size: 0.95rem !important;
+    min-width: 160px;
+    border-radius: 40px !important;
+  }
+  
+  /* ЕЩЁ компактнее - маленькие кнопки */
+  .cta-box .inline-flex {
+    padding: 10px 20px !important;
+    font-size: 0.9rem !important;
+    min-width: 140px;
+  }
+}
+
+.cta-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-box p {
+  margin: 0 0 20px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.cta-box strong {
+  font-size: 1.5rem;
+}
+
+/* Кнопка в CTA блоке */
+.cta-box .cta-button,
+.cta-box a[href] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white !important;
+  color: #2563eb !important;
+  padding: 16px 40px !important;
+  border-radius: 50px !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 3px solid transparent !important;
+  margin: 10px auto !important;
+  min-width: 200px;
+}
+
+/* Кнопка в акцентном CTA блоке */
+.cta-box-accent .cta-button,
+.cta-box-accent a[href],
+.cta-box.bg-accent .cta-button,
+.cta-box.bg-accent a[href] {
+  background: white !important;
+  color: #059669 !important;
+}
+
+.cta-box-accent .cta-button:hover,
+.cta-box-accent a[href]:hover,
+.cta-box.bg-accent .cta-button:hover,
+.cta-box.bg-accent a[href]:hover {
+  background: #ecfdf5 !important;
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+
+/* Кнопка в фиолетовом CTA блоке */
+.cta-box-purple .cta-button,
+.cta-box-purple a[href] {
+  background: white !important;
+  color: #7c3aed !important;
+}
+
+.cta-box-purple .cta-button:hover,
+.cta-box-purple a[href]:hover {
+  background: #f5f3ff !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+.cta-box .cta-button:hover,
+.cta-box a[href]:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  background: #f0f9ff !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* CTA Box - вторая версия (тёмная) */
+.cta-box-dark {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  box-shadow: 0 10px 40px -5px rgba(0, 0, 0, 0.5);
+}
+
+.cta-box-dark .cta-button,
+.cta-box-dark a[href] {
+  background: #3b82f6 !important;
+  color: white !important;
+}
+
+.cta-box-dark .cta-button:hover,
+.cta-box-dark a[href]:hover {
+  background: #2563eb !important;
+}
+
+/* CTA Box - зелёная */
+.cta-box-success {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 10px 40px -5px rgba(5, 150, 105, 0.5);
+}
+
+/* ============================================
+   КОМПАКТНЫЙ CTA ДЛЯ ГОСУСЛУГ
+   ============================================ */
+
+/* Очень компактный CTA блок - для ссылок на Госуслуги */
+.cta-box-compact,
+.cta-box:has(a[href*="gosuslugi"]) {
+  padding: 10px 14px !important;
+  margin: 8px 0 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+}
+
+.cta-box-compact:hover,
+.cta-box:has(a[href*="gosuslugi"]):hover {
+  background: linear-gradient(135deg, #047857, #059669) !important;
+}
+
+.cta-box-compact p,
+.cta-box:has(a[href*="gosuslugi"]) p {
+  margin: 0 0 6px !important;
+  font-size: 0.85rem !important;
+  line-height: 1.2 !important;
+}
+
+.cta-box:has(a[href*="gosuslugi"]) strong,
+.cta-box-compact strong {
+  font-size: 0.95rem !important;
+}
+
+/* Компактная кнопка для Госуслуг */
+.cta-box a[href*="gosuslugi"],
+.cta-box-compact .cta-button,
+.cta-box-compact a[href] {
+  padding: 6px 16px !important;
+  font-size: 0.85rem !important;
+  min-width: auto !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 4px auto !important;
+  display: inline-flex !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  background: #059669 !important;
+  color: white !important;
+}
+
+.cta-box a[href*="gosuslugi"]:hover,
+.cta-box-compact .cta-button:hover,
+.cta-box-compact a[href]:hover {
+  background: #10b981 !important;
+  color: white !important;
+  transform: none !important;
+}
+
+/* CTA-box-enhanced с Госуслугами - зелёная кнопка с белым текстом */
+.cta-box-enhanced a[href*="gosuslugi"],
+.cta-box-enhanced .cta-button[href*="gosuslugi"] {
+  background: #059669 !important;
+  color: white !important;
+  padding: 8px 20px !important;
+  font-size: 0.9rem !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  text-decoration: none !important;
+  margin: 10px auto !important;
+}
+
+.cta-box-enhanced a[href*="gosuslugi"]:hover,
+.cta-box-enhanced .cta-button[href*="gosuslugi"]:hover {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+/* Компактная версия для cta-box-enhanced с Госуслугами */
+.cta-box-enhanced:has(a[href*="gosuslugi"]) {
+  padding: 15px !important;
+  margin: 15px 0 !important;
+}
+
+.cta-box-enhanced:has(a[href*="gosuslugi"]) p {
+  margin: 0 0 10px !important;
+  font-size: 0.95rem !important;
+}
+
+.cta-box-enhanced:has(a[href*="gosuslugi"]) p:last-of-type {
+  margin-bottom: 10px !important;
+  font-size: 0.85rem !important;
+  opacity: 0.9;
+}
+
+/* Убираем br после кнопки в компактном CTA */
+.cta-box a[href*="gosuslugi"] + br {
+  display: none !important;
+}
+
+/* Минимальный CTA - самый маленький размер */
+.cta-box-mini,
+.cta-box:has(a[href*="gosuslugi"].px-6) {
+  padding: 6px 10px !important;
+  margin: 4px 0 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  background: #059669 !important;
+}
+
+.cta-box-mini:hover,
+.cta-box:has(a[href*="gosuslugi"].px-6):hover {
+  background: #047857 !important;
+}
+
+.cta-box-mini p,
+.cta-box:has(a[href*="gosuslugi"].px-6) p {
+  margin: 0 0 4px !important;
+  font-size: 0.75rem !important;
+  line-height: 1.1 !important;
+}
+
+.cta-box:has(a[href*="gosuslugi"].px-6) strong,
+.cta-box-mini strong {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+}
+
+.cta-box:has(a[href*="gosuslugi"].px-6) a,
+.cta-box-mini a {
+  padding: 4px 10px !important;
+  font-size: 0.7rem !important;
+  min-width: unset !important;
+  width: auto !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  background: #047857 !important;
+  color: white !important;
+}
+
+.cta-box:has(a[href*="gosuslugi"].px-6) a:hover,
+.cta-box-mini a:hover {
+  background: #10b981 !important;
+  color: white !important;
+  transform: none !important;
+}
+
+/* Прямое переопределение для инлайн стилей Tailwind */
+.cta-box a[class*="px-6"][class*="py-3"][href*="gosuslugi"] {
+  padding: 4px 10px !important;
+  font-size: 0.7rem !important;
+  min-width: unset !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: 6px !important;
+  background: #047857 !important;
+  color: white !important;
+}
+
+.cta-box a[class*="px-6"][class*="py-3"][href*="gosuslugi"]:hover {
+  background: #10b981 !important;
+  color: white !important;
+  transform: none !important;
+}
+
+/* CTA Button - кнопка призыва */
+.sc-cta-button {
+  display: inline-block;
+  background: white;
+  color: #2563eb;
+  padding: 14px 35px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+}
+
+.sc-cta-button:hover {
+  background: #f0f9ff;
+  transform: scale(1.02);
+  border-color: white;
+}
+
+/* Альтернативная кнопка - темная */
+.sc-cta-button-dark {
+  background: #0f172a;
+  color: white;
+}
+
+.sc-cta-button-dark:hover {
+  background: #1e293b;
+  border-color: transparent;
+}
+
+/* Альтернативная кнопка - акцентная */
+.sc-cta-button-accent {
+  background: #059669;
+  color: white;
+}
+
+.sc-cta-button-accent:hover {
+  background: #10b981;
+}
+
+/* Quote - цитата */
+.sc-quote {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-left: 5px solid #3b82f6;
+  padding: 20px 25px;
+  margin: 25px 0;
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+  position: relative;
+}
+
+.sc-quote::before {
+  content: '"';
+  font-size: 4rem;
+  color: #3b82f6;
+  opacity: 0.2;
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  font-family: Georgia, serif;
+}
+
+.sc-quote p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.sc-quote-author {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Dark mode для цитаты */
+.dark .sc-quote {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+.dark .sc-quote p {
+  color: #e2e8f0;
+}
+
+.dark .sc-quote-author {
+  color: #94a3b8;
+}
+
+/* Info Box - информационный блок */
+.sc-info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.sc-info-box-title {
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark .sc-info-box {
+  background: #1e3a5f;
+  border-color: #1e40af;
+}
+
+.dark .sc-info-box-title {
+  color: #93c5fd;
+}
+
+/* Warning Box - предупреждение */
+.sc-warning-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.sc-warning-box-title {
+  font-weight: 700;
+  color: #b45309;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark .sc-warning-box {
+  background: #451a03;
+  border-color: #b45309;
+}
+
+.dark .sc-warning-box-title {
+  color: #fcd34d;
+}
+
+/* Danger Box - опасность/ошибка */
+.sc-danger-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.sc-danger-box-title {
+  font-weight: 700;
+  color: #b91c1c;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark .sc-danger-box {
+  background: #450a0a;
+  border-color: #b91c1c;
+}
+
+.dark .sc-danger-box-title {
+  color: #fca5a5;
+}
+
+/* Success Box - успех */
+.sc-success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.sc-success-box-title {
+  font-weight: 700;
+  color: #15803d;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark .sc-success-box {
+  background: #052e16;
+  border-color: #15803d;
+}
+
+.dark .sc-success-box-title {
+  color: #86efac;
+}
+
+/* Duty Calculator - калькулятор пошлины */
+.sc-duty-calculator {
+  background: white;
+  padding: 25px;
+  border-radius: 24px;
+  margin: 30px 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.sc-duty-calculator input,
+.sc-duty-calculator button {
+  padding: 12px 16px;
+  font-size: 1rem;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  margin-right: 10px;
+}
+
+.sc-duty-calculator button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.sc-duty-calculator button:hover {
+  background: #2563eb;
+}
+
+.dark .sc-duty-calculator {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .sc-duty-calculator input {
+  background: #0f172a;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+/* Final CTA - финальный призыв */
+.sc-final-cta {
+  text-align: center;
+  background: #0f172a;
+  color: white;
+  padding: 40px;
+  border-radius: 32px;
+  margin: 40px 0;
+}
+
+.sc-final-cta .sc-cta-button {
+  background: #3b82f6;
+  color: white;
+}
+
+.sc-final-cta .sc-cta-button:hover {
+  background: #2563eb;
+}
+
+/* Styled Table - стилизованная таблица */
+.sc-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin: 2rem 0;
+}
+
+.sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sc-table th {
+  background: #3b82f6;
+  color: white;
+  font-weight: 600;
+  padding: 12px;
+  text-align: left;
+}
+
+.sc-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sc-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sc-table tr:hover td {
+  background: #f8fafc;
+}
+
+.dark .sc-table {
+  background: #1e293b;
+}
+
+.dark .sc-table td {
+  border-color: #334155;
+}
+
+.dark .sc-table tr:hover td {
+  background: #0f172a;
+}
+
+/* Styled HR - разделитель */
+.sc-divider {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, #e2e8f0, #94a3b8, #e2e8f0);
+  margin: 30px 0;
+}
+
+.dark .sc-divider {
+  background: linear-gradient(90deg, #334155, #475569, #334155);
+}
+
+/* Action Button - кнопка действия */
+.sc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  font-size: 1rem;
+}
+
+.sc-action-btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.sc-action-btn-primary:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.sc-action-btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.sc-action-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.sc-action-btn-accent {
+  background: #059669;
+  color: white;
+}
+
+.sc-action-btn-accent:hover {
+  background: #10b981;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+.dark .sc-action-btn-secondary {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.dark .sc-action-btn-secondary:hover {
+  background: #475569;
+}
+
+/* Badge - бейдж */
+.sc-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sc-badge-blue {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sc-badge-green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sc-badge-yellow {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.sc-badge-red {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sc-badge-purple {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.dark .sc-badge-blue {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+.dark .sc-badge-green {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dark .sc-badge-yellow {
+  background: #451a03;
+  color: #fcd34d;
+}
+
+.dark .sc-badge-red {
+  background: #450a0a;
+  color: #fca5a5;
+}
+
+.dark .sc-badge-purple {
+  background: #2e1065;
+  color: #c4b5fd;
+}
+
+/* Alert - уведомление */
+.sc-alert {
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sc-alert-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.sc-alert-warning {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #b45309;
+}
+
+.sc-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.sc-alert-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+.dark .sc-alert-info {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+.dark .sc-alert-warning {
+  background: #451a03;
+  color: #fcd34d;
+}
+
+.dark .sc-alert-error {
+  background: #450a0a;
+  color: #fca5a5;
+}
+
+.dark .sc-alert-success {
+  background: #052e16;
+  color: #86efac;
+}
+
+/* Styled List - стилизованный список */
+.sc-list {
+  padding-left: 1.8rem;
+  margin: 1rem 0;
+}
+
+.sc-list li {
+  margin: 0.5rem 0;
+  position: relative;
+}
+
+.sc-list-check li::before {
+  content: '✓';
+  color: #059669;
+  font-weight: bold;
+  position: absolute;
+  left: -1.5rem;
+}
+
+.sc-list-arrow li::before {
+  content: '→';
+  color: #3b82f6;
+  font-weight: bold;
+  position: absolute;
+  left: -1.5rem;
+}
+
+.sc-list-star li::before {
+  content: '★';
+  color: #f59e0b;
+  position: absolute;
+  left: -1.5rem;
+}
+
+/* Dropcap - первая буква абзаца */
+.sc-dropcap::first-letter {
+  float: left;
+  font-size: 3.5rem;
+  line-height: 0.8;
+  padding-right: 8px;
+  padding-top: 4px;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+/* Highlight - выделение текста */
+.sc-highlight {
+  background: #fef08a;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dark .sc-highlight {
+  background: #854d0e;
+  color: #fef9c3;
+}
+
+/* Code Block - блок кода */
+.sc-code-block {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  margin: 20px 0;
+}
+
+/* Timeline - временная линия */
+.sc-timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.sc-timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.sc-timeline-item {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.sc-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid white;
+}
+
+.dark .sc-timeline::before {
+  background: #334155;
+}
+
+.dark .sc-timeline-item::before {
+  border-color: #0f172a;
+}
+
+/* Two Column - две колонки */
+.sc-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+@media (max-width: 768px) {
+  .sc-two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card - карточка */
+.sc-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  margin: 20px 0;
+}
+
+.dark .sc-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.sc-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.dark .sc-card-title {
+  color: #f8fafc;
+}
+
+/* ============================================
+   КОНЕЦ СТИЛЕЙ ДЛЯ ШОРТКОДОВ
+   ============================================ */
 
 @theme {
   --color-primary: #1a73e8;
@@ -46,5 +1296,1039 @@ body {
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* YouTube Lazy Loading Styles */
+.youtube-lazy-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 1.5rem auto;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background-color: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.youtube-lazy-container .youtube-thumbnail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a1a;
+}
+
+/* Fallback thumbnail - when YouTube thumbnails are not available */
+.youtube-lazy-container .youtube-thumbnail-fallback {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.youtube-lazy-container .youtube-thumbnail-fallback .youtube-error-overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #999;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.youtube-lazy-container .youtube-thumbnail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.youtube-lazy-container .youtube-play-btn {
+  position: relative;
+  z-index: 1;
+  width: 68px;
+  height: 48px;
+  background-color: rgba(255, 0, 0, 0.9);
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.youtube-lazy-container .youtube-play-btn:hover {
+  transform: scale(1.05);
+  background-color: rgba(255, 0, 0, 1);
+}
+
+.youtube-lazy-container .youtube-play-btn svg {
+  margin-left: 4px;
+}
+
+/* YouTube placeholder from HtmlEditor */
+.youtube-placeholder {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  margin: 20px auto;
+  display: block;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.youtube-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+}
+
+.youtube-placeholder:hover {
+  opacity: 1;
+}
+
+/* ============================================
+   СТИЛИ ДЛЯ ПЕРЕТАСКИВАНИЯ В ТАБЛИЦАХ
+   ============================================ */
+
+/* Строка таблицы при перетаскивании */
+.table-row-dragging {
+  opacity: 0.5;
+  background: #e0f2fe !important;
+}
+
+.dark .table-row-dragging {
+  background: #0c4a6e !important;
+}
+
+/* Строка таблицы - место для сброса */
+.table-row-drag-over {
+  border-top: 2px solid #3b82f6 !important;
+  background: #eff6ff !important;
+}
+
+.dark .table-row-drag-over {
+  background: #1e3a5f !important;
+}
+
+/* Иконка перетаскивания */
+.table-drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.table-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Индикатор перетаскивания */
+.drag-indicator {
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(to bottom, #94a3b8 25%, transparent 25%, transparent 50%, #94a3b8 50%, #94a3b8 75%, transparent 75%);
+  background-size: 4px 8px;
+  border-radius: 2px;
+}
+
+/* Анимация при перетаскивании */
+@keyframes table-row-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.01); }
+}
+
+.table-row-animating {
+  animation: table-row-pulse 0.3s ease;
+}
+
+/* Анимация появления кнопки договора */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* ============================================
+   ГЛОБАЛЬНЫЕ СТИЛИ ДЛЯ АДАПТИВНЫХ ТАБЛИЦ
+   ============================================ */
+
+/* Обёртка для всех таблиц - предотвращает выход за края экрана */
+table,
+.table-wrapper,
+.prose table,
+.article-content table,
+.blog-content table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Основной контейнер для таблиц с горизонтальной прокруткой */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Стили для таблицы внутри обёртки */
+.table-responsive table {
+  width: 100%;
+  min-width: 600px; /* Минимальная ширина для читаемости */
+  border-collapse: collapse;
+  background: white;
+}
+
+.dark .table-responsive table {
+  background: #1e293b;
+}
+
+/* Заголовки таблицы */
+.table-responsive th {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  font-weight: 600;
+  padding: 14px 16px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Ячейки таблицы */
+.table-responsive td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.dark .table-responsive td {
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+/* Последняя строка без границы */
+.table-responsive tr:last-child td {
+  border-bottom: none;
+}
+
+/* Hover эффект для строк */
+.table-responsive tr:hover td {
+  background: #f8fafc;
+}
+
+.dark .table-responsive tr:hover td {
+  background: #0f172a;
+}
+
+/* Чередование строк (зебра) */
+.table-responsive tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.dark .table-responsive tr:nth-child(even) td {
+  background: #1e293b;
+}
+
+.dark .table-responsive tr:nth-child(even):hover td {
+  background: #0f172a;
+}
+
+/* Мобильная адаптация - очень маленькие экраны */
+@media (max-width: 640px) {
+  .table-responsive {
+    margin: 1rem 0;
+    border-radius: 8px;
+    font-size: 0.75rem;
+  }
+  
+  .table-responsive th,
+  .table-responsive td {
+    padding: 10px 12px;
+    font-size: 0.75rem;
+  }
+  
+  .table-responsive th {
+    font-size: 0.7rem;
+  }
+}
+
+/* Прокрутка для встроенных таблиц в статьях */
+.prose,
+.article-content,
+.blog-content {
+  overflow-x: visible;
+}
+
+.prose > div,
+.article-content > div,
+.blog-content > div {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  max-width: 100vw;
+}
+
+/* Стили для pre/code блоков с горизонтальной прокруткой */
+.prose pre,
+.article-content pre,
+.blog-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* ============================================
+   СТИЛИ ДЛЯ БЕЗОПАСНЫХ СДЕЛОК
+   ============================================ */
+
+/* SafeDealModal */
+.safe-deal-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+}
+
+.safe-deal-modal .modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.safe-deal-modal .modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.dark .safe-deal-modal .modal-content {
+  background: #1e293b;
+}
+
+.safe-deal-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.safe-deal-modal .modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dark .safe-deal-modal .modal-header h2 {
+  color: #f8fafc;
+}
+
+.safe-deal-modal .close-button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #94a3b8;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.safe-deal-modal .close-button:hover {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.dark .safe-deal-modal .close-button:hover {
+  color: #e2e8f0;
+  background: #334155;
+}
+
+.safe-deal-modal .modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.safe-deal-modal .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.safe-deal-modal .form-group label {
+  font-weight: 500;
+  font-size: 14px;
+  color: #334155;
+}
+
+.dark .safe-deal-modal .form-group label {
+  color: #e2e8f0;
+}
+
+.safe-deal-modal .form-group input,
+.safe-deal-modal .form-group select,
+.safe-deal-modal .form-group textarea {
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: white;
+  color: #0f172a;
+}
+
+.dark .safe-deal-modal .form-group input,
+.dark .safe-deal-modal .form-group select,
+.dark .safe-deal-modal .form-group textarea {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.safe-deal-modal .form-group input:focus,
+.safe-deal-modal .form-group select:focus,
+.safe-deal-modal .form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.safe-deal-modal .form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.safe-deal-modal .form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.safe-deal-modal .form-actions button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.safe-deal-modal .form-actions button:first-child {
+  background: #3b82f6;
+  color: white;
+}
+
+.safe-deal-modal .form-actions button:first-child:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.safe-deal-modal .form-actions button:first-child:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.safe-deal-modal .form-actions .cancel-button {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.dark .safe-deal-modal .form-actions .cancel-button {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.safe-deal-modal .form-actions .cancel-button:hover {
+  background: #e2e8f0;
+}
+
+.dark .safe-deal-modal .form-actions .cancel-button:hover {
+  background: #475569;
+}
+
+/* SafeDealCard */
+.safe-deal-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.dark .safe-deal-card {
+  background: #1e293b;
+}
+
+.safe-deal-card .deal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.safe-deal-card .deal-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.safe-deal-card .deal-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: white;
+}
+
+.safe-deal-card .deal-content {
+  padding: 16px;
+}
+
+.safe-deal-card .deal-info p {
+  margin: 6px 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.dark .safe-deal-card .deal-info p {
+  color: #e2e8f0;
+}
+
+.safe-deal-card .deal-info .service-type {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dark .safe-deal-card .deal-info .service-type {
+  color: #f8fafc;
+}
+
+.safe-deal-card .deal-info .service-description {
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.safe-deal-card .deal-info .amount {
+  font-weight: 700;
+  color: #3b82f6;
+  font-size: 16px;
+  margin-top: 8px !important;
+}
+
+.safe-deal-card .deadline-info {
+  color: #f59e0b;
+  font-size: 13px;
+  display: block;
+  margin-top: 4px;
+}
+
+.safe-deal-card .deadline-info.deadline-today {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.safe-deal-card .deadline-info.deadline-overdue {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.safe-deal-card .deal-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dark .safe-deal-card .deal-actions {
+  border-top-color: #334155;
+}
+
+.safe-deal-card .action-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.safe-deal-card .action-button:last-child {
+  margin-bottom: 0;
+}
+
+.safe-deal-card .action-button:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.safe-deal-card .action-button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.safe-deal-card .action-button.pay-button {
+  background: #10b981;
+}
+
+.safe-deal-card .action-button.pay-button:hover {
+  background: #059669;
+}
+
+.safe-deal-card .action-button.confirm-button {
+  background: #3b82f6;
+}
+
+.safe-deal-card .action-button.review-button {
+  background: #8b5cf6;
+}
+
+.safe-deal-card .action-button.dispute-button {
+  background: #ef4444;
+}
+
+/* Адаптивные стили для модального окна */
+@media (max-width: 640px) {
+  .safe-deal-modal .modal-content {
+    padding: 20px;
+    border-radius: 12px;
+  }
+  
+  .safe-deal-modal .form-actions {
+    flex-direction: column;
+  }
+  
+  .safe-deal-modal .form-actions button {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   CTA BOX STYLES
+   ============================================ */
+
+.cta-box {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+  margin: 24px 0;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.2);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* ============================================
+   COMPACT CTA VARIATIONS
+   ============================================ */
+
+/* Very Compact CTA - for tight spaces */
+.cta-box-compact {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-align: center;
+  margin: 12px 0;
+  box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.2);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.cta-box-compact::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cta-box-compact:hover::before {
+  opacity: 1;
+}
+
+.cta-box-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -2px rgba(5, 150, 105, 0.3);
+}
+
+.cta-box-compact p {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cta-box-compact strong {
+  font-size: 1rem;
+  display: block;
+}
+
+.cta-box-compact .cta-button,
+.cta-box-compact a[href] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #059669 !important;
+  color: white !important;
+  padding: 6px 16px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+  margin: 4px auto !important;
+  min-width: auto !important;
+  width: auto !important;
+}
+
+.cta-box-compact .cta-button:hover,
+.cta-box-compact a[href]:hover {
+  transform: translateY(-1px) !important;
+  background: #10b981 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Mini CTA - smallest size */
+.cta-box-mini {
+  background: #059669;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 8px 0;
+  box-shadow: none;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+.cta-box-mini::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cta-box-mini:hover::before {
+  opacity: 1;
+}
+
+.cta-box-mini:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.cta-box-mini p {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.cta-box-mini strong {
+  font-size: 0.8rem;
+  display: block;
+}
+
+.cta-box-mini .cta-button,
+.cta-box-mini a[href] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #047857 !important;
+  color: white !important;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 0.7rem !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+  margin: 2px auto !important;
+  min-width: auto !important;
+  width: auto !important;
+}
+
+.cta-box-mini .cta-button:hover,
+.cta-box-mini a[href]:hover {
+  background: #10b981 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* CTA Box Enhanced - for Gosuslugi integration */
+.cta-box-enhanced {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  padding: 24px 28px;
+  border-radius: 20px;
+  text-align: center;
+  margin: 24px 0;
+  box-shadow: 0 8px 24px -3px rgba(5, 150, 105, 0.3);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.cta-box-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cta-box-enhanced:hover::before {
+  opacity: 1;
+}
+
+.cta-box-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -3px rgba(5, 150, 105, 0.4);
+}
+
+.cta-box-enhanced p {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cta-box-enhanced p:last-of-type {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.cta-box-enhanced strong {
+  font-size: 1.2rem;
+  display: block;
+}
+
+.cta-box-enhanced .cta-button,
+.cta-box-enhanced a[href] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: white !important;
+  color: #059669 !important;
+  padding: 12px 28px !important;
+  border-radius: 12px !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border: 2px solid transparent !important;
+  margin: 8px auto !important;
+  min-width: 180px;
+}
+
+.cta-box-enhanced .cta-button:hover,
+.cta-box-enhanced a[href]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  background: #ecfdf5 !important;
+  border-color: rgba(5, 150, 105, 0.3) !important;
+}
+
+/* CTA Box Enhanced with Gosuslugi specific styles */
+.cta-box-enhanced:has(a[href*="gosuslugi"]) {
+  padding: 20px !important;
+  margin: 20px 0 !important;
+}
+
+.cta-box-enhanced:has(a[href*="gosuslugi"]) p {
+  margin: 0 0 12px !important;
+  font-size: 1rem !important;
+}
+
+.cta-box-enhanced:has(a[href*="gosuslugi"]) p:last-of-type {
+  margin-bottom: 10px !important;
+  font-size: 0.85rem !important;
+  opacity: 0.9;
+}
+
+.cta-box-enhanced a[href*="gosuslugi"],
+.cta-box-enhanced .cta-button[href*="gosuslugi"] {
+  background: #059669 !important;
+  color: white !important;
+  padding: 10px 24px !important;
+  font-size: 0.95rem !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  text-decoration: none !important;
+  margin: 8px auto !important;
+}
+
+.cta-box-enhanced a[href*="gosuslugi"]:hover,
+.cta-box-enhanced .cta-button[href*="gosuslugi"]:hover {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+/* Hide BR tags after Gosuslugi buttons */
+.cta-box a[href*="gosuslugi"] + br {
+  display: none !important;
+}
+
+/* Responsive Styles for Compact CTAs */
+@media (max-width: 640px) {
+  .cta-box-compact {
+    padding: 10px 14px;
+    margin: 10px 0;
+  }
+
+  .cta-box-compact p {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .cta-box-compact strong {
+    font-size: 0.9rem;
+  }
+
+  .cta-box-compact .cta-button,
+  .cta-box-compact a[href] {
+    padding: 5px 14px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .cta-box-mini {
+    padding: 6px 10px;
+    margin: 6px 0;
+  }
+
+  .cta-box-mini p {
+    font-size: 0.7rem;
+    margin-bottom: 3px;
+  }
+
+  .cta-box-mini strong {
+    font-size: 0.75rem;
+  }
+
+  .cta-box-mini .cta-button,
+  .cta-box-mini a[href] {
+    padding: 3px 10px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .cta-box-enhanced {
+    padding: 20px 24px;
+  }
+
+  .cta-box-enhanced p {
+    font-size: 1rem;
+    margin-bottom: 14px;
+  }
+
+  .cta-box-enhanced strong {
+    font-size: 1.1rem;
+  }
+
+  .cta-box-enhanced .cta-button,
+  .cta-box-enhanced a[href] {
+    padding: 10px 24px !important;
+    font-size: 0.95rem !important;
+    min-width: 160px;
+  }
+
+  .cta-box-enhanced:has(a[href*="gosuslugi"]) {
+    padding: 16px !important;
   }
 }

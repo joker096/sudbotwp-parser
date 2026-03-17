@@ -1,10 +1,9 @@
 services:
   - type: web
-    name: sudbot-parser
+    name: sudbotwp
     env: docker
     region: frankfurt
-    buildCommand: |
-      docker build -t sudbot-parser .
+    buildCommand: docker build -t sudbotwp .
     startCommand: node render-server.js
     envVars:
       - key: NODE_VERSION

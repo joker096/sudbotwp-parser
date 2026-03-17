@@ -2,6 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,7 +57,7 @@ function parseSudrfHtml(html, url) {
   let judge = 'Судья не указан';
   let plaintiff = 'Информация скрыта';
   let defendant = 'Информация скрыта';
-  let judicialUid = undefined;
+  let judicial_uid = undefined;
 
   // Get court from URL
   try {
@@ -93,17 +99,17 @@ function parseSudrfHtml(html, url) {
       if (label.includes('Судья')) judge = value;
       if (label.includes('Результат рассмотрения')) status = value;
       
-      // Get judicialUid from link
+      // Get judicial_uid from link
       if (label.includes('Уникальный идентификатор')) {
         const link = cells.eq(1).find('a');
         if (link.length) {
           const href = link.attr('href') || '';
           const match = href.match(/judicial_uid=([^&]+)/i);
-          if (match) judicialUid = match[1];
+          if (match) judicial_uid = match[1];
         }
-        if (!judicialUid) {
+        if (!judicial_uid) {
           const uidMatch = value.match(/^\d{2}[A-Z0-9]+-\d{4}-\d+$/i);
-          if (uidMatch) judicialUid = value;
+          if (uidMatch) judicial_uid = value;
         }
       }
     }
@@ -139,7 +145,7 @@ function parseSudrfHtml(html, url) {
   });
 
   return {
-    number, court, status, date, category, judge, plaintiff, defendant, judicialUid, link: url,
+    number, court, status, date, category, judge, plaintiff, defendant, judicial_uid, link: url,
     events: events.length > 0 ? events : [{ date: date, time: '', name: 'Судебное событие', result: status }],
     appeals: [{ id: 1, type: 'Нет данных об обжаловании', applicant: 'Информация скрыта', court: '', date: '', result: '' }]
   };
@@ -174,50 +180,63 @@ async function fetchWithScrapingBee(url) {
 // Main parser
 async function parseCase(url) {
   console.log('Parsing:', url);
-  
+
   let html;
-  
-  // Try with ScrapingBee first if API key is set
-  if (SCRAPINGBEE_API_KEY) {
+  let lastError;
+
+  // Try direct fetch first (fastest if it works)
+  try {
+    console.log('Trying direct fetch...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for direct fetch
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    html = decodeWindows1251(new Uint8Array(buffer));
+    console.log('Direct fetch successful');
+  } catch (e) {
+    console.log('Direct fetch failed:', e.message);
+    lastError = e;
+  }
+
+  // Try ScrapingBee if direct fetch failed
+  if (!html && SCRAPINGBEE_API_KEY) {
     try {
-      console.log('Trying ScrapingBee...');
       html = await fetchWithScrapingBee(url);
       console.log('ScrapingBee successful');
     } catch (e) {
       console.log('ScrapingBee failed:', e.message);
+      lastError = e;
     }
   }
   
-  // Fallback to direct fetch
+  // If all methods failed, throw error
   if (!html) {
-    console.log('Trying direct fetch...');
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-    
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept-Language': 'ru-RU,ru;q=0.9',
-      },
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+    if (lastError && lastError.name === 'AbortError') {
+      throw new Error('Превышен таймаут ожидания. Судный сайт работает очень медленно. Попробуйте повторить запрос позже.');
     }
-    
-    const buffer = await response.arrayBuffer();
-    html = decodeWindows1251(new Uint8Array(buffer));
+    throw new Error(lastError?.message || 'Failed to fetch case data from all sources');
   }
-  
+
   // Check if we got valid data
-  if (!html.includes('cont1') && !html.includes('tablcont')) {
-    throw new Error('Invalid response - no case data found');
+  if (!html.includes('cont1') && !html.includes('tablcont') && !html.includes('casenumber')) {
+    console.log('Warning: Response may not contain case data markers');
   }
-  
+
   console.log('Parsing successful');
   return parseSudrfHtml(html, url);
 }
@@ -251,11 +270,43 @@ app.post('/parse-case', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', scrapingbee: !!SCRAPINGBEE_API_KEY });
+  res.json({
+    status: 'ok',
+    scrapingbee: !!SCRAPINGBEE_API_KEY,
+    timestamp: new Date().toISOString()
+  });
 });
+
+// Serve static files from dist folder (Vite build)
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  
+  // SPA fallback - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  console.log('Warning: dist folder not found. Run "npm run build" first.');
+  
+  // Fallback for development - serve a simple message
+  app.get('*', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Судовой Бот</title></head>
+      <body>
+        <h1>Судовой Бот</h1>
+        <p>Приложение не собрано. Запустите: npm run build</p>
+        <p>API работает: <a href="/health">/health</a></p>
+      </body>
+      </html>
+    `);
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('POST /parse-case - Parse court case');
-  console.log('ScrapingBee API:', SCRAPINGBEE_API_KEY ? 'Configured' : 'Not configured (using direct fetch)');
+  console.log('ScrapingBee:', SCRAPINGBEE_API_KEY ? 'Configured' : 'Not configured');
 });

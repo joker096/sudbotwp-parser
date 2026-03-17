@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test HtmlEditor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .editor-container {
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      padding: 10px;
+      font-family: monospace;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .preview {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      background-color: #fafafa;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test HtmlEditor</h1>
+  
+  <div class="editor-container">
+    <h2>HTML Mode</h2>
+    <textarea id="htmlInput" placeholder="Enter HTML code here..."></textarea>
+    <button onclick="insertYouTube()">Insert YouTube</button>
+    <button onclick="insertImage()">Insert Image</button>
+    <button onclick="insertLink()">Insert Link</button>
+  </div>
+  
+  <div class="editor-container">
+    <h2>Preview</h2>
+    <div id="preview" class="preview"></div>
+  </div>
+
+  <script>
+    function updatePreview() {
+      const html = document.getElementById('htmlInput').value;
+      document.getElementById('preview').innerHTML = html;
+    }
+
+    document.getElementById('htmlInput').addEventListener('input', updatePreview);
+
+    function insertYouTube() {
+      const videoId = prompt('Enter YouTube Video ID:');
+      if (!videoId) return;
+
+      const thumbnailUrl = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
+      const embedUrl = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0&iv_load_policy=3&modestbranding=1&playsinline=1&disablekb=0&controls=1&fs=1&enablejsapi=0&widgetid=1&noapi=1&disable_polymer=1&hl=ru&cc_lang_pref=ru&iv_load_policy=3&loop=0&playlist=&start=0&end=0&playsinline=1&autohide=1&showinfo=0&controls=1&modestbranding=1&rel=0&disable_web_ui=0&enablejsapi=0&origin=' + window.location.origin + '&disableads=1&noads=1';
+      
+      const iframeHtml = '<iframe width="100%" height="100%" src="' + embedUrl + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe>';
+      
+      const encodedIframe = iframeHtml.replace(/"/g, '"').replace(/'/g, ''');
+      
+      const placeholderHtml = '<div style="text-align:center;margin:20px 0;"><div class="youtube-placeholder" data-iframe="' + encodedIframe + '" style="position:relative;width:100%;max-width:800px;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;cursor:pointer;display:inline-block;box-shadow:0 10px 40px rgba(0,0,0,0.3);" onclick="this.innerHTML=this.getAttribute(\'data-iframe\');"><img src="' + thumbnailUrl + '" alt="YouTube видео" style="width:100%;height:100%;object-fit:cover;opacity:0.9;" loading="lazy" /><div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><div style="width:68px;height:48px;background:rgba(255,0,0,0.9);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div></div><div style="position:absolute;bottom:12px;left:12px;color:white;font-size:14px;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,0.8);">Нажмите для воспроизведения</div></div></div>';
+      
+      insertAtCursor('htmlInput', placeholderHtml);
+    }
+
+    function insertImage() {
+      const url = prompt('Enter Image URL:');
+      if (!url) return;
+
+      const imgHtml = '<div style="text-align:center;margin:20px 0;"><img src="' + url + '" alt="Изображение" loading="lazy" style="max-width:100%;height:auto;border-radius:12px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,0.1);"></div>';
+      insertAtCursor('htmlInput', imgHtml);
+    }
+
+    function insertLink() {
+      const url = prompt('Enter Link URL:');
+      if (!url) return;
+
+      const text = prompt('Enter Link Text:') || url;
+
+      const linkHtml = '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
+      insertAtCursor('htmlInput', linkHtml);
+    }
+
+    function insertAtCursor(textareaId, html) {
+      const textarea = document.getElementById(textareaId);
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+
+      const newValue = value.substring(0, start) + html + value.substring(end);
+      textarea.value = newValue;
+
+      textarea.focus();
+      textarea.setSelectionRange(start + html.length, start + html.length);
+      
+      updatePreview();
+    }
+
+    // Test initial content
+    document.getElementById('htmlInput').value = '<p>Test content</p>';
+    updatePreview();
+  </script>
+</body>
+</html>

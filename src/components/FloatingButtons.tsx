@@ -1,4 +1,4 @@
-import { ArrowUp, Shield } from 'lucide-react';
+import { ArrowUp, Shield, MessageCircle } from 'lucide-react';
 import { useEffect, useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -23,9 +23,26 @@ function FloatingButtons() {
   };
 
   return (
-    <AnimatePresence>
-      {/* Privacy Button - Bottom Left (скрыто на мобильных) */}
-      {isVisible && (
+    <>
+      {/* AI Lawyer Chat Button - Bottom Right, always visible */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.2 }}
+        className="fixed bottom-6 right-20 z-50 hidden md:block"
+      >
+        <Link 
+          to="/ai-lawyer" 
+          className="bg-gradient-to-r from-accent to-purple-600 text-white p-3 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all flex items-center gap-2"
+          title="ИИ-Юрист - Чат"
+        >
+          <MessageCircle className="w-5 h-5" />
+        </Link>
+      </motion.div>
+
+      <AnimatePresence>
+        {/* Privacy Button - Bottom Left (скрыто на мобильных) */}
+        {isVisible && (
         <motion.div
           key="privacy-button"
           initial={{ opacity: 0, x: -50, scale: 0.8 }}
@@ -62,7 +79,8 @@ function FloatingButtons() {
           <ArrowUp className="w-5 h-5" />
         </motion.button>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
 

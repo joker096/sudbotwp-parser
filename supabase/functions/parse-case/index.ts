@@ -1,7 +1,6 @@
 import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12';
 
 // Environment variables for parsing services
-const BROWSERLESS_TOKEN = Deno.env.get('BROWSERLESS_TOKEN');
 const SCRAPINGBEE_API_KEY = Deno.env.get('SCRAPINGBEE_API_KEY');
 
 // Decode windows-1251 to utf-8 using TextDecoder
@@ -46,46 +45,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Try to parse using Browserless
-async function parseWithBrowserless(url: string): Promise<string> {
-  if (!BROWSERLESS_TOKEN) {
-    throw new Error('Browserless not configured');
-  }
-  
-  console.log('[Parse] Using Browserless for:', url);
-  
-  const browserlessUrl = `https://chrome.browserless.io/content?token=${BROWSERLESS_TOKEN}`;
-  
-  const response = await fetch(browserlessUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url,
-      gotoOptions: {
-        waitUntil: 'networkidle2',
-        timeout: 60000,
-      },
-      setJavaScriptEnabled: true,
-      viewport: {
-        width: 1920,
-        height: 1080,
-      },
-      waitForSelector: '#tablcont, .casenumber, #cont1',
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Browserless error:', response.status, errorText);
-    throw new Error(`Browserless error: ${response.status}`);
-  }
-
-  return await response.text();
-}
-
-// Try to parse using ScrapingBee
+// Try to parse using ScrapingBee (primary external service)
 async function parseWithScrapingBee(url: string): Promise<string> {
   if (!SCRAPINGBEE_API_KEY) {
     throw new Error('ScrapingBee not configured');
@@ -114,10 +74,10 @@ async function parseWithScrapingBee(url: string): Promise<string> {
 // Try direct fetch first, then fall back to services
 async function fetchCourtPage(url: string): Promise<string> {
   console.log('[Parse] Trying direct fetch for:', url);
-  
-  // Add timeout to prevent hanging
+
+  // Add timeout to prevent hanging - court sites can be very slow
   const controller = new AbortController();
-  const fetchTimeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout for slow court sites
+  const fetchTimeout = setTimeout(() => controller.abort(), 45000); // 45 second timeout for direct fetch (leave room for fallbacks)
   
   try {
     const response = await fetch(url, {
@@ -139,28 +99,21 @@ async function fetchCourtPage(url: string): Promise<string> {
     return decodeWindows1251(new Uint8Array(buffer));
   } catch (error: any) {
     clearTimeout(fetchTimeout);
-    
-    // If it's an abort error, don't try fallbacks
-    if (error.name === 'AbortError') {
-      throw error;
-    }
-    
-    console.log('[Parse] Direct fetch failed, trying Browserless...');
-    
-    // Try Browserless
+
+    console.log('[Parse] Direct fetch failed:', error.name || error.message);
+
+    // Try ScrapingBee as fallback
     try {
-      return await parseWithBrowserless(url);
-    } catch (browserlessError) {
-      console.log('[Parse] Browserless failed, trying ScrapingBee...');
-      
-      // Try ScrapingBee
-      try {
-        return await parseWithScrapingBee(url);
-      } catch (scrapingbeeError) {
-        console.log('[Parse] ScrapingBee failed:', scrapingbeeError);
-        // Re-throw original error
-        throw error;
+      return await parseWithScrapingBee(url);
+    } catch (scrapingbeeError: any) {
+      console.log('[Parse] ScrapingBee failed:', scrapingbeeError.message);
+
+      // If original error was timeout, report that specifically
+      if (error.name === 'AbortError') {
+        throw new Error('Превышен таймаут ожидания. Судный сайт работает очень медленно. Попробуйте повторить запрос позже.');
       }
+      // Re-throw original error
+      throw error;
     }
   }
 }

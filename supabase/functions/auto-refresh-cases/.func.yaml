@@ -1,0 +1,21 @@
+runtime: deno
+entrypoint: index.ts
+# Increase timeout for longer running operations
+timeout: 180
+# Increase memory allocation
+memoryMb: 512
+# Enable JWT
+jwtSecret: ${SUPABASE_JWT_SECRET}
+
+# Environment variables required
+environment:
+  FUNCTION_SECRET: ${FUNCTION_SECRET}
+  SUPABASE_URL: ${SUPABASE_URL}
+  SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+
+# Limits and constraints
+limits:
+  # Max number of concurrent executions
+  concurrency: 1
+  # Max request duration
+  executionTimeout: 180

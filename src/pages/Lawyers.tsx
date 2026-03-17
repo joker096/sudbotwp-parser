@@ -13,6 +13,7 @@ interface Lawyer {
   name: string;
   spec: string;
   city: string;
+  region: string;
   rating: number;
   reviews: number;
   verified: boolean;
@@ -23,6 +24,100 @@ interface Lawyer {
   experience: string;
   description: string;
 }
+
+// Полный список регионов России
+const RUSSIAN_REGIONS = [
+  'Москва и Московская область',
+  'Санкт-Петербург и Ленинградская область',
+  'Адыгея',
+  'Алтай',
+  'Амурская область',
+  'Архангельская область',
+  'Астраханская область',
+  'Башкортостан',
+  'Белгородская область',
+  'Брянская область',
+  'Бурятия',
+  'Владимирская область',
+  'Волгоградская область',
+  'Вологодская область',
+  'Воронежская область',
+  'Дагестан',
+  'Еврейская АО',
+  'Забайкальский край',
+  'Ивановская область',
+  'Ингушетия',
+  'Иркутская область',
+  'Кабардино-Балкария',
+  'Калининградская область',
+  'Калмыкия',
+  'Калужская область',
+  'Камчатский край',
+  'Карачаево-Черкесия',
+  'Кемеровская область',
+  'Кировская область',
+  'Коми',
+  'Костромская область',
+  'Краснодарский край',
+  'Красноярский край',
+  'Крым',
+  'Курганская область',
+  'Курская область',
+  'Липецкая область',
+  'Магаданская область',
+  'Марий Эл',
+  'Мордовия',
+  'Мурманская область',
+  'Нижегородская область',
+  'Новгородская область',
+  'Новосибирская область',
+  'Омская область',
+  'Оренбургская область',
+  'Орловская область',
+  'Пензенская область',
+  'Пермский край',
+  'Приморский край',
+  'Псковская область',
+  'Ростовская область',
+  'Рязанская область',
+  'Самарская область',
+  'Саратовская область',
+  'Саха (Якутия)',
+  'Сахалинская область',
+  'Свердловская область',
+  'Севастополь',
+  'Северная Осетия',
+  'Смоленская область',
+  'Ставропольский край',
+  'Тамбовская область',
+  'Татарстан',
+  'Тверская область',
+  'Томская область',
+  'Тульская область',
+  'Тыва',
+  'Тюменская область',
+  'Удмуртия',
+  'Ульяновская область',
+  'Хабаровский край',
+  'Хакасия',
+  'Ханты-Мансийский АО',
+  'Челябинская область',
+  'Чечня',
+  'Чувашия',
+  'Чукотский АО',
+  'Ямало-Ненецкий АО',
+  'Ярославская область',
+];
+
+// Крупные города для быстрого доступа
+const POPULAR_CITIES = [
+  'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
+  'Нижний Новгород', 'Челябинск', 'Самара', 'Омск', 'Ростов-на-Дону',
+  'Уфа', 'Красноярск', 'Воронеж', 'Пермь', 'Волгоград', 'Саратов',
+  'Тюмень', 'Тольятти', 'Ижевск', 'Барнаул', 'Ульяновск', 'Иркутск',
+  'Хабаровск', 'Ярославль', 'Владивосток', 'Махачкала', 'Томск',
+  'Оренбург', 'Кемерово', 'Новокузнецк', 'Астрахань', 'Пенза',
+];
 
 export default function Lawyers() {
   const { setSeo } = useSeo('/lawyers');
@@ -56,45 +151,79 @@ export default function Lawyers() {
 
   const allLawyers: Lawyer[] = [
     { 
-      id: 1, name: 'Александр Смирнов', spec: 'Гражданские', city: 'Москва', rating: 4.9, reviews: 124, verified: true, img: 'https://picsum.photos/seed/lawyer1/200/200',
+      id: 1, name: 'Александр Смирнов', spec: 'Гражданские', city: 'Москва', region: 'Москва и Московская область', rating: 4.9, reviews: 124, verified: true, img: 'https://picsum.photos/seed/lawyer1/200/200',
       yandexRating: 4.8, website: 'smirnov-law.ru', phone: '+7 (999) 123-45-67', experience: '12 лет',
       description: 'Специализируюсь на сложных гражданских делах. Большой опыт работы в судах общей юрисдикции. Помогу защитить ваши интересы на любой стадии процесса.'
     },
     { 
-      id: 2, name: 'Елена Волкова', spec: 'Семейные', city: 'Санкт-Петербург', rating: 5.0, reviews: 89, verified: true, img: 'https://picsum.photos/seed/lawyer2/200/200',
+      id: 2, name: 'Елена Волкова', spec: 'Семейные', city: 'Санкт-Петербург', region: 'Санкт-Петербург и Ленинградская область', rating: 5.0, reviews: 89, verified: true, img: 'https://picsum.photos/seed/lawyer2/200/200',
       yandexRating: 5.0, website: 'volkova-family.ru', phone: '+7 (999) 234-56-78', experience: '8 лет',
       description: 'Бракоразводные процессы, раздел имущества, споры о детях. Деликатный подход к каждому клиенту и нацеленность на мирное урегулирование.'
     },
     { 
-      id: 3, name: 'Дмитрий Иванов', spec: 'Уголовные', city: 'Москва', rating: 4.8, reviews: 56, verified: false, img: 'https://picsum.photos/seed/lawyer3/200/200',
+      id: 3, name: 'Дмитрий Иванов', spec: 'Уголовные', city: 'Москва', region: 'Москва и Московская область', rating: 4.8, reviews: 56, verified: false, img: 'https://picsum.photos/seed/lawyer3/200/200',
       yandexRating: 4.6, website: 'ivanov-advocat.ru', phone: '+7 (999) 345-67-89', experience: '15 лет',
       description: 'Защита по уголовным делам любой сложности. Срочный выезд при задержании. Опыт работы следователем помогает выстраивать эффективную линию защиты.'
     },
     { 
-      id: 4, name: 'Анна Петрова', spec: 'Арбитраж', city: 'Казань', rating: 4.9, reviews: 210, verified: true, img: 'https://picsum.photos/seed/lawyer4/200/200',
+      id: 4, name: 'Анна Петрова', spec: 'Арбитраж', city: 'Казань', region: 'Татарстан', rating: 4.9, reviews: 210, verified: true, img: 'https://picsum.photos/seed/lawyer4/200/200',
       yandexRating: 4.9, website: 'petrova-arbitr.ru', phone: '+7 (999) 456-78-90', experience: '10 лет',
       description: 'Сопровождение бизнеса, арбитражные споры, взыскание долгов с юридических лиц. Полный аудит договоров и защита в суде.'
     },
     { 
-      id: 5, name: 'Михаил Сидоров', spec: 'Гражданские', city: 'Новосибирск', rating: 4.7, reviews: 45, verified: true, img: 'https://picsum.photos/seed/lawyer5/200/200',
+      id: 5, name: 'Михаил Сидоров', spec: 'Гражданские', city: 'Новосибирск', region: 'Новосибирская область', rating: 4.7, reviews: 45, verified: true, img: 'https://picsum.photos/seed/lawyer5/200/200',
       yandexRating: 4.5, website: 'sidorov-lawyer.ru', phone: '+7 (999) 567-89-01', experience: '6 лет',
       description: 'Жилищные споры, защита прав потребителей, автоюрист. Бесплатная первичная консультация и оценка перспектив дела.'
+    },
+    { 
+      id: 6, name: 'Ольга Козлова', spec: 'Семейные', city: 'Екатеринбург', region: 'Свердловская область', rating: 4.8, reviews: 78, verified: true, img: 'https://picsum.photos/seed/lawyer6/200/200',
+      yandexRating: 4.7, website: 'kozlova-family.ru', phone: '+7 (999) 678-90-12', experience: '9 лет',
+      description: 'Специалист по семейному праву. Разводы, алименты, определение места жительства детей. Индивидуальный подход к каждой ситуации.'
+    },
+    { 
+      id: 7, name: 'Сергей Морозов', spec: 'Уголовные', city: 'Ростов-на-Дону', region: 'Ростовская область', rating: 4.9, reviews: 156, verified: true, img: 'https://picsum.photos/seed/lawyer7/200/200',
+      yandexRating: 4.8, website: 'morozov-criminal.ru', phone: '+7 (999) 789-01-23', experience: '18 лет',
+      description: 'Защита по уголовным делам. Опыт работы прокурором. Сложные дела по экономическим преступлениям. Комплексная правовая поддержка.'
+    },
+    { 
+      id: 8, name: 'Наталья Соколова', spec: 'Арбитраж', city: 'Краснодар', region: 'Краснодарский край', rating: 4.6, reviews: 92, verified: true, img: 'https://picsum.photos/seed/lawyer8/200/200',
+      yandexRating: 4.5, website: 'sokolova-arbitr.ru', phone: '+7 (999) 890-12-34', experience: '7 лет',
+      description: 'Юридическое сопровождение бизнеса. Арбитражные споры, налоговые консультации. Работаем по всей южной России.'
+    },
+    { 
+      id: 9, name: 'Игорь Лебедев', spec: 'Гражданские', city: 'Нижний Новгород', region: 'Нижегородская область', rating: 4.7, reviews: 63, verified: false, img: 'https://picsum.photos/seed/lawyer9/200/200',
+      yandexRating: 4.4, website: 'lebedev-law.ru', phone: '+7 (999) 901-23-45', experience: '11 лет',
+      description: 'Жилищное право, земельные споры, наследство. Большой опыт работы в судах Нижегородской области.'
+    },
+    { 
+      id: 10, name: 'Марина Кудрявцева', spec: 'Семейные', city: 'Воронеж', region: 'Воронежская область', rating: 4.8, reviews: 112, verified: true, img: 'https://picsum.photos/seed/lawyer10/200/200',
+      yandexRating: 4.9, website: 'kudryavtseva.ru', phone: '+7 (999) 012-34-56', experience: '14 лет',
+      description: 'Специализация: бракоразводные процессы, раздел имущества, споры о детях. Огромный опыт медиации и досудебного урегулирования.'
     },
   ];
 
   const tabs = ['Все', 'Гражданские', 'Уголовные', 'Семейные', 'Арбитраж'];
 
+  // Уникальные регионы из данных юристов + полный список регионов России
+  const availableRegions = Array.from(new Set([
+    ...allLawyers.map(l => l.region),
+    ...RUSSIAN_REGIONS
+  ])).sort();
+
+  // Для фильтрации: объединяем уникальные регионы и города
   const uniqueCities = Array.from(new Set(allLawyers.map(l => l.city))).sort();
 
   const filteredLawyers = allLawyers.filter(lawyer => {
     const matchesTab = activeTab === 'Все' || lawyer.spec === activeTab;
     const matchesSearch = lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          lawyer.city.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCity = filterCity === '' || lawyer.city === filterCity;
+                          lawyer.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          lawyer.region.toLowerCase().includes(searchQuery.toLowerCase());
+    // Фильтр по региону или городу
+    const matchesRegion = filterCity === '' || lawyer.region === filterCity || lawyer.city === filterCity;
     const matchesRating = lawyer.rating >= filterRating;
     const matchesVerified = !filterVerified || lawyer.verified;
     const matchesExperience = filterExperience === '' || parseInt(lawyer.experience) >= parseInt(filterExperience);
-    return matchesTab && matchesSearch && matchesCity && matchesRating && matchesVerified && matchesExperience;
+    return matchesTab && matchesSearch && matchesRegion && matchesRating && matchesVerified && matchesExperience;
   }).sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'reviews') return b.reviews - a.reviews;
@@ -135,15 +264,15 @@ export default function Lawyers() {
           >
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Город</label>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Регион / Город</label>
                 <select 
                   value={filterCity}
                   onChange={(e) => setFilterCity(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
                 >
-                  <option value="">Все города</option>
-                  {uniqueCities.map(city => (
-                    <option key={city} value={city}>{city}</option>
+                  <option value="">Все регионы</option>
+                  {availableRegions.map(region => (
+                    <option key={region} value={region}>{region}</option>
                   ))}
                 </select>
               </div>

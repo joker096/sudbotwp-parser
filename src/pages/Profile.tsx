@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Scale, Star, MapPin, MessageCircle, ShieldCheck, Settings, LogOut, ChevronRight, User, Phone, X, Building, FileText, Calendar, Link as LinkIcon, Check, Loader2, Trash2, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight as ChevronRightIcon, Clock, Bell, BellOff, Send, Eye, EyeOff, Info, Gavel, Hourglass, Pencil, Download, Globe, BookOpen } from 'lucide-react';
+import { Scale, Star, MapPin, MessageCircle, ShieldCheck, Settings, LogOut, ChevronRight, User, Phone, X, Building, FileText, Calendar, Link as LinkIcon, Check, Loader2, Trash2, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight as ChevronRightIcon, Clock, Bell, BellOff, Send, Eye, EyeOff, Info, Gavel, Hourglass, Pencil, Download, Globe, BookOpen, Plus, AlertCircle } from 'lucide-react';
+import EncryptedFileUpload from '../components/EncryptedFileUpload';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { ParsedCase } from '../types';
 import { useToast } from '../hooks/useToast';
-import { cases, supabase, calendarEvents, refreshCase } from '../lib/supabase';
+import { cases, supabase, calendarEvents, refreshCase, parseCase } from '../lib/supabase';
 import CaseCard from '../components/CaseCard';
 import PaymentModal from '../components/PaymentModal';
 import { ConfirmModal, useConfirmModal } from '../components/ConfirmModal';
@@ -116,6 +117,19 @@ export default function Profile() {
   const navigate = useNavigate();
   const { confirm, confirmModalProps } = useConfirmModal();
   const [caseToDelete, setCaseToDelete] = useState<string | null>(null);
+  // Состояние для лимитов обновления
+  const [refreshLimits, setRefreshLimits] = useState<{
+    [caseId: string]: {
+      canRefresh: boolean;
+      reason: string;
+      nextRefreshAt: string | null;
+    };
+  }>({});
+  const [isCheckingLimits, setIsCheckingLimits] = useState(false);
+  // Состояние для добавления дела в профиле
+  const [caseUrl, setCaseUrl] = useState('');
+  const [isAddingCase, setIsAddingCase] = useState(false);
+  const [addCaseError, setAddCaseError] = useState<string | null>(null);
 
   const handleEditEvent = (eventToEdit: any, caseId?: string) => {
     setEditingEvent({ ...eventToEdit, caseId }); // Store event and its parent caseId if it exists
@@ -366,6 +380,95 @@ export default function Profile() {
     navigate('/');
   };
 
+  // Добавление дела напрямую из профиля
+  const handleAddCaseFromProfile = async () => {
+    if (!caseUrl.trim() || !user) return;
+    
+    setIsAddingCase(true);
+    setAddCaseError(null);
+    
+    try {
+      showToast('Поиск дела...');
+      
+      // Парсим дело
+      const { data, error } = await parseCase(caseUrl);
+      
+      if (error) {
+        console.error('Error parsing case:', error);
+        if (error.message.includes('URL is required') || error.message.includes('Invalid URL format')) {
+          setAddCaseError('Пожалуйста, введите корректную ссылку на дело');
+          showToast('Введите корректную ссылку');
+        } else if (error.message.includes('Connection refused') || error.message.includes('Network') || error.message.includes('503')) {
+          setAddCaseError('Сервер временно недоступен. Попробуйте позже.');
+          showToast('Сервер недоступен');
+        } else if (error.message.includes('404') || error.message.includes('Failed to fetch')) {
+          setAddCaseError('Не удалось найти дело. Проверьте ссылку.');
+          showToast('Дело не найдено');
+        } else {
+          setAddCaseError(error.message || 'Ошибка при поиске дела');
+          showToast('Ошибка поиска');
+        }
+        return;
+      }
+      
+      if (!data) {
+        setAddCaseError('Не удалось получить данные о деле');
+        showToast('Не удалось получить данные');
+        return;
+      }
+      
+      // Проверяем, не существует ли уже это дело
+      const { data: existingCases } = await cases.getCasesByUser(user.id);
+      const caseNumber = data.number?.toLowerCase().trim();
+      const exists = existingCases?.some((c: ParsedCase) => c.number?.toLowerCase().trim() === caseNumber);
+      
+      if (exists) {
+        setAddCaseError('Это дело уже есть в Моих делах');
+        showToast('Дело уже существует');
+        return;
+      }
+      
+      // Сохраняем дело
+      const { data: newCase, error: createError } = await cases.createCase({
+        user_id: user.id,
+        ...data,
+      });
+      
+      if (createError) {
+        console.error('Error creating case:', createError);
+        setAddCaseError('Ошибка при сохранении дела');
+        showToast('Ошибка сохранения');
+        return;
+      }
+      
+      showToast('Дело успешно добавлено!');
+      
+      // Инвалидируем кеш
+      queryClient.invalidateQueries({ queryKey: ['userCases', user.id] });
+      
+      // Обновляем локальное состояние
+      if (newCase) {
+        setUserCases(prev => [{
+          ...data,
+          id: newCase.id,
+          status: 'active',
+          events: data.events || [],
+          appeals: data.appeals || [],
+        }, ...prev]);
+      }
+      
+      // Очищаем поле ввода
+      setCaseUrl('');
+      
+    } catch (err) {
+      console.error('Error adding case:', err);
+      setAddCaseError('Произошла ошибка при добавлении дела');
+      showToast('Ошибка');
+    } finally {
+      setIsAddingCase(false);
+    }
+  };
+
   const handleUpdateCase = async (updatedData: Partial<ParsedCase>) => {
     if (!selectedCase) return;
 
@@ -460,19 +563,32 @@ export default function Profile() {
       return;
     }
     
+    if (!user?.id) {
+      showToast('Необходимо авторизоваться для обновления дела');
+      return;
+    }
+    
     console.log('=== REFRESH CASE DEBUG ===');
     console.log('Case ID:', caseId);
     console.log('Case Link:', caseToRefresh.link);
     
     try {
       showToast('Обновление данных дела...');
-      console.log('Calling refreshCase...');
-      const { data, error } = await refreshCase(caseId, caseToRefresh.link);
-      console.log('refreshCase result:', { data, error });
+      console.log('Calling refreshCase with userId...');
+      // Передаем userId для проверки ограничений
+      const { data, error, limitInfo } = await refreshCase(caseId, caseToRefresh.link, {
+        userId: user.id,
+      });
+      console.log('refreshCase result:', { data, error, limitInfo });
       
       if (error) {
         console.error('Error refreshing case:', error);
-        showToast(error.message || 'Ошибка при обновлении дела');
+        // Если ошибка связана с ограничениями - показываем дружелюбное сообщение
+        if (error.code === 'REFRESH_LIMIT_EXCEEDED') {
+          showToast(error.message, 'info'); // Используем info вместо error для ограничений
+        } else {
+          showToast(error.message || 'Ошибка при обновлении дела', 'error');
+        }
         return;
       }
       
@@ -483,6 +599,7 @@ export default function Profile() {
           ...data,
           events: typeof data.events === 'string' ? JSON.parse(data.events) : data.events || [],
           appeals: typeof data.appeals === 'string' ? JSON.parse(data.appeals) : data.appeals || [],
+          last_manual_refresh_at: data.last_manual_refresh_at,
         };
         
         setUserCases(prevCases =>
@@ -1066,6 +1183,46 @@ END:VEVENT
 
       {/* Tab Content */}
       <div className="pt-2">
+        {/* Форма добавления дела в профиле */}
+        <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 mb-6 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent shrink-0">
+              <Plus className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Добавить дело</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Вставьте ссылку на дело (sudrf.ru, mos-sud.ru)</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                value={caseUrl}
+                onChange={(e) => setCaseUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddCaseFromProfile()}
+                placeholder="https://sudrf.ru/..." 
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+              />
+            </div>
+            <button 
+              onClick={handleAddCaseFromProfile}
+              disabled={isAddingCase || !caseUrl.trim()}
+              className="bg-accent hover:bg-accent-light disabled:opacity-50 text-white px-5 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm shrink-0 flex items-center justify-center gap-2"
+            >
+              {isAddingCase ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {isAddingCase ? 'Добавление...' : 'Добавить'}
+            </button>
+          </div>
+          {addCaseError && (
+            <div className="mt-3 flex items-center gap-2 text-red-500 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{addCaseError}</span>
+            </div>
+          )}
+        </div>
+
         {activeTab === 'cases' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {isLoading ? (
@@ -1073,10 +1230,10 @@ END:VEVENT
                 <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               </div>
             ) : userCases.filter(c => c.status !== 'deleted').length > 0 ? (
-              userCases.filter(c => c.status !== 'deleted').map(caseItem => (
+               userCases.filter(c => c.status !== 'deleted').map(caseItem => (
                 <div 
                   key={caseItem.id} 
-                  className={`relative bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-lg transition-all border border-transparent dark:border-slate-800 cursor-pointer group ${isSelectionMode ? 'cursor-default' : ''}`}
+                  className={`relative bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-xl hover:border-accent/30 dark:hover:border-accent/50 transition-all border border-transparent dark:border-slate-800 cursor-pointer group ${isSelectionMode ? 'cursor-default' : ''}`}
                   onClick={(e) => {
                     if (isSelectionMode) {
                       e.stopPropagation();
@@ -1115,30 +1272,52 @@ END:VEVENT
                     </div>
                     <div className="text-right shrink-0">
                       <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-medium">{caseItem.date}</span>
+                      {caseItem.updated_at && (
+                        <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5" title="Дата обновления">
+                          Обновл: {new Date(caseItem.updated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (profileData?.subscription_tier === 'free') {
+                            showToast('Ручное обновление доступно только для подписчиков. Оформите подписку или дождитесь автоматического обновления (1 раз в день).', 'info');
+                            return;
+                          }
                           handleRefreshCase(caseItem.id);
                         }}
-                        className="mt-1 p-1 text-slate-400 hover:text-accent transition-colors"
-                        title="Обновить данные дела"
+                        className={`mt-1 p-1 transition-colors ${
+                          profileData?.subscription_tier === 'free' 
+                            ? 'text-slate-300 cursor-not-allowed' 
+                            : 'text-slate-400 hover:text-accent'
+                        }`}
+                        title={profileData?.subscription_tier === 'free' 
+                          ? 'Ручное обновление доступно только для подписчиков' 
+                          : 'Обновить данные дела'}
+                        disabled={profileData?.subscription_tier === 'free'}
                       >
-                        <RotateCcw className="w-3.5 h-3.5" />
+                        <>
+                          <RotateCcw className={`w-3.5 h-3.5 ${
+                            profileData?.subscription_tier === 'free' ? 'opacity-50' : ''
+                          }`} />
+                          {profileData?.subscription_tier === 'free' && (
+                            <span className="absolute -bottom-1 -right-1 text-[8px] text-slate-400">🔒</span>
+                          )}
+                        </>
                       </button>
                     </div>
                   </div>
-                  {/* Кнопка быстрого удаления внизу карточки */}
+                  {/* Кнопка удаления - иконка */}
                   {!isSelectionMode && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCase(caseItem.id);
                       }}
-                      className="mt-3 w-full py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                      className="absolute top-3 right-3 p-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                       title="Удалить дело"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Удалить
                     </button>
                   )}
                 </div>
@@ -1696,6 +1875,19 @@ END:VEVENT
 
             </div>
 
+            {/* Документы */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Зашифрованные документы
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Храните ваши юридические документы в зашифрованном виде. Доступ к ним есть только у вас.
+              </p>
+              <EncryptedFileUpload
+                folder="private"
+              />
+            </div>
 
             {/* Безопасность */}
             <SecuritySettings />
@@ -1709,26 +1901,30 @@ END:VEVENT
       {/* Case Details Modal - используем CaseCard с вкладками */}
       <AnimatePresence>
         {selectedCase && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedCase(null)}>
-            <div className="relative w-full max-w-2xl max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedCase(null)}>
+            <div className="relative w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedCase(null)}
-                className="absolute top-4 right-4 z-10 p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="absolute -top-2 -right-2 sm:top-4 sm:right-4 z-[60] p-1.5 sm:p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
-                <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />
               </button>
-              <CaseCard
-                key={selectedCase.id}
-                caseData={selectedCase}
-                isAdded={true}
-                isLoading={false}
-                onAddCase={() => {}}
-                onUpdateCase={handleUpdateCase}
-                onShowPaymentModal={handleShowPaymentModal}
-                onDeleteCase={() => handleDeleteCase(selectedCase.id)}
-                onRefreshCase={() => handleRefreshCase(selectedCase.id)}
-                onDateDoubleClick={handleDateDoubleClick}
-              />
+               <CaseCard
+                 key={selectedCase.id}
+                 caseData={selectedCase}
+                 isAdded={true}
+                 isLoading={false}
+                 onAddCase={() => {}}
+                 onUpdateCase={handleUpdateCase}
+                 onShowPaymentModal={handleShowPaymentModal}
+                 onDeleteCase={() => handleDeleteCase(selectedCase.id)}
+                 onRefreshCase={() => handleRefreshCase(selectedCase.id)}
+                 onDateDoubleClick={handleDateDoubleClick}
+                 userId={user?.id}
+                 subscriptionTier={profileData?.subscription_tier}
+                 canRefresh={refreshLimits[selectedCase.id]?.canRefresh ?? true}
+                 refreshLimitReason={refreshLimits[selectedCase.id]?.reason}
+               />
             </div>
           </div>
         )}

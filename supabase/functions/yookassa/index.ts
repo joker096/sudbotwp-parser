@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Настройки Юкассы
 const YOOKASSA_SHOP_ID = Deno.env.get('YOOKASSA_SHOP_ID') || '';
 const YOOKASSA_SECRET_KEY = Deno.env.get('YOOKASSA_SECRET_KEY') || '';
-const YOOKASSA_RETURN_URL = Deno.env.get('YOOKASSA_RETURN_URL') || 'https://cvr.name/profile';
+const YOOKASSA_RETURN_URL = Deno.env.get('YOOKASSA_RETURN_URL') || 'https://sud.cvr.name/profile';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +21,7 @@ interface PaymentRequest {
   caseId?: string;
   userId?: string;
   email?: string;
+  paymentMethod?: string;
 }
 
 interface CreatePaymentResponse {
@@ -62,7 +63,21 @@ serve(async (req) => {
 
 // Создание платежа
 async function createPayment(data: PaymentRequest): Promise<Response> {
-  const { amount, description, caseId, userId, email } = data;
+  const { amount, description, caseId, userId, email, paymentMethod } = data;
+  
+  // Если нет настроек Юкассы - возвращаем mock URL для fallback
+  if (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY || YOOKASSA_SHOP_ID === 'your_shop_id') {
+    console.log('Yookassa not configured, returning mock payment');
+    return new Response(
+      JSON.stringify({
+        paymentId: `mock_${Date.now()}`,
+        confirmationUrl: null,
+        status: 'pending',
+        fallback: true,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
   
   // Создаем платеж в Юкассе
   const paymentData = {

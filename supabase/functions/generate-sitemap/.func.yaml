@@ -1,0 +1,8 @@
+{
+  "name": "generate-sitemap",
+  "version": "0.0.1",
+  "type": "http",
+  "runtime": "deno",
+  "description": "Generates sitemap.xml for SEO",
+  "verify_jwt": false
+}

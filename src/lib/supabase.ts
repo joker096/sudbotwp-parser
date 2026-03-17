@@ -424,6 +424,23 @@ async function parseCaseServer(url: string): Promise<{ data: any; error: any }> 
   }
 }
 
+/**
+ * Проверяет, является ли URL сайтом российского суда
+ * Сайты судов не поддерживают CORS, поэтому клиентский парсинг будет всегда падать
+ */
+function isCourtSite(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname.includes('sudrf.ru') ||
+           hostname.includes('mos-sud.ru') ||
+           hostname.includes('arbitr.ru') ||
+           hostname.includes('msudrf.ru') ||
+           hostname.endsWith('.sudrf.ru');
+  } catch {
+    return false;
+  }
+}
+
 export const parseCase = async (url: string, options?: {
   preferClient?: boolean;
   useFullFallback?: boolean;
@@ -438,16 +455,21 @@ export const parseCase = async (url: string, options?: {
       }
     };
   }
-  
+
+  // Проверяем, является ли URL сайтом суда
+  const isCourt = isCourtSite(url);
+
   // Если запрошен полный fallback (с Browserless/ScrapingBee) и это production
-  if (options?.useFullFallback !== false && !import.meta.env.DEV) {
+  // или если это сайт суда (чтобы избежать CORS ошибок)
+  if (options?.useFullFallback !== false && (!import.meta.env.DEV || isCourt)) {
     console.log('Using full fallback chain with external services...');
     return await parseWithFullFallback(url);
   }
-  
+
   // Стратегия для DEV или когда useFullFallback = false:
   // Клиентский → Серверный (local/Edge Function)
-  if (options?.preferClient !== false) {
+  // Но пропускаем клиентский парсинг для судебных сайтов из-за CORS
+  if (options?.preferClient !== false && !isCourt) {
     try {
       console.log('Trying client-side parsing first...');
       const clientData = await parseCaseClient(url);
@@ -456,8 +478,10 @@ export const parseCase = async (url: string, options?: {
     } catch (clientError: any) {
       console.log('Client-side parsing failed:', clientError.message);
     }
+  } else if (isCourt) {
+    console.log('Skipping client-side parsing for court site (CORS restriction)');
   }
-  
+
   // Fallback на сервер
   console.log('Using server-side parsing...');
   const result = await parseCaseServer(url);
@@ -481,12 +505,156 @@ export const parseCase = async (url: string, options?: {
   return { ...result, source: 'server' };
 };
 
-// Обновить дело через повторный парсинг
-export const refreshCase = async (caseId: string, link: string) => {
+// =====================================================
+// CASE REFRESH LIMITS - Ограничения на обновление дел
+// =====================================================
+
+export interface RefreshLimitInfo {
+  canRefresh: boolean;
+  reason: string;
+  nextRefreshAt: string | null;
+  subscriptionTier: string;
+  lastRefreshToday: string | null;
+}
+
+// Проверить, может ли пользователь обновить дело вручную
+export const checkRefreshLimits = async (userId: string): Promise<RefreshLimitInfo> => {
+  try {
+    // Получаем информацию о подписке пользователя
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      return {
+        canRefresh: false,
+        reason: 'Ошибка при проверке подписки',
+        nextRefreshAt: null,
+        subscriptionTier: 'free',
+        lastRefreshToday: null,
+      };
+    }
+
+    const subscriptionTier = profileData?.subscription_tier || 'free';
+
+    // Бесплатный пользователь не может обновлять вручную
+    if (subscriptionTier === 'free') {
+      return {
+        canRefresh: false,
+        reason: 'Ручное обновление доступно только для подписчиков. Оформите подписку для ручного обновления или дождитесь автоматического обновления (1 раз в день).',
+        nextRefreshAt: null,
+        subscriptionTier,
+        lastRefreshToday: null,
+      };
+    }
+
+    // Получаем время последнего ручного обновления любого дела пользователем сегодня
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString();
+
+    const { data: lastRefreshData, error: lastRefreshError } = await supabase
+      .from('cases')
+      .select('last_manual_refresh_at')
+      .eq('user_id', userId)
+      .gte('last_manual_refresh_at', todayIso)
+      .order('last_manual_refresh_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (lastRefreshData?.last_manual_refresh_at) {
+      // Если сегодня уже было ручное обновление - запрещаем
+      const lastRefreshTime = new Date(lastRefreshData.last_manual_refresh_at);
+      const timeString = lastRefreshTime.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
+      // Вычисляем время следующего обновления (полночь следующего дня)
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      return {
+        canRefresh: false,
+        reason: `Вы уже обновляли дело сегодня (${timeString}). Следующее ручное обновление будет доступно завтра.`,
+        nextRefreshAt: tomorrow.toISOString(),
+        subscriptionTier,
+        lastRefreshToday: lastRefreshData.last_manual_refresh_at,
+      };
+    }
+
+    // Подписчик может обновить (еще не обновлял сегодня)
+    return {
+      canRefresh: true,
+      reason: 'Ручное обновление доступно.',
+      nextRefreshAt: null,
+      subscriptionTier,
+      lastRefreshToday: null,
+    };
+  } catch (error) {
+    console.error('Error checking refresh limits:', error);
+    return {
+      canRefresh: false,
+      reason: 'Ошибка при проверке ограничений',
+      nextRefreshAt: null,
+      subscriptionTier: 'free',
+      lastRefreshToday: null,
+    };
+  }
+};
+
+// Обновить дело через повторный парсинг (с проверкой ограничений для ручного обновления)
+export const refreshCase = async (
+  caseId: string, 
+  link: string, 
+  options?: { 
+    isAutoRefresh?: boolean;
+    userId?: string;
+  }
+): Promise<{
+  data: any;
+  error?: {
+    message: string;
+    code?: string;
+    nextRefreshAt?: string;
+    subscriptionTier?: string;
+  };
+  limitInfo?: RefreshLimitInfo;
+}> => {
   console.log('=== REFRESH CASE FUNCTION ===');
   console.log('caseId:', caseId);
   console.log('link:', link);
-  
+  console.log('options:', options);
+
+  const isAutoRefresh = options?.isAutoRefresh || false;
+  const userId = options?.userId;
+
+  // Если это ручное обновление (не авто) - проверяем ограничения
+  if (!isAutoRefresh && userId) {
+    console.log('Checking refresh limits for manual refresh...');
+    const limitInfo = await checkRefreshLimits(userId);
+
+    if (!limitInfo.canRefresh) {
+      console.log('Refresh blocked:', limitInfo.reason);
+      return {
+        data: null,
+        error: {
+          message: limitInfo.reason,
+          code: 'REFRESH_LIMIT_EXCEEDED',
+          nextRefreshAt: limitInfo.nextRefreshAt,
+          subscriptionTier: limitInfo.subscriptionTier,
+        },
+        limitInfo,
+      };
+    }
+
+    console.log('Refresh allowed:', limitInfo.reason);
+  }
+
   // Сначала проверяем доступность сайта суда
   const availability = await checkCourtSiteAvailability(link);
   console.log('Court site availability:', availability);
@@ -498,20 +666,20 @@ export const refreshCase = async (caseId: string, link: string) => {
       }
     };
   }
-  
+
   // Используем ту же стратегию парсинга, что и в parseCase
   const result = await parseCase(link);
-  
+
   if (result.error) {
     console.error('Error refreshing case:', result.error);
     return result;
   }
-  
+
   const parsedData = result.data;
   console.log('Refreshed case data:', parsedData);
-  
+
   // Подготавливаем данные для обновления
-  const updates = {
+  const updates: any = {
     number: parsedData.number || '',
     court: parsedData.court || '',
     status: parsedData.status || '',
@@ -524,7 +692,12 @@ export const refreshCase = async (caseId: string, link: string) => {
     events: JSON.stringify(parsedData.events || []),
     appeals: JSON.stringify(parsedData.appeals || []),
   };
-  
+
+  // Если это ручное обновление - записываем время
+  if (!isAutoRefresh) {
+    updates.last_manual_refresh_at = new Date().toISOString();
+  }
+
   // Обновляем дело в базе данных
   const { data, error } = await supabase
     .from('cases')
@@ -535,13 +708,81 @@ export const refreshCase = async (caseId: string, link: string) => {
     .eq('id', caseId)
     .select()
     .single();
-    
+
   if (error) {
     console.error('Error updating case:', error);
     return { data: null, error };
   }
-  
+
   return { data, error: null };
+};
+
+// Функция для автоматического обновления (без ограничений)
+export const autoRefreshCase = async (caseId: string, link: string) => {
+  // Получаем user_id из дела для передачи в refreshCase
+  const { data: caseData, error: caseError } = await supabase
+    .from('cases')
+    .select('user_id')
+    .eq('id', caseId)
+    .single();
+
+  if (caseError || !caseData) {
+    console.error('Error fetching case for auto refresh:', caseError);
+    return { data: null, error: caseError };
+  }
+
+  return refreshCase(caseId, link, { 
+    isAutoRefresh: true, 
+    userId: caseData.user_id 
+  });
+};
+
+// Получить статистику обновлений пользователя
+export const getUserRefreshStats = async (userId: string) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString();
+
+    // Количество дел пользователя
+    const { count: totalCases, error: countError } = await supabase
+      .from('cases')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .neq('status', 'deleted');
+
+    if (countError) throw countError;
+
+    // Последнее ручное обновление сегодня
+    const { data: lastRefresh, error: lastRefreshError } = await supabase
+      .from('cases')
+      .select('last_manual_refresh_at')
+      .eq('user_id', userId)
+      .gte('last_manual_refresh_at', todayIso)
+      .order('last_manual_refresh_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Получаем подписку
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    return {
+      data: {
+        totalCases: totalCases || 0,
+        hasRefreshedToday: !!lastRefresh?.last_manual_refresh_at,
+        lastRefreshAt: lastRefresh?.last_manual_refresh_at || null,
+        subscriptionTier: profile?.subscription_tier || 'free',
+      },
+      error: null,
+    };
+  } catch (error) {
+    console.error('Error getting user refresh stats:', error);
+    return { data: null, error };
+  }
 };
 
 // =====================================================
@@ -1710,29 +1951,26 @@ export const userRewards = {
 // =====================================================
 
 export interface BlogPost {
-  id: string;
-  slug: string;
+  id?: number;
   title: string;
-  excerpt: string | null;
+  excerpt: string;
   content: string;
-  category: string | null;
-  author_id: string | null;
-  author_name: string | null;
-  featured_image: string | null;
-  meta_title: string | null;
-  meta_description: string | null;
-  meta_keywords: string | null;
-  og_title: string | null;
-  og_description: string | null;
-  og_image: string | null;
-  canonical_url: string | null;
-  status: 'draft' | 'published' | 'archived';
-  published_at: string | null;
-  views_count: number;
-  likes_count: number;
-  comments_count: number;
-  created_at: string;
-  updated_at: string;
+  category: string;
+  image_url: string;
+  author: string;
+  read_time: string;
+  published: boolean;
+  // SEO поля
+  seo_title: string;
+  seo_description: string;
+  seo_keywords: string;
+  og_title: string;
+  og_description: string;
+  og_image: string;
+  views?: number;
+  likes?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BlogComment {
@@ -1777,18 +2015,17 @@ export const blogPosts = {
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false });
+      .eq('published', true)
+      .order('created_at', { ascending: false });
     return { data: data as BlogPost[] | null, error };
   },
 
-  // Получить статью по slug
-  getBySlug: async (slug: string) => {
+  // Получить статью по ID
+  getById: async (id: number) => {
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
-      .eq('slug', slug)
-      .eq('status', 'published')
+      .eq('id', id)
       .single();
     return { data: data as BlogPost | null, error };
   },
@@ -1817,7 +2054,7 @@ export const blogPosts = {
   },
 
   // Обновить статью
-  update: async (id: string, updates: Partial<BlogPost>) => {
+  update: async (id: number, updates: Partial<BlogPost>) => {
     const { data, error } = await supabase
       .from('blog_posts')
       .update({
@@ -1831,10 +2068,10 @@ export const blogPosts = {
   },
 
   // Увеличить счетчик просмотров
-  incrementViews: async (id: string) => {
+  incrementViews: async (id: number) => {
     const { data, error } = await supabase
       .from('blog_posts')
-      .update({ views_count: supabase.rpc('increment', { row_id: id }) })
+      .update({ views: (await supabase.from('blog_posts').select('views').eq('id', id).single()).data?.views + 1 || 1 })
       .eq('id', id)
       .select()
       .single();
@@ -1842,7 +2079,7 @@ export const blogPosts = {
   },
 
   // Удалить статью
-  delete: async (id: string) => {
+  delete: async (id: number) => {
     const { error } = await supabase
       .from('blog_posts')
       .delete()
@@ -2018,6 +2255,111 @@ export const blogComments = {
       .delete()
       .eq('comment_id', commentId);
     return { error };
+  },
+};
+
+export const documents = {
+  // Загрузить документ
+  upload: async (userId: string, file: File, folder = 'private') => {
+    try {
+      // Генерация уникального имени файла
+      const timestamp = Date.now();
+      const uniqueFileName = `${timestamp}-${file.name}`;
+      const path = folder === 'shared' ? `shared/${uniqueFileName}` : `${userId}/${uniqueFileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Получить публичный URL (если файл в общем бакете)
+      let url = null;
+      if (folder === 'shared') {
+        const { data: publicUrlData } = supabase.storage
+          .from('documents')
+          .getPublicUrl(path);
+        url = publicUrlData.publicUrl;
+      }
+
+      return { data, url, error: null };
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      return { data: null, url: null, error };
+    }
+  },
+
+  // Получить список документов пользователя
+  list: async (userId: string, folder = 'private') => {
+    try {
+      const path = folder === 'shared' ? 'shared' : userId;
+      
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .list(path);
+
+      if (error) throw error;
+
+      // Для каждого документа получить URL
+      const documentsWithUrls = await Promise.all(
+        (data || []).map(async (doc) => {
+          const fullPath = folder === 'shared' ? `shared/${doc.name}` : `${userId}/${doc.name}`;
+          
+          // Получить подписанный URL для доступа
+          const { data: urlData } = supabase.storage
+            .from('documents')
+            .createSignedUrl(fullPath, 3600); // Срок действия 1 час
+
+          return {
+            ...doc,
+            url: urlData?.signedUrl || null,
+            path: fullPath,
+          };
+        })
+      );
+
+      return { data: documentsWithUrls, error: null };
+    } catch (error) {
+      console.error('Error listing documents:', error);
+      return { data: null, error };
+    }
+  },
+
+  // Скачать документ
+  download: async (userId: string, fileName: string, folder = 'private') => {
+    try {
+      const path = folder === 'shared' ? `shared/${fileName}` : `${userId}/${fileName}`;
+      
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(path);
+
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      return { data: null, error };
+    }
+  },
+
+  // Удалить документ
+  remove: async (userId: string, fileName: string, folder = 'private') => {
+    try {
+      const path = folder === 'shared' ? `shared/${fileName}` : `${userId}/${fileName}`;
+      
+      const { error } = await supabase.storage
+        .from('documents')
+        .remove([path]);
+
+      return { error };
+    } catch (error) {
+      console.error('Error removing document:', error);
+      return { error };
+    }
   },
 };
 

@@ -37,9 +37,17 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
   const price = 490; // Базовая цена отчёта
 
   const handlePayment = async () => {
+    // Safety check
+    if (!caseData) {
+      showToast('Ошибка: данные дела не загружены');
+      return;
+    }
+    
     setIsProcessing(true);
     
     try {
+      console.log('Starting payment process...', { price, caseId: caseData?.id, userId: user?.id });
+      
       // Вызываем Edge Function для создания платежа
       const { data, error } = await supabase.functions.invoke('yookassa', {
         body: {
@@ -49,16 +57,24 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
           caseId: caseData?.id?.toString(),
           userId: user?.id,
           email: email,
+          paymentMethod: paymentMethod,
         },
       });
 
-      if (error) throw error;
+      console.log('Yookassa response:', { data, error });
+
+      if (error) {
+        console.error('Yookassa error:', error);
+        throw error;
+      }
 
       // Перенаправляем на страницу оплаты Юкассы
       if (data?.confirmationUrl) {
+        console.log('Redirecting to payment:', data.confirmationUrl);
         window.location.href = data.confirmationUrl;
       } else {
-        // Fallback - имитация оплаты
+        // Нет URL для оплаты - используем fallback
+        console.log('No confirmation URL, using fallback payment');
         await simulatePayment();
       }
     } catch (error) {

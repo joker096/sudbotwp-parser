@@ -447,6 +447,11 @@ export default function CaseSearch() {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-colors">{caseItem.number}</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{caseItem.court}</p>
+                        {caseItem.updated_at && (
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5" title="Дата обновления">
+                            Обновл: {new Date(caseItem.updated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -469,7 +474,7 @@ export default function CaseSearch() {
             <div className="relative w-full max-w-full sm:max-w-2xl max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedCase(null)}
-                className="absolute top-4 right-4 z-10 p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="absolute -top-2 -right-2 sm:top-4 sm:right-4 z-[60] p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </button>

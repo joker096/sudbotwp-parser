@@ -12,6 +12,29 @@ import { supabase } from '../lib/supabase';
 
 let isGALoaded = false;
 let currentGAId: string | null = null;
+let gaLoadAttempted = false;
+
+// Функция проверки доступности Google
+async function checkGoogleAvailability(): Promise<boolean> {
+  try {
+    // Пробуем получить доступ к gtag через image/-beacon запрос
+    // Это более надёжный способ, чем загрузка скрипта
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
+    await fetch('https://www.google-analytics.com/collect', {
+      method: 'POST',
+      body: 't=timing&tid=G-XXXXXXXXXX&utv=test',
+      signal: controller.signal,
+      mode: 'no-cors', // Не ждём ответа
+    });
+    
+    clearTimeout(timeoutId);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function useGoogleAnalytics() {
   const [gaConfig, setGaConfig] = useState<{ id: string | null; enabled: boolean }>({
@@ -53,7 +76,12 @@ export function useGoogleAnalytics() {
   return gaConfig;
 }
 
-export function loadGoogleAnalytics(gaId: string) {
+export async function loadGoogleAnalytics(gaId: string) {
+  // Если уже пытались загрузить и не вышло - не пытаемся снова
+  if (gaLoadAttempted && !isGALoaded) {
+    return;
+  }
+  
   if (isGALoaded && currentGAId === gaId) {
     return;
   }
@@ -68,6 +96,14 @@ export function loadGoogleAnalytics(gaId: string) {
   }
 
   if (!gaId || gaId.trim() === '') {
+    return;
+  }
+
+  // Проверяем доступность Google перед загрузкой скрипта
+  const isGoogleAvailable = await checkGoogleAvailability();
+  if (!isGoogleAvailable) {
+    console.warn('Google Analytics is not available in your region, skipping initialization');
+    gaLoadAttempted = true;
     return;
   }
 
@@ -91,8 +127,16 @@ export function loadGoogleAnalytics(gaId: string) {
   // Обработка ошибки загрузки скрипта (например, если заблокирован в России)
   script.onerror = () => {
     console.warn('Google Analytics script failed to load (may be blocked in your region)');
+    // Удаляем скрипт из DOM если он не загрузился
+    script.remove();
     isGALoaded = false;
     currentGAId = null;
+    gaLoadAttempted = true; // Больше не пытаемся загрузить
+  };
+  
+  // Также обрабатываем случай, если скрипт загрузился, но gtag не инициализировался
+  script.onload = () => {
+    gaLoadAttempted = true;
   };
   
   document.head.appendChild(script);
@@ -131,9 +175,12 @@ export default function GoogleAnalytics() {
 
   // Загружаем GA скрипт
   useEffect(() => {
-    if (enabled && id) {
-      loadGoogleAnalytics(id);
-    }
+    const initializeGA = async () => {
+      if (enabled && id) {
+        await loadGoogleAnalytics(id);
+      }
+    };
+    initializeGA();
   }, [id, enabled]);
 
   // Отслеживаем смену страницы

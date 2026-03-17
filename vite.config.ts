@@ -38,7 +38,26 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          // Не кешировать HTML файлы - они всегда должны загружаться с сервера
+          navigateFallback: undefined,
+          // Уменьшаем время кеширования для JS файлов
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+          // Очищаем старые кеши при обновлении
+          cleanupOutdatedCaches: true,
           runtimeCaching: [
+            {
+              // Не кешировать основной HTML
+              urlPattern: /^\/.*\.html$/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'html-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 // Кешировать только 1 минуту
+                },
+                networkTimeoutSeconds: 5
+              }
+            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
@@ -75,6 +94,19 @@ export default defineConfig(({mode}) => {
                 expiration: {
                   maxEntries: 100,
                   maxAgeSeconds: 60 * 60 * 24
+                },
+                networkTimeoutSeconds: 10
+              }
+            },
+            // Кеширование Supabase запросов (только для чтения)
+            {
+              urlPattern: /^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/rest\/v1\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'supabase-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 // 1 час
                 },
                 networkTimeoutSeconds: 10
               }
