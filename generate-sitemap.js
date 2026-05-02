@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 // Configuration
 const SITE_URL = process.env.SITE_URL || 'https://sud.cvr.name';
 const SITEMAP_REDIRECT_URL = 'https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap';
-const OUTPUT_FILE = path.join(__dirname, 'public', 'sitemap.xml');
+const OUTPUT_FILE = path.join(__dirname, 'public', 'sitemap-redirect.html');
 
 const PAGES = [
   { url: '/', priority: '1.0', changefreq: 'daily' },

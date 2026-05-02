@@ -6,6 +6,9 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
+    # Sitemap redirect to Supabase dynamic generator
+    RewriteRule ^sitemap\.xml$ https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap [R=301,L]
+    
     # HTTPS redirect
     RewriteCond %{HTTPS} off
     RewriteCond %{HTTP:X-Forwarded-Proto} !https
