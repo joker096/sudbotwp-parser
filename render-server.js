@@ -277,6 +277,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Sitemap redirect to Supabase dynamic generator
+app.get('/sitemap.xml', (req, res) => {
+  res.redirect(301, 'https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap');
+});
+
 // Serve static files from dist folder (Vite build)
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {

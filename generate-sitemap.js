@@ -2,30 +2,22 @@
  * Sitemap Generator for SudBot
  * Run with: node generate-sitemap.js
  * 
- * Generates sitemap.xml for SEO purposes
+ * Generates sitemap.xml redirect to Supabase function
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuration
-const SITE_URL = 'https://cvr.name';
+const SITE_URL = process.env.SITE_URL || 'https://sud.cvr.name';
+const SITEMAP_REDIRECT_URL = 'https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap';
 const OUTPUT_FILE = path.join(__dirname, 'public', 'sitemap.xml');
 
-// Supabase configuration (load from .env or use defaults)
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-
-// Create Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Public pages (static routes)
-const pages = [
+const PAGES = [
   { url: '/', priority: '1.0', changefreq: 'daily' },
   { url: '/search', priority: '0.9', changefreq: 'daily' },
   { url: '/lawyers', priority: '0.8', changefreq: 'weekly' },
@@ -37,64 +29,21 @@ const pages = [
   { url: '/privacy', priority: '0.5', changefreq: 'monthly' },
 ];
 
-// Fetch published blog posts from Supabase
-const fetchBlogPosts = async () => {
-  try {
-    console.log('Fetching published blog posts...');
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('id, created_at, updated_at')
-      .eq('published', true)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.warn('Error fetching blog posts:', error.message);
-      return [];
-    }
-    
-    console.log(`Found ${data.length} published blog posts`);
-    return data;
-  } catch (error) {
-    console.warn('Error fetching blog posts:', error);
-    return [];
-  }
-};
-
-// Generate XML
+// Generate redirect HTML
 const generateSitemap = async () => {
-  const today = new Date().toISOString().split('T')[0];
-  
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="refresh" content="0;url=${SITEMAP_REDIRECT_URL}" />
+<title>Sitemap Redirect</title>
+</head>
+<body>
+<p>Redirecting to sitemap generator...</p>
+<a href="${SITEMAP_REDIRECT_URL}">View sitemap</a>
+</body>
+</html>
 `;
-  
-  // Add static pages
-  pages.forEach(page => {
-    xml += `  <url>
-    <loc>${SITE_URL}${page.url}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>${page.changefreq}</changefreq>
-    <priority>${page.priority}</priority>
-  </url>
-`;
-  });
-  
-  // Add blog posts
-  const blogPosts = await fetchBlogPosts();
-  blogPosts.forEach(post => {
-    const lastmod = post.updated_at ? new Date(post.updated_at).toISOString().split('T')[0] : today;
-    xml += `  <url>
-    <loc>${SITE_URL}/blog?post=${post.id}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-`;
-  });
-  
-  xml += `</urlset>`;
-  
-  return xml;
 };
 
 // Ensure output directory exists
@@ -103,20 +52,19 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-// Write sitemap.xml
+// Write sitemap.xml as redirect
 const generateAndSaveSitemap = async () => {
   try {
-    console.log('Generating sitemap...');
+    console.log('Generating sitemap redirect...');
     const sitemap = await generateSitemap();
     fs.writeFileSync(OUTPUT_FILE, sitemap, 'utf8');
     
-    const totalPages = pages.length + (await fetchBlogPosts()).length;
-    console.log(`✅ Sitemap generated: ${OUTPUT_FILE}`);
-    console.log(`📄 Total pages: ${totalPages}`);
+    console.log('\u2713 Sitemap redirect generated: ' + OUTPUT_FILE);
+    console.log('\u2713 Redirects to: ' + SITEMAP_REDIRECT_URL);
     
-    return { success: true, message: 'Sitemap generated successfully', file: OUTPUT_FILE };
+    return { success: true, message: 'Sitemap redirect generated successfully', file: OUTPUT_FILE };
   } catch (error) {
-    console.error('❌ Error generating sitemap:', error);
+    console.error('\u2757 Error generating sitemap:', error);
     return { success: false, message: error.message };
   }
 };
@@ -126,4 +74,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   generateAndSaveSitemap();
 }
 
-export { generateAndSaveSitemap, fetchBlogPosts };
+export { generateAndSaveSitemap };

@@ -1191,74 +1191,14 @@ app.put('/api/seo/:pagePath(*)', async (req, res) => {
 
 // ==================== SITEMAP & ROBOTS.TXT ====================
 
-app.get('/sitemap.xml', async (req, res) => {
-  try {
-    console.log('Generating dynamic sitemap...');
-    
-    const baseUrl = process.env.SERVER_URL || 'https://cvr.name';
-    let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-    
-    const staticPages = [
-      { path: '/', priority: '1.0', frequency: 'daily' },
-      { path: '/search', priority: '0.9', frequency: 'daily' },
-      { path: '/lawyers', priority: '0.8', frequency: 'weekly' },
-      { path: '/calculator', priority: '0.8', frequency: 'monthly' },
-      { path: '/blog', priority: '0.8', frequency: 'weekly' },
-      { path: '/help', priority: '0.7', frequency: 'monthly' },
-      { path: '/login', priority: '0.6', frequency: 'monthly' },
-      { path: '/taxpayer', priority: '0.8', frequency: 'daily' },
-      { path: '/privacy', priority: '0.5', frequency: 'monthly' },
-    ];
-    
-    for (const page of staticPages) {
-      sitemap += `  <url>\n`;
-      sitemap += `    <loc>${baseUrl}${page.path}</loc>\n`;
-      sitemap += `    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n`;
-      sitemap += `    <changefreq>${page.frequency}</changefreq>\n`;
-      sitemap += `    <priority>${page.priority}</priority>\n`;
-      sitemap += `  </url>\n`;
-    }
-    
-    // Add blog posts from database
-    if (supabase) {
-      console.log('Fetching published blog posts from database...');
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('id, created_at, updated_at')
-        .eq('published', true)
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.warn('Error fetching blog posts:', error.message);
-      } else if (data && data.length > 0) {
-        console.log(`Adding ${data.length} blog posts to sitemap`);
-        data.forEach(post => {
-          const lastmod = post.updated_at ? new Date(post.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-          sitemap += `  <url>\n`;
-          sitemap += `    <loc>${baseUrl}/blog?post=${post.id}</loc>\n`;
-          sitemap += `    <lastmod>${lastmod}</lastmod>\n`;
-          sitemap += `    <changefreq>weekly</changefreq>\n`;
-          sitemap += `    <priority>0.7</priority>\n`;
-          sitemap += `  </url>\n`;
-        });
-      }
-    }
-    
-    sitemap += '</urlset>';
-    
-    res.set('Content-Type', 'application/xml');
-    res.send(sitemap);
-  } catch (error) {
-    console.error('Error generating sitemap:', error.message);
-    res.status(500).send('Error generating sitemap');
-  }
+app.get('/sitemap.xml', (req, res) => {
+  res.redirect(301, 'https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap');
 });
 
 app.get('/robots.txt', (req, res) => {
-  const baseUrl = process.env.SERVER_URL || 'https://cvr.name';
+  const baseUrl = process.env.SERVER_URL || 'https://sud.cvr.name';
   
-  const robots = `# Robots.txt for cvr.name
+  const robots = `# Robots.txt for sud.cvr.name
 User-agent: *
 Allow: /
 
