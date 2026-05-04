@@ -1,0 +1,29 @@
+name: Set Telegram Webhook
+
+on:
+  workflow_dispatch:
+
+jobs:
+  set-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Telegram Webhook
+        run: |
+          BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          WEBHOOK_URL="https://qhiietjvfuekfaehddox.supabase.co/functions/v1/telegram-bot-webhook"
+          
+          echo "Setting webhook..."
+          RESPONSE=$(curl -s -m 30 "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${WEBHOOK_URL}")
+          
+          echo "Response: $RESPONSE"
+          
+          echo "$RESPONSE" | python -c "
+import sys, json
+data = json.load(sys.stdin)
+if data.get('ok'):
+    print('✅ Webhook установлен успешно!')
+    print(f'URL: {data.get(\"result\", \"N/A\")}')
+else:
+    print(f'❌ Ошибка: {data.get(\"description\", \"Неизвестная ошибка\")}')
+    sys.exit(1)
+"
