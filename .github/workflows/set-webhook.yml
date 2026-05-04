@@ -17,13 +17,17 @@ jobs:
           
           echo "Response: $RESPONSE"
           
-          echo "$RESPONSE" | python -c "
-import sys, json
-data = json.load(sys.stdin)
-if data.get('ok'):
-    print('✅ Webhook установлен успешно!')
-    print(f'URL: {data.get(\"result\", \"N/A\")}')
-else:
-    print(f'❌ Ошибка: {data.get(\"description\", \"Неизвестная ошибка\")}')
-    sys.exit(1)
-"
+          echo "$RESPONSE" | jq '. as $r | 
+            if .ok then
+              "✅ Webhook установлен успешно!",
+              "URL: \($r.result // "N/A")"
+            else
+              ("❌ Ошибка: " + (.description // "Неизвестная ошибка"))
+            end
+          '
+          
+          if echo "$RESPONSE" | jq -e '.ok' >/dev/null 2>&1; then
+            exit 0
+          else
+            exit 1
+          fi
