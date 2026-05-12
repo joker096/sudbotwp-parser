@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Scale, Star, MapPin, MessageCircle, ShieldCheck, Settings, LogOut, ChevronRight, User, Phone, X, Building, FileText, Calendar, Link as LinkIcon, Check, Loader2, Trash2, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight as ChevronRightIcon, Clock, Bell, BellOff, Send, Eye, EyeOff, Info, Gavel, Hourglass, Pencil, Download, Globe, BookOpen, Plus, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { Scale, Star, MapPin, MessageCircle, ShieldCheck, Shield, Settings, LogOut, ChevronRight, User, Phone, X, Building, FileText, Calendar, Link as LinkIcon, Check, Loader2, Trash2, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight as ChevronRightIcon, Clock, Bell, BellOff, Send, Eye, EyeOff, Info, Gavel, Hourglass, Pencil, Download, Globe, BookOpen, Plus, AlertCircle, Users, MessageSquare, Archive, Archive as ArchiveIcon } from 'lucide-react';
 import EncryptedFileUpload from '../components/EncryptedFileUpload';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -7,17 +7,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { ParsedCase } from '../types';
 import { useToast } from '../hooks/useToast';
-import { cases, supabase, calendarEvents, refreshCase, parseCase } from '../lib/supabase';
+import { cases, supabase, calendarEvents, refreshCase, parseCase, leads } from '../lib/supabase';
 import CaseCard from '../components/CaseCard';
 import PaymentModal from '../components/PaymentModal';
 import { ConfirmModal, useConfirmModal } from '../components/ConfirmModal';
 import EventModal from '../components/EventModal';
 import NotificationSettings from '../components/NotificationSettings';
 import SecuritySettings from '../components/SecuritySettings';
+import { ProfileHeader } from '../components/ProfileHeader';
+import { ProfileTabs } from '../components/ProfileTabs';
 import CalendarSyncSettings from '../components/CalendarSyncSettings';
 import { useSeo } from '../hooks/useSeo';
-import SeoSettings from '../components/SeoSettings';
-import AdminSettings from '../components/AdminSettings';
+
+const LazyAdminSettings = lazy(() => import('../components/AdminSettings'));
+const LazySeoSettings = lazy(() => import('../components/SeoSettings'));
+const LazyLawyerApplicationsAdmin = lazy(() => import('../components/LawyerApplicationsAdmin'));
 
 export default function Profile() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -354,10 +358,34 @@ export default function Profile() {
     }
   }, [profileData]);
 
-  const favoriteLawyers = [
-    { id: 1, name: 'Александр Смирнов', spec: 'Гражданские', city: 'Москва', rating: 4.9, reviews: 124, verified: true, img: 'https://picsum.photos/seed/lawyer1/200/200' },
-    { id: 2, name: 'Елена Волкова', spec: 'Семейные', city: 'Санкт-Петербург', rating: 5.0, reviews: 89, verified: true, img: 'https://picsum.photos/seed/lawyer2/200/200' },
-  ];
+  const [favoriteLawyers, setFavoriteLawyers] = useState(() => {
+    const defaultLawyers = [
+      { id: 1, name: 'Александр Смирнов', spec: 'Гражданские', city: 'Москва', rating: 4.9, reviews: 124, verified: true, img: 'https://picsum.photos/seed/lawyer1/200/200' },
+      { id: 2, name: 'Елена Волкова', spec: 'Семейные', city: 'Санкт-Петербург', rating: 5.0, reviews: 89, verified: true, img: 'https://picsum.photos/seed/lawyer2/200/200' },
+    ];
+
+    if (typeof window === 'undefined') {
+      return defaultLawyers;
+    }
+
+    try {
+      const raw = window.localStorage.getItem('profile-favorite-lawyers');
+      return raw ? JSON.parse(raw) : defaultLawyers;
+    } catch (error) {
+      console.error('Failed to parse favorite lawyers from localStorage:', error);
+      return defaultLawyers;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('profile-favorite-lawyers', JSON.stringify(favoriteLawyers));
+  }, [favoriteLawyers]);
+
+  const handleRemoveFavoriteLawyer = (lawyerId: number) => {
+    setFavoriteLawyers((prev) => prev.filter((lawyer) => lawyer.id !== lawyerId));
+    showToast('Юрист удалён из избранного');
+  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -510,6 +538,31 @@ export default function Profile() {
   } : null;
 
   // Открыть модальное окно подтверждения удаления
+  const handleArchiveCase = (caseId: string) => {
+    confirm({
+      title: 'Архивировать дело',
+      message: 'Дело будет перемещено в архив. Вы сможете восстановить его позже.',
+      confirmText: 'Архивировать',
+      cancelText: 'Отмена',
+      onConfirm: async () => {
+        try {
+          const { error } = await cases.archiveCase(caseId);
+          if (!error) {
+            setUserCases(prevCases =>
+              prevCases.map(c => c.id === caseId ? { ...c, status: 'archived' } : c).filter(c => c.status !== 'archived')
+            );
+            setSelectedCase(null);
+            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
+            showToast('Дело архивировано');
+          }
+        } catch (err) {
+          console.error('Error archiving case:', err);
+          showToast('Ошибка при архивировании');
+        }
+      },
+    });
+  };
+
   const handleDeleteCase = (caseId: string) => {
     confirm({
       title: 'Удалить дело',
@@ -539,7 +592,6 @@ export default function Profile() {
 
   const handleRestoreCase = async (caseId: string) => {
     try {
-      // Assuming a new method cases.restoreCase exists
       const { error } = await cases.restoreCase(caseId);
       if (!error) {
         setUserCases(prevCases =>
@@ -555,11 +607,38 @@ export default function Profile() {
     }
   };
 
+  const handleUnarchiveCase = async (caseId: string) => {
+    try {
+      const { error } = await cases.unarchiveCase(caseId);
+      if (!error) {
+        setUserCases(prevCases =>
+          prevCases.map(c => c.id === caseId ? { ...c, status: 'active' } : c)
+        );
+        queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
+        showToast('Дело восстановлено из архива');
+      }
+    } catch (err) {
+      console.error('Error unarchiving case:', err);
+      showToast('Ошибка при восстановлении из архива');
+    }
+  };
+
+  // Не показывать кнопку обновления для архивных дел
+  const canRefreshCase = (caseItem: any) => {
+    return caseItem.status !== 'archived' && caseItem.status !== 'deleted';
+  };
+
   // Обновление дела через повторный парсинг
   const handleRefreshCase = async (caseId: string) => {
     const caseToRefresh = userCases.find(c => c.id === caseId);
     if (!caseToRefresh) {
       console.error('Case not found:', caseId);
+      return;
+    }
+
+    // Не обновляем архивные дела
+    if (caseToRefresh.status === 'archived') {
+      showToast('Архивные дела не обновляются автоматически');
       return;
     }
     
@@ -665,7 +744,7 @@ export default function Profile() {
 
   // Выбрать все дела
   const selectAllCases = () => {
-    const activeCases = userCases.filter(c => c.status !== 'deleted').map(c => c.id);
+    const activeCases = userCases.filter(c => c.status !== 'deleted' && c.status !== 'archived').map(c => c.id);
     setSelectedCaseIds(new Set(activeCases));
   };
 
@@ -1075,13 +1154,19 @@ END:VEVENT
           <div className="flex flex-wrap justify-center sm:justify-start gap-3">
             <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
               <User className="w-4 h-4 text-slate-400" />
-              {profileData?.is_legal_entity ? 'Юридическое лицо' : 'Физическое лицо'}
+              {profileData?.role === 'lawyer' ? 'Юрист' : profileData?.role === 'admin' ? 'Администратор' : profileData?.is_legal_entity ? 'Юридическое лицо' : 'Физическое лицо'}
             </div>
             {profileData?.phone && !isEditing && (
               <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 <Phone className="w-4 h-4 text-slate-400" />
                 {profileData.phone}
               </div>
+            )}
+            {profileData?.role !== 'lawyer' && profileData?.role !== 'admin' && (
+              <Link to="/apply-lawyer" className="bg-accent/10 hover:bg-accent/20 text-accent px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors">
+                <Shield className="w-4 h-4" />
+                Стать юристом
+              </Link>
             )}
           </div>
         </div>
@@ -1103,14 +1188,21 @@ END:VEVENT
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
         {[
-          { id: 'cases', label: 'Мои дела', icon: Scale, count: userCases.filter(c => c.status !== 'deleted').length },
+          { id: 'cases', label: 'Мои дела', icon: Scale, count: userCases.filter(c => c.status !== 'deleted' && c.status !== 'archived').length },
           { id: 'calendar', label: 'Календарь', icon: Calendar, count: null },
+          { id: 'archived', label: 'Архив', icon: ArchiveIcon, count: userCases.filter(c => c.status === 'archived').length },
           { id: 'trash', label: 'Корзина', icon: Trash2, count: userCases.filter(c => c.status === 'deleted').length },
           { id: 'lawyers', label: 'Избранные юристы', icon: Star, count: favoriteLawyers.length },
+          ...(profileData?.subscription_tier && ['basic', 'premium', 'featured'].includes(profileData.subscription_tier) 
+            ? [{ id: 'leads', label: 'Мои заявки', icon: MessageSquare, count: null }] 
+            : []),
           { id: 'settings', label: 'Настройки', icon: Settings, count: null },
           ...(profileData?.role === 'admin' ? [{ id: 'seo', label: 'Управление SEO', icon: Globe, count: null }] : []),
           ...(profileData?.role === 'admin' ? [{ id: 'admin', label: 'Админ', icon: Settings, count: null }] : []),
-          ...(profileData?.role === 'admin' ? [{ id: 'blog', label: 'Блог', icon: BookOpen, count: null }] : [])
+          ...(profileData?.role === 'admin' ? [{ id: 'blog', label: 'Блог', icon: BookOpen, count: null }] : []),
+          ...(profileData?.role === 'admin' ? [
+            { id: 'lawyerApps', label: 'Заявки юристов', icon: Shield, count: null }
+          ] : [])
         ].map((tab) => (
           <button 
             key={tab.id} 
@@ -1263,7 +1355,11 @@ END:VEVENT
                         {caseItem.category && (
                           <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md font-medium">{caseItem.category}</span>
                         )}
-                        {caseItem.status && (
+                        {String(caseItem.status || '').trim().toLowerCase() === 'archived' ? (
+                          <span className="inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" title="В архиве" aria-label="В архиве">
+                            <ArchiveIcon className="w-3.5 h-3.5" />
+                          </span>
+                        ) : (
                           <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium ${caseItem.status?.includes('удовлетвор') ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : caseItem.status?.includes('отказ') ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : caseItem.status?.includes('рассмотр') ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                             {caseItem.status}
                           </span>
@@ -1280,6 +1376,7 @@ END:VEVENT
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!canRefreshCase(caseItem)) return;
                           if (profileData?.subscription_tier === 'free') {
                             showToast('Ручное обновление доступно только для подписчиков. Оформите подписку или дождитесь автоматического обновления (1 раз в день).', 'info');
                             return;
@@ -1287,14 +1384,16 @@ END:VEVENT
                           handleRefreshCase(caseItem.id);
                         }}
                         className={`mt-1 p-1 transition-colors ${
-                          profileData?.subscription_tier === 'free' 
+                          !canRefreshCase(caseItem) || profileData?.subscription_tier === 'free' 
                             ? 'text-slate-300 cursor-not-allowed' 
                             : 'text-slate-400 hover:text-accent'
                         }`}
-                        title={profileData?.subscription_tier === 'free' 
-                          ? 'Ручное обновление доступно только для подписчиков' 
-                          : 'Обновить данные дела'}
-                        disabled={profileData?.subscription_tier === 'free'}
+                        title={!canRefreshCase(caseItem) 
+                          ? 'Архивные дела не обновляются' 
+                          : profileData?.subscription_tier === 'free' 
+                            ? 'Ручное обновление доступно только для подписчиков' 
+                            : 'Обновить данные дела'}
+                        disabled={!canRefreshCase(caseItem) || profileData?.subscription_tier === 'free'}
                       >
                         <>
                           <RotateCcw className={`w-3.5 h-3.5 ${
@@ -1307,18 +1406,30 @@ END:VEVENT
                       </button>
                     </div>
                   </div>
-                  {/* Кнопка удаления - иконка */}
+                  {/* Кнопки архива и удаления - иконки */}
                   {!isSelectionMode && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteCase(caseItem.id);
-                      }}
-                      className="absolute top-3 right-3 p-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                      title="Удалить дело"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveCase(caseItem.id);
+                        }}
+                        className="p-2 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition-all"
+                        title="Архивировать дело"
+                      >
+                        <ArchiveIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCase(caseItem.id);
+                        }}
+                        className="p-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 rounded-lg transition-all"
+                        title="Удалить дело"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))
@@ -1791,54 +1902,111 @@ END:VEVENT
         </>
         )}
 
-        {activeTab === 'lawyers' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {favoriteLawyers.map(lawyer => (
-              <div key={lawyer.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
-                <div className="flex gap-4">
-                  <div className="relative shrink-0">
-                    <img src={lawyer.img} alt={lawyer.name} referrerPolicy="no-referrer" loading="lazy" className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
-                    {lawyer.verified && (
-                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
-                        <ShieldCheck className="w-4 h-4 text-primary" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight mb-1">
-                      {lawyer.name}
-                    </h3>
-                    <p className="text-xs text-primary font-semibold mb-1.5">{lawyer.spec}</p>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                      <span className="flex items-center gap-0.5"><Star className="w-3 h-3 text-accent fill-accent" /> {lawyer.rating}</span>
-                      <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" /> {lawyer.city}</span>
+        {/* Архивированные дела */}
+        {activeTab === 'archived' && (
+          <>
+            <div className="mt-8">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <ArchiveIcon className="w-5 h-5 text-slate-500" />
+                Архив ({userCases.filter(c => c.status === 'archived').length})
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {userCases.filter(c => c.status === 'archived').map(caseItem => (
+                <div
+                  key={caseItem.id}
+                  onClick={() => setSelectedCase(caseItem)}
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 transition-colors"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <ArchiveIcon className="w-5 h-5 text-slate-400 shrink-0" />
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm truncate">{caseItem.number}</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{caseItem.court}</p>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-xl text-xs font-bold transition-colors">
-                    Профиль
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnarchiveCase(caseItem.id);
+                    }}
+                    className="flex items-center gap-2 text-accent text-sm font-bold hover:underline shrink-0"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Восстановить
                   </button>
-                  <button className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    Написать
-                  </button>
                 </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeTab === 'lawyers' && (
+          <div className="space-y-4">
+            {favoriteLawyers.length === 0 && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-transparent dark:border-slate-800">
+                <p className="text-slate-600 dark:text-slate-300 font-medium">В избранном пока нет юристов</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Добавляйте юристов, чтобы быстро находить их в профиле</p>
               </div>
-            ))}
-            <Link to="/lawyers" className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[150px]">
-              <Star className="w-6 h-6" />
-              <span className="text-sm font-bold">Найти юриста</span>
-            </Link>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {favoriteLawyers.map(lawyer => (
+                <div key={lawyer.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
+                  <div className="flex gap-4">
+                    <div className="relative shrink-0">
+                      <img src={lawyer.img} alt={lawyer.name} referrerPolicy="no-referrer" loading="lazy" className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
+                      {lawyer.verified && (
+                        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
+                          <ShieldCheck className="w-4 h-4 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight mb-1">
+                        {lawyer.name}
+                      </h3>
+                      <p className="text-xs text-primary font-semibold mb-1.5">{lawyer.spec}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        <span className="flex items-center gap-0.5"><Star className="w-3 h-3 text-accent fill-accent" /> {lawyer.rating}</span>
+                        <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" /> {lawyer.city}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-xl text-xs font-bold transition-colors">
+                      Профиль
+                    </button>
+                    <button className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Написать
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFavoriteLawyer(lawyer.id)}
+                    className="w-full bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-300 py-2 rounded-xl text-xs font-bold transition-colors"
+                  >
+                    Удалить из избранного
+                  </button>
+                </div>
+              ))}
+              <Link to="/lawyers" className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[150px]">
+                <Star className="w-6 h-6" />
+                <span className="text-sm font-bold">Найти юриста</span>
+              </Link>
+            </div>
           </div>
         )}
 
         {activeTab === 'seo' && profileData?.role === 'admin' && (
-          <SeoSettings />
+          <Suspense fallback={<div className="p-4 text-slate-500">Загрузка...</div>}>
+            <LazySeoSettings />
+          </Suspense>
         )}
 
         {activeTab === 'admin' && profileData?.role === 'admin' && (
-          <AdminSettings />
+          <Suspense fallback={<div className="p-4 text-slate-500">Загрузка...</div>}>
+            <LazyAdminSettings />
+          </Suspense>
         )}
 
         {activeTab === 'blog' && profileData?.role === 'admin' && (
@@ -1865,7 +2033,18 @@ END:VEVENT
                 Создать статью
               </a>
             </div>
-          </div>
+            </div>
+          )}
+
+        {activeTab === 'lawyerApps' && profileData?.role === 'admin' && (
+          <Suspense fallback={<div className="p-4 text-slate-500">Загрузка...</div>}>
+            <LazyLawyerApplicationsAdmin />
+          </Suspense>
+        )}
+
+        {/* Мои заявки (для юристов с подпиской) */}
+        {activeTab === 'leads' && (
+          <LeadsSection />
         )}
 
         {activeTab === 'settings' && (
@@ -1901,7 +2080,7 @@ END:VEVENT
       {/* Case Details Modal - используем CaseCard с вкладками */}
       <AnimatePresence>
         {selectedCase && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedCase(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
             <div className="relative w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedCase(null)}
@@ -1910,21 +2089,23 @@ END:VEVENT
                 <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />
               </button>
                <CaseCard
-                 key={selectedCase.id}
-                 caseData={selectedCase}
-                 isAdded={true}
-                 isLoading={false}
-                 onAddCase={() => {}}
-                 onUpdateCase={handleUpdateCase}
-                 onShowPaymentModal={handleShowPaymentModal}
-                 onDeleteCase={() => handleDeleteCase(selectedCase.id)}
-                 onRefreshCase={() => handleRefreshCase(selectedCase.id)}
-                 onDateDoubleClick={handleDateDoubleClick}
-                 userId={user?.id}
-                 subscriptionTier={profileData?.subscription_tier}
-                 canRefresh={refreshLimits[selectedCase.id]?.canRefresh ?? true}
-                 refreshLimitReason={refreshLimits[selectedCase.id]?.reason}
-               />
+                  key={selectedCase.id}
+                  caseData={selectedCase}
+                  caseId={selectedCase.id}
+                  isAdded={true}
+                  isLoading={false}
+                  onAddCase={() => {}}
+                  onUpdateCase={handleUpdateCase}
+                  onShowPaymentModal={handleShowPaymentModal}
+                  onDeleteCase={() => handleDeleteCase(selectedCase.id)}
+                  onRefreshCase={() => handleRefreshCase(selectedCase.id)}
+                  onDateDoubleClick={handleDateDoubleClick}
+                  onArchiveCase={() => handleArchiveCase(selectedCase.id)}
+                  userId={user?.id}
+                  subscriptionTier={profileData?.subscription_tier}
+                  canRefresh={refreshLimits[selectedCase.id]?.canRefresh ?? true}
+                  refreshLimitReason={refreshLimits[selectedCase.id]?.reason}
+                />
             </div>
           </div>
         )}
@@ -2074,6 +2255,185 @@ END:VEVENT
         initialDate={newEventInitialDate}
         initialTime={newEventInitialTime}
       />
+    </div>
+  );
+}
+
+// Компонент "Мои заявки" - показывает бесплатные заявки юриста
+function LeadsSection() {
+  const [myLeads, setMyLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    loadMyLeads();
+  }, []);
+
+  const loadMyLeads = async () => {
+    setLoading(true);
+    try {
+      // Получаем ID текущего юриста из профиля
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('lawyer_id')
+        .single();
+      
+      if (profile?.lawyer_id) {
+        const { data, error } = await leads.getByLawyer(profile.lawyer_id);
+        if (error) throw error;
+        setMyLeads(data || []);
+      }
+    } catch (err) {
+      console.error('Error loading leads:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContactLead = async (leadId: string) => {
+    try {
+      await leads.updateStatus(leadId, 'contacted');
+      setMyLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'contacted' } : l));
+      showToast('Заявка отмечена как обработанная');
+    } catch (err) {
+      console.error('Error updating lead:', err);
+      showToast('Ошибка обновления заявки', 'error');
+    }
+  };
+
+  const handleSpamLead = async (leadId: string) => {
+    try {
+      await leads.updateStatus(leadId, 'spam');
+      setMyLeads(prev => prev.filter(l => l.id !== leadId));
+      showToast('Заявка помечена как спам');
+    } catch (err) {
+      console.error('Error updating lead:', err);
+      showToast('Ошибка обновления заявки', 'error');
+    }
+  };
+
+  const urgencyLabels: Record<string, { label: string; color: string }> = {
+    low: { label: 'Низкая', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
+    medium: { label: 'Средняя', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+    high: { label: 'Срочно', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  };
+
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    new: { label: 'Новая', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+    contacted: { label: 'Обработана', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+    closed: { label: 'Закрыта', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
+    spam: { label: 'Спам', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  };
+
+  const caseTypeLabels: Record<string, string> = {
+    civil: 'Гражданское',
+    criminal: 'Уголовное',
+    family: 'Семейное',
+    arbitration: 'Арбитраж',
+    administrative: 'Административное',
+    other: 'Другое',
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
+
+  if (myLeads.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-colors">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Мои заявки</h3>
+        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+          <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>У вас пока нет заявок</p>
+          <p className="text-sm mt-2">Заявки появляются, когда пользователи отправляют вам сообщение через страницу юриста</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-colors">
+      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+        Мои заявки ({myLeads.length})
+      </h3>
+      <div className="space-y-4">
+        {myLeads.map((lead) => (
+          <div 
+            key={lead.id}
+            className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700"
+          >
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${urgencyLabels[lead.urgency]?.color || 'bg-slate-100 text-slate-600'}`}>
+                {urgencyLabels[lead.urgency]?.label || lead.urgency}
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                {caseTypeLabels[lead.case_type] || lead.case_type}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusLabels[lead.status]?.color || 'bg-slate-100 text-slate-600'}`}>
+                {statusLabels[lead.status]?.label || lead.status}
+              </span>
+              {lead.region && (
+                <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                  <MapPin className="w-3 h-3" />
+                  {lead.region}
+                </span>
+              )}
+            </div>
+            
+            <div className="mb-3">
+              <p className="font-bold text-slate-900 dark:text-white">{lead.client_name}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">{lead.client_phone}</p>
+              {lead.client_email && (
+                <p className="text-sm text-slate-500 dark:text-slate-500">{lead.client_email}</p>
+              )}
+            </div>
+            
+            {lead.case_description && (
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 line-clamp-2">
+                {lead.case_description}
+              </p>
+            )}
+            
+            {lead.budget && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                Бюджет: {lead.budget}
+              </p>
+            )}
+            
+            <div className="flex gap-2">
+              {lead.status === 'new' && (
+                <>
+                  <button
+                    onClick={() => handleContactLead(lead.id)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Связаться
+                  </button>
+                  <button
+                    onClick={() => handleSpamLead(lead.id)}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Спам
+                  </button>
+                </>
+              )}
+              <a
+                href={`tel:${lead.client_phone}`}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                <Phone className="w-4 h-4" />
+                Позвонить
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
