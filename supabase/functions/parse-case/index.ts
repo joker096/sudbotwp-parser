@@ -97,7 +97,7 @@ async function fetchCourtPage(url: string): Promise<string> {
 
     const buffer = await response.arrayBuffer();
     return decodeWindows1251(new Uint8Array(buffer));
-  } catch (error: any) {
+  } catch (error: Error) {
     clearTimeout(fetchTimeout);
 
     console.log('[Parse] Direct fetch failed:', error.name || error.message);
@@ -143,7 +143,7 @@ export default async function handler(req: Request) {
     return new Response(JSON.stringify(caseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: Error) {
     console.error("Error parsing case:", error);
     
     let status = 500;

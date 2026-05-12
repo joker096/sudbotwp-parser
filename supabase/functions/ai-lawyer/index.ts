@@ -12,6 +12,8 @@ interface ChatMessage {
   content: string;
 }
 
+const FREE_MESSAGES_LIMIT = 3;
+
 // Получить текущий месяц в формате YYYY-MM
 function getCurrentMonth(): string {
   const now = new Date();
@@ -31,7 +33,7 @@ async function checkAndUpdateMessageLimit(
     return { allowed: true, remaining: -1 }; // -1 означает безлимит
   }
 
-  // Для бесплатных пользователей - проверяем лимит 10 сообщений в месяц
+  // Для бесплатных пользователей - проверяем лимит сообщений в месяц
   // Получаем текущее использование
   const { data: usage, error: usageError } = await supabaseAdmin
     .from('ai_lawyer_usage')
@@ -69,15 +71,15 @@ async function checkAndUpdateMessageLimit(
           current_month: currentMonth,
         });
     }
-    return { allowed: true, remaining: 9 };
+    return { allowed: true, remaining: FREE_MESSAGES_LIMIT - 1 };
   }
 
-  // Проверяем лимит 10 сообщений
-  if (messagesCount >= 10) {
+  // Проверяем лимит бесплатного тарифа
+  if (messagesCount >= FREE_MESSAGES_LIMIT) {
     return {
       allowed: false,
       remaining: 0,
-      reason: 'Лимит сообщений исчерпан. Доступно 10 сообщений в месяц для бесплатных пользователей. Оформите подписку для безлимитного доступа.'
+      reason: `Лимит сообщений исчерпан. Доступно ${FREE_MESSAGES_LIMIT} сообщения в месяц для бесплатных пользователей. Оформите подписку для безлимитного доступа.`
     };
   }
 
@@ -91,7 +93,7 @@ async function checkAndUpdateMessageLimit(
     })
     .eq('user_id', userId);
 
-  return { allowed: true, remaining: 10 - messagesCount - 1 };
+  return { allowed: true, remaining: FREE_MESSAGES_LIMIT - messagesCount - 1 };
 }
 
 // Сохранить сообщение в БД
@@ -274,8 +276,8 @@ serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error: any) {
-    console.error('AI Lawyer error:', error);
+  } catch (error: Error) {
+    console.error('AI Lawyer error:', error?.message || error);
 
     return new Response(
       JSON.stringify({ error: error.message }),

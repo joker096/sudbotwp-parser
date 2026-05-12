@@ -30,8 +30,8 @@ const checkUrlAvailability = async (url: string): Promise<boolean> => {
       signal: AbortSignal.timeout(5000),
     });
     return response.ok;
-  } catch (error) {
-    log(`URL unavailable: ${url}`, error);
+  } catch (error: Error) {
+    log(`URL unavailable: ${url}`, error?.message || error);
     return false;
   }
 };
@@ -59,8 +59,8 @@ const parseCase = async (url: string): Promise<any> => {
 
     const data = await response.json();
     return data.success ? data.data : null;
-  } catch (error) {
-    log(`Error parsing case: ${url}`, error);
+  } catch (error: Error) {
+    log(`Error parsing case: ${url}`, error?.message || error);
     return null;
   }
 };
@@ -114,8 +114,8 @@ const refreshSingleCase = async (caseId: string, caseLink: string, userId: strin
 
     log(`Case ${caseId} updated successfully`);
     return true;
-  } catch (error) {
-    log(`Error refreshing case: ${caseId}`, error);
+  } catch (error: Error) {
+    log(`Error refreshing case: ${caseId}`, error?.message || error);
     return false;
   }
 };
@@ -181,8 +181,8 @@ const autoRefreshCases = async () => {
     if (failedRefreshes.length > 0) {
       log(`Failed cases: ${failedRefreshes.join(", ")}`);
     }
-  } catch (error) {
-    log("Error during auto refresh process", error);
+  } catch (error: Error) {
+    log("Error during auto refresh process", error?.message || error);
   }
 };
 
