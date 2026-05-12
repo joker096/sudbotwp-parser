@@ -1,0 +1,14 @@
+name: admin-test-lead-notification
+version: 0.0.1
+runtime: deno
+memory: 256
+timeout: 30
+max_concurrency: 10
+verify_jwt: false
+secrets:
+  - TELEGRAM_BOT_TOKEN
+  - SUPABASE_URL
+  - SUPABASE_SERVICE_ROLE_KEY
+.headers:
+  - name: Content-Type
+    value: application/json
