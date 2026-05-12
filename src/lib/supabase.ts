@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Profile, Court, CourtRegion, CaseCalendarEvent, CaseEvent, CaseAppeal } from '../types';
+import { Profile, Court, CourtRegion, CaseCalendarEvent, CaseEvent, CaseAppeal, ParsedCase } from '../types';
 import { parseCaseClient, parseCaseHtml, ParsedCaseData } from './clientParser';
 import { parseWithFullFallback } from './browserlessParser';
 
@@ -161,6 +161,7 @@ export const cases = {
       .from('cases')
       .select('*')
       .eq('user_id', userId)
+      .neq('status', 'deleted')
       .order('created_at', { ascending: false });
     
     console.log('getCasesByUser - raw data count:', data?.length || 0);
@@ -172,18 +173,28 @@ export const cases = {
           // Безопасно парсим events
           let events = safeJsonParse(caseItem.events, 'events');
           // Фильтруем и валидируем события, добавляем ID если отсутствует
-          events = events.filter(isValidCaseEvent).map((e: any, index: number) => ({
-            ...e,
-            id: e.id || `${caseItem.id}-evt-${index}`, // Гарантируем уникальный ID
-          }));
+          events = events.filter(isValidCaseEvent).map((e: any, index: number) => {
+            // Защита от NaN в датах
+            const safeDate = e.date && !isNaN(Date.parse(e.date)) ? e.date : null;
+            return {
+              ...e,
+              id: e.id || `${caseItem.id}-evt-${index}`,
+              date: safeDate,
+            };
+          });
 
           // Безопасно парсим appeals
           let appeals = safeJsonParse(caseItem.appeals, 'appeals');
           // Фильтруем и валидируем апелляции, добавляем ID если отсутствует
-          appeals = appeals.filter(isValidCaseAppeal).map((a: any, index: number) => ({
-            ...a,
-            id: a.id || `${caseItem.id}-apl-${index}`, // Гарантируем уникальный ID
-          }));
+          appeals = appeals.filter(isValidCaseAppeal).map((a: any, index: number) => {
+            // Защита от NaN в датах
+            const safeDate = a.date && !isNaN(Date.parse(a.date)) ? a.date : null;
+            return {
+              ...a,
+              id: a.id || `${caseItem.id}-apl-${index}`,
+              date: safeDate,
+            };
+          });
           
           return {
             ...caseItem,
@@ -208,7 +219,7 @@ export const cases = {
     return { data, error };
   },
 
-  createCase: async (caseData: any) => {
+  createCase: async (caseData: Record<string, unknown>) => {
     // Сериализуем events и appeals в JSON для сохранения в БД
     // Убедимся, что это массивы перед сериализацией
     let events = caseData.events;
@@ -241,9 +252,8 @@ export const cases = {
     return { data, error };
   },
 
-  updateCase: async (id: string, updates: any) => {
+  updateCase: async (id: string, updates: Record<string, unknown>) => {
     // Фильтруем поля, которые не должны сохраняться в БД напрямую
-    // comment хранится локально в frontend
     const { comment, ...dbUpdates } = updates;
     
     // Сериализуем events и appeals если они есть
@@ -270,8 +280,46 @@ export const cases = {
     return { data, error };
   },
 
+  /**
+   * Update case comment specifically - bypasses general filtering
+   * Used for comment saving from CaseCard
+   */
+  updateCaseComment: async (id: string, comment: string) => {
+    const { data, error } = await supabase
+      .from('cases')
+      .update({ 
+        comment: comment.trim(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Архивировать дело
+  archiveCase: async (id: string) => {
+    const { data, error } = await supabase
+      .from('cases')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Массовое архивирование дел
+  archiveMultipleCases: async (ids: string[]) => {
+    const { data, error } = await supabase
+      .from('cases')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .in('id', ids)
+      .select();
+    return { data, error };
+  },
+
+  // Удалить дело (soft delete)
   deleteCase: async (id: string) => {
-    // Мягкое удаление - устанавливаем статус 'deleted'
     const { data, error } = await supabase
       .from('cases')
       .update({ status: 'deleted', updated_at: new Date().toISOString() })
@@ -284,14 +332,12 @@ export const cases = {
   // Массовое удаление дел
   deleteMultipleCases: async (ids: string[], permanent: boolean = false) => {
     if (permanent) {
-      // Полное удаление из базы данных
       const { data, error } = await supabase
         .from('cases')
         .delete()
         .in('id', ids);
       return { data, error };
     }
-    // Мягкое удаление - устанавливаем статус 'deleted'
     const { data, error } = await supabase
       .from('cases')
       .update({ status: 'deleted', updated_at: new Date().toISOString() })
@@ -302,7 +348,6 @@ export const cases = {
 
   // Восстановить удалённое дело
   restoreCase: async (id: string) => {
-    // Для мягкого удаления - просто обновляем статус
     const { data, error } = await supabase
       .from('cases')
       .update({ status: 'active', updated_at: new Date().toISOString() })
@@ -320,6 +365,90 @@ export const cases = {
       .in('id', ids)
       .select();
     return { data, error };
+  },
+
+  // Восстановить дело из архива
+  unarchiveCase: async (id: string) => {
+    const { data, error } = await supabase
+      .from('cases')
+      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Массовое восстановление из архива
+  unarchiveMultipleCases: async (ids: string[]) => {
+    const { data, error } = await supabase
+      .from('cases')
+      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .in('id', ids)
+      .select();
+    return { data, error };
+  },
+
+  // Получить архивированные дела
+  getArchivedCases: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'archived')
+      .order('updated_at', { ascending: false });
+    return { data, error };
+  },
+};
+
+// =====================================================
+// CASE COMMENTS - История комментариев дела
+// =====================================================
+export const caseComments = {
+  // Получить все комментарии дела
+  getByCase: async (caseId: string) => {
+    const { data, error } = await supabase
+      .from('case_comments')
+      .select('*')
+      .eq('case_id', caseId)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  // Добавить комментарий
+  create: async (caseId: string, userId: string, content: string) => {
+    const { data, error } = await supabase
+      .from('case_comments')
+      .insert([{
+        case_id: caseId,
+        author_id: userId,
+        content: content.trim(),
+      }])
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Обновить комментарий
+  update: async (id: string, content: string) => {
+    const { data, error } = await supabase
+      .from('case_comments')
+      .update({ 
+        content: content.trim(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Удалить комментарий
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from('case_comments')
+      .delete()
+      .eq('id', id);
+    return { error };
   },
 };
 
@@ -806,22 +935,39 @@ export interface Lead {
   created_at: string;
   updated_at: string;
   expires_at: string;
+  lawyer_id: string | null; // lawyer_id = null → платный лид, lawyer_id = uuid → заявка конкретному юристу
 }
 
 export interface Lawyer {
   id: string;
-  user_id: string;
+  user_id: string | null;
   name: string;
   spec: string | null;
+  specialization: string | null;
   city: string | null;
+  region: string | null;
   rating: number;
+  reviews: number;
   reviews_count: number;
   verified: boolean;
+  avatar_url: string | null;
+  img: string | null;
+  yandex_rating: number | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  experience: string | null;
+  experience_years: number | null;
+  description: string | null;
+  is_active: boolean;
+  is_featured: boolean;
+  status: 'pending' | 'approved' | 'rejected' | 'blocked';
+  subscription_tier: 'free' | 'basic' | 'premium' | 'featured';
+  subscription_expires_at: string | null;
+  subscription_expires: string | null;
   leads_purchased: number;
   leads_converted: number;
   total_spent: number;
-  subscription_tier: 'free' | 'basic' | 'premium';
-  subscription_expires: string | null;
   can_buy_leads: boolean;
   max_leads_per_month: number;
   notify_new_leads: boolean;
@@ -915,10 +1061,35 @@ export const leads = {
         budget: leadData.budget,
         urgency: leadData.urgency || 'medium',
         status: 'new',
+        price: leadData.price || 0,
+        lawyer_id: leadData.lawyer_id || null, // Привязка к юристу (null = платный лид)
       }])
       .select()
       .single();
     return { data: data as Lead | null, error };
+  },
+
+  // Получить заявки конкретного юриста (бесплатные)
+  getByLawyer: async (lawyerId: string) => {
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('lawyer_id', lawyerId)
+      .order('created_at', { ascending: false });
+    return { data: data as Lead[] | null, error };
+  },
+
+  // Получить платные лиды (без lawyer_id)
+  getPaid: async () => {
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .is('lawyer_id', null)
+      .eq('status', 'new')
+      .gt('expires_at', new Date().toISOString())
+      .order('price', { ascending: false })
+      .order('created_at', { ascending: false });
+    return { data: data as Lead[] | null, error };
   },
 
   // Получить конкретный лид
@@ -1228,6 +1399,94 @@ export const lawyers = {
     return { data: data as Lawyer[] | null, error };
   },
 
+  // Получить всех юристов для админ-панели с пагинацией и фильтрами
+  getAllAdmin: async (page: number = 1, pageSize: number = 20, search?: string, status?: string, isActive?: boolean) => {
+    let query = supabase
+      .from('lawyers')
+      .select('*', { count: 'exact', head: false })
+      .range((page - 1) * pageSize, page * pageSize - 1)
+      .order('created_at', { ascending: false });
+
+    // Поиск по имени/специальности/городу
+    if (search) {
+      query = query.or(
+        `name.ilike.%${search}%,specialization.ilike.%${search}%,city.ilike.%${search}%,region.ilike.%${search}%`
+      );
+    }
+
+    // Фильтр по статусу
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    // Фильтр по активности
+    if (isActive !== undefined) {
+      query = query.eq('is_active', isActive);
+    }
+
+    const { data, error, count } = await query;
+    return { 
+      data: data as Lawyer[] | null, 
+      error, 
+      count: count || 0,
+      totalPages: Math.ceil((count || 0) / pageSize)
+    };
+  },
+
+  // Переключить активность юриста (админ)
+  toggleLawyerActive: async (lawyerId: string, isActive: boolean) => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .update({ 
+        is_active: isActive,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', lawyerId)
+      .select()
+      .single();
+    return { data: data as Lawyer | null, error };
+  },
+
+  // Обновить статус юриста (админ)
+  updateLawyerStatus: async (lawyerId: string, status: 'pending' | 'approved' | 'rejected' | 'blocked') => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', lawyerId)
+      .select()
+      .single();
+    return { data: data as Lawyer | null, error };
+  },
+
+  // Удалить юриста (мягкое удаление)
+  deleteLawyer: async (lawyerId: string) => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .update({ 
+        is_active: false,
+        status: 'blocked',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', lawyerId)
+      .select()
+      .single();
+    return { data: data as Lawyer | null, error };
+  },
+
+  // Создать/обновить юриста (админ)
+  upsertLawyer: async (lawyerData: Partial<Lawyer>) => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .upsert(lawyerData, { onConflict: 'id' })
+      .select()
+      .single();
+    return { data: data as Lawyer | null, error };
+  },
+
+
   // Получить отзывы о юристе
   getReviews: async (lawyerId: string) => {
     const { data, error } = await supabase
@@ -1236,6 +1495,246 @@ export const lawyers = {
       .eq('lawyer_id', lawyerId)
       .eq('status', 'approved')
       .order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  // Получить активных юристов (публичный endpoint)
+  getActive: async () => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .select('*')
+      .eq('is_active', true)
+      .eq('status', 'approved')
+      .order('rating', { ascending: false });
+    return { data: data as Lawyer[] | null, error };
+  },
+
+  // Получить избранных юристов для главной страницы
+  getFeatured: async (limit: number = 4) => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .select('*')
+      .eq('is_featured', true)
+      .eq('is_active', true)
+      .eq('status', 'approved')
+      .order('rating', { ascending: false })
+      .limit(limit);
+    return { data: data as Lawyer[] | null, error };
+  },
+
+  // Поиск юристов по параметрам
+  searchLawyers: async (filters: {
+    query?: string;
+    spec?: string;
+    city?: string;
+    region?: string;
+    verified?: boolean;
+    minRating?: number;
+    limit?: number;
+    offset?: number;
+  }) => {
+    let query = supabase
+      .from('lawyers')
+      .select('*', { count: 'exact' });
+
+    if (filters.query) {
+      query = query.or(`name.ilike.%${filters.query}%,city.ilike.%${filters.query}%`);
+    }
+    if (filters.spec) {
+      query = query.eq('spec', filters.spec);
+    }
+    if (filters.city) {
+      query = query.eq('city', filters.city);
+    }
+    if (filters.region) {
+      query = query.eq('region', filters.region);
+    }
+    if (filters.verified !== undefined) {
+      query = query.eq('verified', filters.verified);
+    }
+    if (filters.minRating) {
+      query = query.gte('rating', filters.minRating);
+    }
+
+    query = query
+      .eq('is_active', true)
+      .eq('status', 'approved')
+      .order('rating', { ascending: false });
+
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (filters.offset) {
+      query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+    }
+
+    const { data, error, count } = await query;
+    return { data: data as Lawyer[] | null, error, count };
+  },
+
+  // Получить юристов по городу
+  getByCity: async (city: string, limit: number = 10) => {
+    const { data, error } = await supabase
+      .from('lawyers')
+      .select('*')
+      .eq('city', city)
+      .eq('is_active', true)
+      .eq('status', 'approved')
+      .order('rating', { ascending: false })
+      .limit(limit);
+    return { data: data as Lawyer[] | null, error };
+  },
+};
+
+// Lawyer Applications
+export const lawyerApplications = {
+  // Подать заявку на становление юристом
+  submit: async (applicationData: {
+    user_id: string;
+    name: string;
+    specialization: string;
+    city: string;
+    region: string;
+    phone: string;
+    email: string;
+    experience_years: number;
+    description: string;
+    certificate_number?: string;
+  }) => {
+    const { data, error } = await supabase
+      .from('lawyer_applications')
+      .insert([{
+        user_id: applicationData.user_id,
+        name: applicationData.name,
+        specialization: applicationData.specialization,
+        city: applicationData.city,
+        region: applicationData.region,
+        phone: applicationData.phone,
+        email: applicationData.email,
+        experience_years: applicationData.experience_years,
+        description: applicationData.description,
+        certificate_number: applicationData.certificate_number || null,
+        status: 'pending',
+      }])
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  // Получить заявку пользователя
+  getByUser: async (userId: string) => {
+    if (!userId) {
+      return { data: null, error: null };
+    }
+    const { data, error } = await supabase
+      .from('lawyer_applications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return { data, error };
+  },
+
+  // Получить все заявки (для админа)
+  getAll: async (status?: 'pending' | 'approved' | 'rejected') => {
+    let query = supabase
+      .from('lawyer_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  },
+
+  // Одобрить заявку
+  approve: async (applicationId: string, adminNotes?: string) => {
+    // Сначала получаем заявку
+    const { data: application, error: fetchError } = await supabase
+      .from('lawyer_applications')
+      .select('*')
+      .eq('id', applicationId)
+      .single();
+
+    if (fetchError || !application) {
+      return { data: null, error: fetchError };
+    }
+
+    // Обновляем статус заявки
+    const { data: updatedApp, error: updateError } = await supabase
+      .from('lawyer_applications')
+      .update({
+        status: 'approved',
+        admin_notes: adminNotes || null,
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    // Создаём профиль юриста
+    const { data: lawyer, error: lawyerError } = await supabase
+      .from('lawyers')
+      .insert([{
+        user_id: application.user_id,
+        name: application.name,
+        spec: application.specialization,
+        specialization: application.specialization,
+        city: application.city,
+        region: application.region,
+        phone: application.phone,
+        email: application.email,
+        experience_years: application.experience_years,
+        description: application.description,
+        rating: 0,
+        reviews_count: 0,
+        verified: false,
+        is_active: true,
+        is_featured: false,
+        status: 'approved',
+        subscription_tier: 'free',
+      }])
+      .select()
+      .single();
+
+    if (lawyerError) {
+      // Откатываем изменение заявки
+      await supabase
+        .from('lawyer_applications')
+        .update({ status: 'pending', processed_at: null })
+        .eq('id', applicationId);
+      return { data: null, error: lawyerError };
+    }
+
+    // Обновляем профиль пользователя
+    await supabase
+      .from('profiles')
+      .update({ role: 'lawyer', lawyer_id: lawyer.id })
+      .eq('id', application.user_id);
+
+    return { data: updatedApp, error: null };
+  },
+
+  // Отклонить заявку
+  reject: async (applicationId: string, adminNotes?: string) => {
+    const { data, error } = await supabase
+      .from('lawyer_applications')
+      .update({
+        status: 'rejected',
+        admin_notes: adminNotes || null,
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', applicationId)
+      .select()
+      .single();
     return { data, error };
   },
 };
@@ -2309,7 +2808,7 @@ export const documents = {
           const fullPath = folder === 'shared' ? `shared/${doc.name}` : `${userId}/${doc.name}`;
           
           // Получить подписанный URL для доступа
-          const { data: urlData } = supabase.storage
+          const { data: urlData } = await supabase.storage
             .from('documents')
             .createSignedUrl(fullPath, 3600); // Срок действия 1 час
 
@@ -2420,5 +2919,141 @@ export const blockedUsers = {
     const { data, error } = await supabase
       .rpc('is_user_blocked', { check_user_id: userId });
     return { isBlocked: data === true, error };
+  },
+};
+
+// Yandex Maps API
+export const yandexMaps = {
+  // Поиск организации по названию или городу
+  searchOrganization: async (query: string) => {
+    const apiKey = import.meta.env.VITE_YANDEXMAP_API_KEY;
+    if (!apiKey) {
+      return { data: null, error: 'Yandex Maps API key is not configured' };
+    }
+    const url = `https://search-maps.yandex.ru/search/v1?query=${encodeURIComponent(query)}&apikey=${apiKey}`;
+    
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      console.log('Yandex Maps search result:', query, data);
+      return { data, error: null };
+    } catch (error) {
+      console.error('Yandex Maps search error:', error);
+      return { data: null, error: 'Ошибка при поиске' };
+    }
+  },
+};
+
+// Лимиты просмотров доп. данных юриста
+export const lawyerViewLimits = {
+  // Проверить, есть ли лимит у пользователя
+  checkLimit: async (userId: string, lawyerId: string) => {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .limit(1);
+    const profileData = profile?.[0];
+    
+    const subscriptionTier = profileData?.subscription_tier || 'free';
+    
+    // Премиум подписчики - без ограничений
+    if (subscriptionTier === 'premium') {
+      return { hasLimit: false, remaining: Infinity };
+    }
+    
+    // Бесплатные - 5 показов в месяц
+    const limit = 5;
+    
+    const { data: existing, error } = await supabase
+      .from('lawyer_view_limits')
+      .select('view_count, current_month')
+      .eq('user_id', userId)
+      .eq('lawyer_id', lawyerId)
+      .eq('current_month', currentMonth)
+      .limit(1);
+    const existingData = existing?.[0];
+    
+    if (error) {
+      return { hasLimit: false, remaining: limit };
+    }
+    
+    if (!existingData || existingData.current_month !== currentMonth) {
+      // Новый месяц - сброс счётчика
+      return { hasLimit: false, remaining: limit };
+    }
+    
+    const remaining = limit - existingData.view_count;
+    const hasLimit = remaining <= 0;
+    
+    return { hasLimit, remaining };
+  },
+  
+  // Посчитать просмотр (если лимит не истощён)
+  trackView: async (userId: string, lawyerId: string) => {
+    const { data: profileList } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .limit(1);
+    const profile = profileList?.[0];
+    
+    const subscriptionTier = profile?.subscription_tier || 'free';
+    
+    // Премиум - всегда можно
+    if (subscriptionTier === 'premium') {
+      return { success: true, remaining: Infinity };
+    }
+    
+    const limit = 5;
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    const { data: existingList } = await supabase
+      .from('lawyer_view_limits')
+      .select('view_count, current_month')
+      .eq('user_id', userId)
+      .eq('lawyer_id', lawyerId)
+      .eq('current_month', currentMonth)
+      .limit(1);
+    const existing = existingList?.[0];
+    
+    // Если нет записи - создаём
+    if (!existing || existing.current_month !== currentMonth) {
+      const { error } = await supabase
+        .from('lawyer_view_limits')
+        .insert([{
+          user_id: userId,
+          lawyer_id: lawyerId,
+          view_count: 1,
+          current_month: currentMonth,
+        }]);
+      
+      if (error) {
+        console.error('Error tracking lawyer view:', error);
+        return { success: false, remaining: limit };
+      }
+      
+      return { success: true, remaining: limit - 1 };
+    }
+    
+    // Увеличиваем счётчик
+    const { error: updateError } = await supabase
+      .from('lawyer_view_limits')
+      .update({ view_count: existing.view_count + 1, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('lawyer_id', lawyerId)
+      .eq('current_month', currentMonth);
+    
+    if (updateError) {
+      console.error('Error updating lawyer view:', updateError);
+      return { success: false, remaining: limit - existing.view_count };
+    }
+    
+    const remaining = limit - (existing.view_count + 1);
+    const success = remaining >= 0;
+    
+    return { success, remaining };
   },
 };
