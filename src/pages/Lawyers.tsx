@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { MapPin, Star, ShieldCheck, MessageCircle, MessageSquare, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ArrowDown, ExternalLink } from 'lucide-react';
+import { MapPin, Star, ShieldCheck, MessageCircle, MessageSquare, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ArrowDown, ExternalLink, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import LeadModal from '../components/LeadModal';
@@ -492,21 +492,38 @@ export default function Lawyers() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight hover:text-accent transition-colors">
-                      {lawyer.name}
-                    </h3>
-                    <StarRating 
-                      targetType="lawyer" 
-                      targetId={lawyer.id} 
-                      initialRating={lawyer.rating}
-                      initialVotes={lawyer.reviews}
-                      size="sm"
-                      showCount={false}
-                      showVoting={true}
-                    />
-                  </div>
+<div className="flex-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight hover:text-accent transition-colors">
+                        {lawyer.name}
+                      </h3>
+                      <div className="flex items-center gap-1">
+                        <StarRating
+                          targetType="lawyer"
+                          targetId={lawyer.id}
+                          initialRating={lawyer.rating}
+                          initialVotes={lawyer.reviews}
+                          size="sm"
+                          showCount={false}
+                          showVoting={true}
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const saved = JSON.parse(localStorage.getItem('profile-favorite-lawyers') || '[]');
+                            const exists = saved.some((l: any) => l.id === lawyer.id);
+                            if (!exists) {
+                              saved.push({ id: lawyer.id, name: lawyer.name, spec: lawyer.spec || '', city: lawyer.city || '', rating: lawyer.rating || 0, reviews: lawyer.reviews || 0, verified: lawyer.verified || false, img: lawyer.avatar_url?.includes('/storage/') ? lawyer.avatar_url : lawyer.avatar_url ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` : lawyer.img || '' });
+                              localStorage.setItem('profile-favorite-lawyers', JSON.stringify(saved));
+                            }
+                          }}
+                          className="p-1.5 hover:bg-accent/10 text-slate-400 hover:text-accent rounded-lg transition-colors"
+                          title="В избранное"
+                        >
+                          <Bookmark className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   <p className="text-xs text-primary font-semibold mb-2">{lawyer.spec}</p>
                   <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
                     <MapPin className="w-3 h-3 text-slate-400" /> {lawyer.city}
@@ -522,12 +539,38 @@ export default function Lawyers() {
                 >
                   Профиль
                 </button>
+                <button 
+                  onClick={() => {
+                    const saved = JSON.parse(localStorage.getItem('profile-favorite-lawyers') || '[]');
+                    const exists = saved.some((l: any) => l.id === lawyer.id);
+                    if (!exists) {
+                      saved.push({
+                        id: lawyer.id,
+                        name: lawyer.name,
+                        spec: lawyer.spec || '',
+                        city: lawyer.city || '',
+                        rating: lawyer.rating || 0,
+                        reviews: lawyer.reviews || 0,
+                        verified: lawyer.verified || false,
+                        img: lawyer.avatar_url?.includes('/storage/') 
+                          ? lawyer.avatar_url 
+                          : lawyer.avatar_url 
+                            ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
+                            : lawyer.img || ''
+                      });
+                      localStorage.setItem('profile-favorite-lawyers', JSON.stringify(saved));
+                    }
+                  }}
+                  className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-accent/20 text-slate-400 hover:text-accent rounded-xl transition-colors"
+                  title="В избранное"
+                >
+                  <Bookmark className="w-4 h-4" />
+                </button>
                 <button onClick={() => { setSelectedLawyer(lawyer); setShowLeadModal(true); }}
                   className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm">
                   <MessageCircle className="w-3.5 h-3.5" />
                   Написать
                 </button>
-              </div>
             </div>
             
             {/* Рекламный баннер после 3-го юриста */}
