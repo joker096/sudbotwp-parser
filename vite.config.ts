@@ -51,8 +51,6 @@ export default defineConfig(({mode}) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           // Не кешировать HTML файлы - они всегда должны загружаться с сервера
           navigateFallback: undefined,
-          // Не прекэшировать 404.html
-          exclude: [/404\.html$/],
           // Уменьшаем время кеширования для JS файлов
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
           // Очищаем старые кеши при обновлении
