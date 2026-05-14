@@ -1,49 +1,46 @@
-#!/usr/bin/env node
-/**
- * Деплой на VDS: копирует parse-all-cases.js и создаёт systemd service/timer
- */
+# deploy.ps1 - Деплой parse-all-cases.js на VDS
+# Usage: VDS_HOST=your-vds VDS_USER=user node deploy.ps1
+# Or set $env:VDS_HOST and $env:VDS_USER before running
 
-const { execSync } = require('child_process');
+$VDS_HOST = $env:VDS_HOST
+$VDS_USER = $env:VDS_USER
 
-const VDS_HOST = process.env.VDS_HOST || 'your-vds-host';
-const VDS_USER = process.env.VDS_USER || 'root';
-
-if (VDS_HOST === 'your-vds-host') {
-  console.error('Set VDS_HOST and VDS_USER env variables');
-  process.exit(1);
+if (-not $VDS_HOST -or -not $VDS_USER) {
+  Write-Host "Set VDS_HOST and VDS_USER environment variables" -ForegroundColor Red
+  Write-Host "Example: $env:VDS_HOST='your-vps'; $env:VDS_USER='root'" -ForegroundColor Yellow
+  exit 1
 }
 
-const files = [
-  'scripts/parse-all-cases.js',
-  'cron-parse-cases.sh',
-  'sudo-cases-parser.service',
-  'sud-parser.timer',
-];
+Write-Host "Deploying to ${VDS_USER}@${VDS_HOST}..."
 
-console.log(`Deploying to ${VDS_USER}@${VDS_HOST}...`);
+# Files to copy
+$files = @(
+  "scripts\parse-all-cases.js",
+  "cron-parse-cases.sh",
+  "sudo-cases-parser.service",
+  "sud-parser.timer"
+)
 
-// Copy files
-files.forEach(file => {
-  try {
-    execSync(`scp ${file} ${VDS_USER}@${VDS_HOST}:/tmp/`, { stdio: 'inherit' });
-    console.log(`Copied: ${file}`);
-  } catch(e) {
-    console.error(`Failed to copy ${file}`);
+foreach ($file in $files) {
+  if (Test-Path $file) {
+    Write-Host "Copying $file..."
+    scp "$file" "${VDS_USER}@${VDS_HOST}:/tmp/"
+  } else {
+    Write-Host "File not found: $file" -ForegroundColor Yellow
   }
-});
+}
 
-// Create remote commands
-const remoteSetup = `
-  sudo mv /tmp/parse-all-cases.js /opt/sud-app/
-  sudo mv /tmp/cron-parse-cases.sh /opt/sud-app/
-  sudo cp /tmp/sudo-cases-parser.service /etc/systemd/system/sud-parser.service
-  sudo cp /tmp/sud-parser.timer /etc/systemd/system/
-  sudo sed -i 's/<YOUR_SERVICE_ROLE_KEY>/${process.env.SUPABASE_SERVICE_ROLE_KEY || ''}/g' /etc/systemd/system/sud-parser.service
-  sudo systemctl daemon-reload
-  sudo systemctl enable sud-parser.timer
-  sudo systemctl start sud-parser.timer
-  sudo systemctl list-timers --all | grep sud-parser
-`;
+Write-Host "`nRun these commands on VDS:" -ForegroundColor Green
+Write-Host @"
 
-console.log('\nRun on VDS:');
-console.log(remoteSetup);
+sudo mv /tmp/parse-all-cases.js /opt/sud-app/
+sudo mv /tmp/cron-parse-cases.sh /opt/sud-app/
+sudo cp /tmp/sudo-cases-parser.service /etc/systemd/system/sud-parser.service
+sudo cp /tmp/sud-parser.timer /etc/systemd/system/
+sudo sed -i 's/<YOUR_SERVICE_ROLE_KEY>/$env:SUPABASE_SERVICE_ROLE_KEY/g' /etc/systemd/system/sud-parser.service
+sudo systemctl daemon-reload
+sudo systemctl enable sud-parser.timer
+sudo systemctl start sud-parser.timer
+sudo systemctl list-timers --all | grep sud-parser
+
+"@
