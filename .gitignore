@@ -6,3 +6,20 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Build artifacts
+*.tsbuildinfo
+tmp-tsc-output.txt
+
+# Temporary and test files
+test-*.js test-*.cjs test-*.ts
+temp*.py temp*.js temp*.cjs
+decode.py
+plans/
+.kilo/
+.deploy/
+
+# OS artifacts
+nul
+~/
+.htaccess
