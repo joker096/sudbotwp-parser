@@ -5,7 +5,8 @@
  * Требует: VITE_SCRAPINGBEE_API_KEY в .env
  */
 
-import { ParsedCaseData } from './clientParser';
+import type { ParsedCaseData } from './clientParser';
+import { parseCaseHtml, parseCaseClient } from './clientParser';
 
 const SCRAPINGBEE_API_KEY = import.meta.env.VITE_SCRAPINGBEE_API_KEY;
 
@@ -36,7 +37,6 @@ export async function parseWithScrapingBee(url: string): Promise<ParsedCaseData>
   }
 
   const html = await response.text();
-  const { parseCaseHtml } = await import('./clientParser');
   return parseCaseHtml(html, url);
 }
 
@@ -83,7 +83,6 @@ export async function parseWithFullFallback(url: string): Promise<{
   if (!isCourt) {
     try {
       console.log('[Parse] Trying client-side...');
-      const { parseCaseClient } = await import('./clientParser');
       const data = await parseCaseClient(url);
       console.log('[Parse] Client-side success');
       return { data, error: null, source: 'client' };
