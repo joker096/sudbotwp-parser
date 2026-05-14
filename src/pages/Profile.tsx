@@ -328,7 +328,7 @@ export default function Profile() {
               id: event.id,
               title: event.title,
               name: event.title, // для совместимости с UI
-              date: event.event_date.split('-').reverse().join('.'), // ДД.ММ.ГГГГ
+              date: (() => { try { return event.event_date.split('-').reverse().join('.'); } catch { return event.event_date || ''; } })(), // ДД.ММ.ГГГГ
               event_date: event.event_date, // ISO для сортировки
               time: event.event_time ? event.event_time.slice(0, 5) : '', // ЧЧ:ММ
               type: event.event_type,
@@ -782,7 +782,7 @@ export default function Profile() {
     const eventToUpdate = caseToUpdate.events.find((e: any) => e.id === eventId);
     if (!eventToUpdate) return;
 
-    const formattedNewDate = newDate.split('-').reverse().join('.');
+    const formattedNewDate = (() => { try { return newDate.split('-').reverse().join('.'); } catch { return newDate; } })();
     if (eventToUpdate.date === formattedNewDate) return;
 
     const updatedEvents = caseToUpdate.events.map((e: any) => 
@@ -929,7 +929,7 @@ export default function Profile() {
             id: eventDataResponse.id,
             title: eventDataResponse.title,
             name: eventDataResponse.title,
-            date: eventDate.split('-').reverse().join('.'),
+            date: (() => { try { return eventDate.split('-').reverse().join('.'); } catch { return eventDate; } })(),
             event_date: eventDate,
             time: eventDataResponse.event_time ? eventDataResponse.event_time.slice(0, 5) : '',
             type: eventDataResponse.event_type,

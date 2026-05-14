@@ -62,7 +62,7 @@ export default function EventModal({ isOpen, onClose, onSave, eventToEdit, initi
     const eventData: any = {
       id: eventToEdit ? eventToEdit.id : `custom-${Date.now()}`,
       name: title,
-      date: date.split('-').reverse().join('.'), // Convert to DD.MM.YYYY
+      date: (() => { try { return date.split('-').reverse().join('.'); } catch { return date; } })(), // Convert to DD.MM.YYYY
       time: time,
       type: type,
     };
