@@ -363,7 +363,7 @@ CREATE OR REPLACE FUNCTION generate_sitemap_xml()
 RETURNS TEXT AS $$
 DECLARE
     v_sitemap TEXT;
-    v_base_url TEXT := 'https://cvr.name';
+    v_base_url TEXT := 'https://sud.cvr.name';
 BEGIN
     v_sitemap := '<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';

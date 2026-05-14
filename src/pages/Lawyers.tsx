@@ -1,29 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { MapPin, Star, ShieldCheck, MessageCircle, MessageSquare, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { MapPin, Star, ShieldCheck, MessageCircle, MessageSquare, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ArrowDown, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import LeadModal from '../components/LeadModal';
 import StarRating from '../components/StarRating';
 import SafeLink from '../components/SafeLink';
 import { useSeo } from '../hooks/useSeo';
-
-interface Lawyer {
-  id: number;
-  name: string;
-  spec: string;
-  city: string;
-  region: string;
-  rating: number;
-  reviews: number;
-  verified: boolean;
-  img: string;
-  yandexRating: number;
-  website: string;
-  phone: string;
-  experience: string;
-  description: string;
-}
+import { lawyers, Lawyer, supabase, lawyerViewLimits, yandexMaps } from '../lib/supabase';
 
 // Полный список регионов России
 const RUSSIAN_REGIONS = [
@@ -144,65 +128,48 @@ export default function Lawyers() {
   const [sortBy, setSortBy] = useState('rating');
   const [selectedLawyer, setSelectedLawyer] = useState<Lawyer | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Дополнительные данные юриста
+  const [showExtraData, setShowExtraData] = useState(false);
+  const [extraDataLoading, setExtraDataLoading] = useState(false);
+  const [extraDataFetched, setExtraDataFetched] = useState(false);
+  const [extraData, setExtraData] = useState<any>(null);
+  const [viewLimitReached, setViewLimitReached] = useState(false);
+  const [remainingViews, setRemainingViews] = useState<number | null>(null);
+
+  const formatUrl = (url: string): string => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return 'https://' + url;
+  };
+
+
+  useEffect(() => {
+    loadLawyers();
+  }, []);
+
+  const loadLawyers = async () => {
+    setLoading(true);
+    try {
+      const { data } = await lawyers.getActive();
+      if (data) {
+        setAllLawyers(data);
+      }
+    } catch (error) {
+      console.error('Error loading lawyers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCloseLeadModal = useCallback(() => {
     setShowLeadModal(false);
   }, []);
 
-  const allLawyers: Lawyer[] = [
-    { 
-      id: 1, name: 'Александр Смирнов', spec: 'Гражданские', city: 'Москва', region: 'Москва и Московская область', rating: 4.9, reviews: 124, verified: true, img: 'https://picsum.photos/seed/lawyer1/200/200',
-      yandexRating: 4.8, website: 'smirnov-law.ru', phone: '+7 (999) 123-45-67', experience: '12 лет',
-      description: 'Специализируюсь на сложных гражданских делах. Большой опыт работы в судах общей юрисдикции. Помогу защитить ваши интересы на любой стадии процесса.'
-    },
-    { 
-      id: 2, name: 'Елена Волкова', spec: 'Семейные', city: 'Санкт-Петербург', region: 'Санкт-Петербург и Ленинградская область', rating: 5.0, reviews: 89, verified: true, img: 'https://picsum.photos/seed/lawyer2/200/200',
-      yandexRating: 5.0, website: 'volkova-family.ru', phone: '+7 (999) 234-56-78', experience: '8 лет',
-      description: 'Бракоразводные процессы, раздел имущества, споры о детях. Деликатный подход к каждому клиенту и нацеленность на мирное урегулирование.'
-    },
-    { 
-      id: 3, name: 'Дмитрий Иванов', spec: 'Уголовные', city: 'Москва', region: 'Москва и Московская область', rating: 4.8, reviews: 56, verified: false, img: 'https://picsum.photos/seed/lawyer3/200/200',
-      yandexRating: 4.6, website: 'ivanov-advocat.ru', phone: '+7 (999) 345-67-89', experience: '15 лет',
-      description: 'Защита по уголовным делам любой сложности. Срочный выезд при задержании. Опыт работы следователем помогает выстраивать эффективную линию защиты.'
-    },
-    { 
-      id: 4, name: 'Анна Петрова', spec: 'Арбитраж', city: 'Казань', region: 'Татарстан', rating: 4.9, reviews: 210, verified: true, img: 'https://picsum.photos/seed/lawyer4/200/200',
-      yandexRating: 4.9, website: 'petrova-arbitr.ru', phone: '+7 (999) 456-78-90', experience: '10 лет',
-      description: 'Сопровождение бизнеса, арбитражные споры, взыскание долгов с юридических лиц. Полный аудит договоров и защита в суде.'
-    },
-    { 
-      id: 5, name: 'Михаил Сидоров', spec: 'Гражданские', city: 'Новосибирск', region: 'Новосибирская область', rating: 4.7, reviews: 45, verified: true, img: 'https://picsum.photos/seed/lawyer5/200/200',
-      yandexRating: 4.5, website: 'sidorov-lawyer.ru', phone: '+7 (999) 567-89-01', experience: '6 лет',
-      description: 'Жилищные споры, защита прав потребителей, автоюрист. Бесплатная первичная консультация и оценка перспектив дела.'
-    },
-    { 
-      id: 6, name: 'Ольга Козлова', spec: 'Семейные', city: 'Екатеринбург', region: 'Свердловская область', rating: 4.8, reviews: 78, verified: true, img: 'https://picsum.photos/seed/lawyer6/200/200',
-      yandexRating: 4.7, website: 'kozlova-family.ru', phone: '+7 (999) 678-90-12', experience: '9 лет',
-      description: 'Специалист по семейному праву. Разводы, алименты, определение места жительства детей. Индивидуальный подход к каждой ситуации.'
-    },
-    { 
-      id: 7, name: 'Сергей Морозов', spec: 'Уголовные', city: 'Ростов-на-Дону', region: 'Ростовская область', rating: 4.9, reviews: 156, verified: true, img: 'https://picsum.photos/seed/lawyer7/200/200',
-      yandexRating: 4.8, website: 'morozov-criminal.ru', phone: '+7 (999) 789-01-23', experience: '18 лет',
-      description: 'Защита по уголовным делам. Опыт работы прокурором. Сложные дела по экономическим преступлениям. Комплексная правовая поддержка.'
-    },
-    { 
-      id: 8, name: 'Наталья Соколова', spec: 'Арбитраж', city: 'Краснодар', region: 'Краснодарский край', rating: 4.6, reviews: 92, verified: true, img: 'https://picsum.photos/seed/lawyer8/200/200',
-      yandexRating: 4.5, website: 'sokolova-arbitr.ru', phone: '+7 (999) 890-12-34', experience: '7 лет',
-      description: 'Юридическое сопровождение бизнеса. Арбитражные споры, налоговые консультации. Работаем по всей южной России.'
-    },
-    { 
-      id: 9, name: 'Игорь Лебедев', spec: 'Гражданские', city: 'Нижний Новгород', region: 'Нижегородская область', rating: 4.7, reviews: 63, verified: false, img: 'https://picsum.photos/seed/lawyer9/200/200',
-      yandexRating: 4.4, website: 'lebedev-law.ru', phone: '+7 (999) 901-23-45', experience: '11 лет',
-      description: 'Жилищное право, земельные споры, наследство. Большой опыт работы в судах Нижегородской области.'
-    },
-    { 
-      id: 10, name: 'Марина Кудрявцева', spec: 'Семейные', city: 'Воронеж', region: 'Воронежская область', rating: 4.8, reviews: 112, verified: true, img: 'https://picsum.photos/seed/lawyer10/200/200',
-      yandexRating: 4.9, website: 'kudryavtseva.ru', phone: '+7 (999) 012-34-56', experience: '14 лет',
-      description: 'Специализация: бракоразводные процессы, раздел имущества, споры о детях. Огромный опыт медиации и досудебного урегулирования.'
-    },
-  ];
+  const [allLawyers, setAllLawyers] = useState<Lawyer[]>([]);
 
-  const tabs = ['Все', 'Гражданские', 'Уголовные', 'Семейные', 'Арбитраж'];
+  const tabs = ['Все', 'Гражданские', 'Уголовные', 'Семейные', 'Арбитраж', 'Недвижимость', 'Трудовое право', 'Наследство', 'Банкротство'];
 
   // Уникальные регионы из данных юристов + полный список регионов России
   const availableRegions = Array.from(new Set([
@@ -230,6 +197,84 @@ export default function Lawyers() {
     if (sortBy === 'experience') return parseInt(b.experience) - parseInt(a.experience);
     return 0;
   });
+
+  // Показать доп. данные юриста
+  const handleShowExtraData = async () => {
+    if (!selectedLawyer) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setShowExtraData(true);
+      setExtraDataFetched(true);
+      setViewLimitReached(false);
+      setRemainingViews(5);
+      return;
+    }
+
+    const { hasLimit, remaining } = await lawyerViewLimits.checkLimit(session.user.id, selectedLawyer.id);
+    setRemainingViews(remaining);
+    
+    if (hasLimit) {
+      setViewLimitReached(true);
+      return;
+    }
+
+    setExtraDataLoading(true);
+    setShowExtraData(true);
+    setExtraDataFetched(false);
+    setExtraData(null);
+
+    try {
+      // Сначала ищем по имени, потом по городу + "юрист"
+      let result: any = null;
+      let searchQuery: string;
+      
+      searchQuery = selectedLawyer.name;
+      result = await yandexMaps.searchOrganization(searchQuery);
+      
+      // Если не нашли по имени — ищем по городу + юрист
+      if (!result?.data?.places || result.data.places.length === 0) {
+        searchQuery = `${selectedLawyer.name} юрист`;
+        result = await yandexMaps.searchOrganization(searchQuery);
+      }
+      
+      // Если всё ещё не нашли — ищем по городу + юридическая компания
+      if (!result?.data?.places || result.data.places.length === 0) {
+        searchQuery = `юрист ${selectedLawyer.city}`;
+        result = await yandexMaps.searchOrganization(searchQuery);
+      }
+      
+      // Если всё ещё не нашли — ищем по городу
+      if (!result?.data?.places || result.data.places.length === 0) {
+        searchQuery = selectedLawyer.city;
+        result = await yandexMaps.searchOrganization(searchQuery);
+      }
+      
+      if (result.data && result.data.places?.length > 0) {
+        await lawyerViewLimits.trackView(session.user.id, selectedLawyer.id);
+        setExtraData(result.data.places[0]);
+        setExtraDataFetched(true);
+        
+        const yandexData = result.data.places[0];
+        const yandexRating = yandexData.meta?.organization?.rating || null;
+        
+        if (yandexRating && (!selectedLawyer.yandex_rating || selectedLawyer.yandex_rating === 0)) {
+          const { error } = await supabase
+            .from('lawyers')
+            .update({ yandex_rating: yandexRating })
+            .eq('id', selectedLawyer.id);
+          if (error) console.error('Error saving yandex rating:', error);
+        }
+      } else {
+        setExtraDataFetched(true);
+      }
+    } catch (error) {
+      console.error('Error fetching extra data:', error);
+      setExtraDataFetched(true);
+    } finally {
+      setExtraDataLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 transition-colors duration-300">
@@ -328,6 +373,12 @@ export default function Lawyers() {
                 >
                   Сбросить фильтры
                 </button>
+                <Link 
+                  to="/apply-lawyer"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-accent hover:text-accent/80 transition-colors text-center"
+                >
+                  Стать юристом
+                </Link>
               </div>
             </div>
           </motion.div>
@@ -378,7 +429,17 @@ export default function Lawyers() {
               >
                 <div className="flex gap-4 items-center mb-4">
                   <div className="relative shrink-0">
-                    <img src={lawyer.img} alt={lawyer.name} referrerPolicy="no-referrer" loading="lazy" className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
+                  <img 
+                    src={lawyer.avatar_url && lawyer.avatar_url.includes('/storage/') 
+                      ? lawyer.avatar_url 
+                      : lawyer.avatar_url 
+                        ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
+                        : lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80`} 
+                    alt={lawyer.name} 
+                    referrerPolicy="no-referrer" 
+                    loading="lazy" 
+                    className="w-16 h-16 rounded-2xl object-cover shadow-sm" 
+                  />
                     <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
                       <ShieldCheck className="w-4 h-4 text-accent" />
                     </div>
@@ -412,9 +473,19 @@ export default function Lawyers() {
         {filteredLawyers.map((lawyer, index) => (
           <div key={lawyer.id} className="contents">
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
-              <div className="flex gap-4 cursor-pointer" onClick={() => setSelectedLawyer(lawyer)}>
+                <div className="flex gap-4 cursor-pointer" onClick={() => setSelectedLawyer(lawyer)}>
                 <div className="relative shrink-0">
-                  <img src={lawyer.img} alt={lawyer.name} referrerPolicy="no-referrer" loading="lazy" className="w-20 h-20 rounded-2xl object-cover shadow-sm" />
+                  <img 
+                    src={lawyer.avatar_url && lawyer.avatar_url.includes('/storage/') 
+                      ? lawyer.avatar_url 
+                      : lawyer.avatar_url 
+                        ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
+                        : lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80`} 
+                    alt={lawyer.name}
+                    referrerPolicy="no-referrer" 
+                    loading="lazy" 
+                    className="w-20 h-20 rounded-2xl object-cover shadow-sm" 
+                  />
                   {lawyer.verified && (
                     <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
                       <ShieldCheck className="w-5 h-5 text-primary" />
@@ -493,7 +564,7 @@ export default function Lawyers() {
               transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
               className="fixed bottom-0 sm:bottom-auto sm:top-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:max-w-lg bg-white dark:bg-slate-900 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-6 overflow-y-auto scrollbar-hide">
+              <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                 <button 
                   onClick={() => setSelectedLawyer(null)}
                   className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-colors z-10"
@@ -503,7 +574,17 @@ export default function Lawyers() {
 
                 <div className="flex flex-col items-center text-center mt-4 mb-6">
                   <div className="relative mb-4">
-                    <img src={selectedLawyer.img} alt={selectedLawyer.name} referrerPolicy="no-referrer" loading="lazy" className="w-28 h-28 rounded-full object-cover shadow-lg border-4 border-white dark:border-slate-800" />
+                    <img 
+                      src={selectedLawyer.avatar_url && selectedLawyer.avatar_url.includes('/storage/') 
+                        ? selectedLawyer.avatar_url 
+                        : selectedLawyer.avatar_url 
+                          ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${selectedLawyer.avatar_url}` 
+                          : selectedLawyer.img || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'} 
+                      alt={selectedLawyer.name} 
+                      referrerPolicy="no-referrer" 
+                      loading="lazy" 
+                      className="w-28 h-28 rounded-full object-cover shadow-lg border-4 border-white dark:border-slate-800" 
+                    />
                     {selectedLawyer.verified && (
                       <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-900 p-1 rounded-full shadow-sm">
                         <ShieldCheck className="w-7 h-7 text-primary" />
@@ -529,6 +610,35 @@ export default function Lawyers() {
                       <span>{selectedLawyer.city}</span>
                     </div>
                   </div>
+                  
+                  {/* Кнопка показа доп. данных */}
+                  {!viewLimitReached && (
+                    <button
+                      onClick={handleShowExtraData}
+                      disabled={extraDataLoading}
+                      className="w-full bg-gradient-to-r from-accent/10 to-accent/5 hover:from-accent/20 hover:to-accent/10 border border-accent/20 text-accent py-3 px-4 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-accent/10 disabled:opacity-50"
+                    >
+                      {extraDataLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4" />
+                          <span>Показать данные</span>
+                          {remainingViews !== null && remainingViews > 0 && remainingViews <= 3 && (
+                            <span className="text-xs opacity-70">({remainingViews} осталось)</span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  )}
+                  
+                  {viewLimitReached && (
+                    <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl text-center">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Лимит просмотров исчерпан. Попробуйте через месяц.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4 mb-8">
@@ -552,8 +662,14 @@ export default function Lawyers() {
                         <Star className="w-4 h-4 text-red-500 fill-red-500" />
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Яндекс Карты</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedLawyer.yandexRating} / 5.0</p>
+                       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Яндекс Карты</p>
+                        {selectedLawyer?.yandex_rating && selectedLawyer.yandex_rating > 0 ? (
+                          <SafeLink href={"https://yandex.ru/maps/?text=" + encodeURIComponent(selectedLawyer.name)} className="text-sm font-bold text-slate-900 dark:text-white">
+                            {selectedLawyer.yandex_rating} / 5.0
+                          </SafeLink>
+                        ) : (
+                          <p className="text-sm text-slate-400 dark:text-slate-500">—</p>
+                        )}
                       </div>
                     </div>
                     <a href={`tel:${selectedLawyer.phone}`} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -565,7 +681,7 @@ export default function Lawyers() {
                         <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.phone}</p>
                       </div>
                     </a>
-                    <SafeLink href={`https://${selectedLawyer.website}`} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <SafeLink href={formatUrl(selectedLawyer.website)} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                       <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
                         <Globe className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                       </div>
@@ -576,6 +692,83 @@ export default function Lawyers() {
                     </SafeLink>
                   </div>
                 </div>
+
+                {/* Яндекс Карты - доп. данные */}
+                {showExtraData && (
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-accent" />
+                      Данные организации
+                    </h3>
+                    
+                    {extraDataLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+                      </div>
+                    ) : extraData ? (
+                      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
+                            <MapPin className="w-5 h-5 text-red-500" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-slate-900 dark:text-white text-base">
+                              {extraData.name || selectedLawyer.name}
+                            </h4>
+                            {extraData.location && (
+                              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                {extraData.location.address || extraData.location.description || ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {extraData.meta?.organization?.rating && (
+                          <div className="flex items-center gap-2 mb-3">
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">
+                              {extraData.meta.organization.rating} / {extraData.meta.organization.rating_count}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {extraData.meta?.organization?.categories && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {extraData.meta.organization.categories.slice(0, 3).map((cat: any, i: number) => (
+                              <span key={i} className="text-xs bg-white dark:bg-slate-700 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300">
+                                {cat.name || cat.text}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {extraData.meta?.organization?.phone && (
+                          <a 
+                            href={`tel:${extraData.meta.organization.phone}`} 
+                            className="flex items-center gap-2 mb-3 text-sm text-slate-600 dark:text-slate-300 hover:text-accent transition-colors"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {extraData.meta.organization.phone}
+                          </a>
+                        )}
+                        
+                        <SafeLink 
+                          href={`https://yandex.ru/maps/${extraData.location.x}:${extraData.location.y}`} 
+                          className="flex items-center gap-2 w-full bg-white dark:bg-slate-700 p-3 rounded-xl text-sm font-bold text-accent hover:bg-accent/10 hover:text-accent-light transition-colors justify-center"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Открыть на Яндекс.Картах
+                        </SafeLink>
+                      </div>
+                    ) : extraDataFetched && !viewLimitReached ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Данные не найдены
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
 
                 <button 
                   onClick={() => { setSelectedLawyer(null); setShowLeadModal(true); }}
@@ -594,6 +787,7 @@ export default function Lawyers() {
         isOpen={showLeadModal}
         onClose={handleCloseLeadModal}
         lawyer={selectedLawyer}
+        lawyerId={selectedLawyer?.id}
       />
     </div>
   );

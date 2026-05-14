@@ -81,6 +81,7 @@ const LAWYER_CONTEXT = `Ты - опытный юрист с 20-летним ст
 Формат ответа: структурированный, с заголовками и нумерованными списками.`;
 
 export default function AILawyer() {
+  const FREE_MESSAGES_LIMIT = 3;
   const { isAuthenticated, user, profileData } = useAuth();
   const { setSeo } = useSeo('/ai-lawyer');
   
@@ -88,7 +89,7 @@ export default function AILawyer() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(true);
-  const [usageInfo, setUsageInfo] = useState<UsageInfo>({ remaining: 10, isSubscribed: false, subscriptionTier: 'free' });
+  const [usageInfo, setUsageInfo] = useState<UsageInfo>({ remaining: FREE_MESSAGES_LIMIT, isSubscribed: false, subscriptionTier: 'free' });
   const [limitError, setLimitError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -129,7 +130,7 @@ export default function AILawyer() {
       const isSubscribed = subscriptionTier === 'basic' || subscriptionTier === 'premium';
       
       setUsageInfo({
-        remaining: isSubscribed ? -1 : 10,
+        remaining: isSubscribed ? -1 : FREE_MESSAGES_LIMIT,
         isSubscribed,
         subscriptionTier,
       });
@@ -162,14 +163,14 @@ export default function AILawyer() {
         
         if (data) {
           if (data.current_month === currentMonth) {
-            const remaining = Math.max(0, 10 - (data.messages_count || 0));
+            const remaining = Math.max(0, FREE_MESSAGES_LIMIT - (data.messages_count || 0));
             setUsageInfo(prev => ({ ...prev, remaining }));
           } else {
             // Новый месяц - сбрасываем счётчик
-            setUsageInfo(prev => ({ ...prev, remaining: 10 }));
+            setUsageInfo(prev => ({ ...prev, remaining: FREE_MESSAGES_LIMIT }));
           }
         }
-        // Если данных нет (data === null), оставляем значение по умолчанию (10)
+        // Если данных нет (data === null), оставляем значение по умолчанию
       } catch (err) {
         console.error('Error loading usage:', err);
       }
@@ -408,7 +409,7 @@ export default function AILawyer() {
                   ? 'text-yellow-700 dark:text-yellow-400'
                   : 'text-red-700 dark:text-red-400'
               }`}>
-                {usageInfo.remaining} / 10 сообщений
+                {usageInfo.remaining} / {FREE_MESSAGES_LIMIT} сообщений
               </span>
             </div>
           )}

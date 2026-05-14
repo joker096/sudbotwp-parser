@@ -3,7 +3,7 @@ import {
   HelpCircle, Users, CreditCard, FileText, Search, 
   TrendingUp, Shield, AlertTriangle, CheckCircle, ArrowRight,
   Briefcase, MessageSquare, Settings, BookOpen,
-  ExternalLink, Copy, Check
+  ExternalLink
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSeo } from '../hooks/useSeo';
@@ -77,7 +77,7 @@ const faqSections = [
     items: [
       {
         q: 'Сколько сообщений бесплатно?',
-        a: 'В бесплатном тарифе доступно 10 сообщений ИИ-Юристу в месяц. После исчерпания лимита необходимо оформить подписку.'
+        a: 'В бесплатном тарифе доступно 3 сообщения ИИ-Юристу в месяц. После исчерпания лимита необходимо оформить подписку.'
       },
       {
         q: 'Сколько сообщений в подписке?',
@@ -229,27 +229,8 @@ const stepsForLawyers = [
 export default function Help() {
   const { setSeo } = useSeo('/help');
   const [openSection, setOpenSection] = useState<number | null>(0);
-  const [copied, setCopied] = useState(false);
-
-  // Установка SEO мета тегов
-  useEffect(() => {
-    setSeo({
-      title: 'Центр помощи - Sud',
-      description: 'Ответы на частые вопросы о работе платформы Sud. Как использовать мониторинг дел, покупать лиды и работать с юристами.',
-      keywords: 'помощь, FAQ, вопросы, поддержка, лиды, мониторинг',
-      ogTitle: 'Центр помощи - Sud',
-      ogDescription: 'Ответы на частые вопросы о работе платформы.',
-    });
-  }, [setSeo]);
-
-  const toggleSection = (index: number) => {
+ const toggleSection = (index: number) => {
     setOpenSection(openSection === index ? null : index);
-  };
-
-  const copyEmail = () => {
-    navigator.clipboard.writeText('support@cvr.name');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -397,22 +378,13 @@ export default function Help() {
           Наша команда поддержки работает 24/7 и поможет разобраться с любым вопросом
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button 
-            onClick={copyEmail}
-            className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 rounded-xl px-6 py-3 transition-colors"
-          >
-            {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-            {copied ? 'Скопировано!' : 'support@cvr.name'}
-          </button>
-          <SafeLink 
+        <SafeLink 
             href="https://t.me/cvrname/4243" 
             className="flex items-center justify-center gap-2 bg-accent hover:bg-accent-light rounded-xl px-6 py-3 transition-colors"
           >
             <MessageSquare className="w-5 h-5" />
             Telegram чат
           </SafeLink>
-        </div>
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check } from 'lucide-react';
+import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check, MapPin, Archive } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdBanner from '../components/AdBanner';
-import { supabase, cases, refreshCase, parseCase } from '../lib/supabase';
-import { ParsedCase } from '../types';
+import { supabase, cases, refreshCase, parseCase, lawyers } from '../lib/supabase';
+import { ParsedCase, Lawyer } from '../types';
 import CaseCard from '../components/CaseCard';
 import { useSeo } from '../hooks/useSeo';
 import { useAuth } from '../hooks/useAuth';
@@ -293,6 +293,29 @@ export default function Home() {
     });
   };
 
+  const handleArchiveCase = (caseId: string) => {
+    confirm({
+      title: 'Архивировать дело',
+      message: 'Дело будет перемещено в архив. Вы сможете восстановить его позже.',
+      confirmText: 'Архивировать',
+      cancelText: 'Отмена',
+      onConfirm: async () => {
+        try {
+          const { error } = await cases.archiveCase(caseId);
+          if (!error) {
+            setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'archived' } : c).filter(c => c.status !== 'archived'));
+            setSelectedCase(null);
+            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
+            showToast('Дело архивировано');
+          }
+        } catch (err) {
+          console.error('Error archiving case:', err);
+          showToast('Ошибка при архивировании');
+        }
+      },
+    });
+  };
+
   const categories = [
     { id: 'cases', name: 'Дела', icon: Scale, active: true, link: '/search' },
     { id: 'lawyers', name: 'Юристы', icon: Users, active: false, link: '/lawyers' },
@@ -300,11 +323,24 @@ export default function Home() {
     { id: 'blog', name: 'Блог', icon: BookOpen, active: false, link: '/blog' },
   ];
 
-  const topLawyers = [
-    { id: 1, name: 'Александр С.', spec: 'Гражданское право', rating: 4.9, img: 'https://picsum.photos/seed/lawyer1/200/200', price: 'от 5000 ₽' },
-    { id: 2, name: 'Елена В.', spec: 'Семейное право', rating: 5.0, img: 'https://picsum.photos/seed/lawyer2/200/200', price: 'от 3000 ₽' },
-    { id: 3, name: 'Дмитрий И.', spec: 'Уголовное право', rating: 4.8, img: 'https://picsum.photos/seed/lawyer3/200/200', price: 'от 7000 ₽' },
-  ];
+  const [topLawyers, setTopLawyers] = useState<Lawyer[]>([]);
+  const [lawyersLoading, setLawyersLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFeaturedLawyers = async () => {
+      try {
+        const { data } = await lawyers.getFeatured(3);
+        if (data) {
+          setTopLawyers(data);
+        }
+      } catch (error) {
+        console.error('Error loading featured lawyers:', error);
+      } finally {
+        setLawyersLoading(false);
+      }
+    };
+    loadFeaturedLawyers();
+  }, []);
 
   return (
     <div className="space-y-8 md:space-y-12 transition-colors duration-300">
@@ -432,26 +468,51 @@ export default function Home() {
           <h2 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-white">Топ юристы</h2>
           <Link to="/lawyers" className="text-accent text-sm md:text-base font-bold hover:underline">Все</Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {topLawyers.map(lawyer => (
-            <div key={lawyer.id} className="bg-white dark:bg-slate-900 rounded-[2rem] p-4 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] relative hover:shadow-lg transition-all border border-transparent dark:border-slate-800">
-              <img src={lawyer.img} alt={lawyer.name} referrerPolicy="no-referrer" className="w-full h-32 sm:h-48 object-cover rounded-2xl mb-4 shadow-sm" />
-              <div className="absolute top-6 sm:top-8 left-6 sm:left-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                <Star className="w-3 h-3 text-accent fill-accent" />
-                <span className="text-xs font-bold text-slate-900 dark:text-white">{lawyer.rating}</span>
-              </div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg mb-1">{lawyer.name}</h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">{lawyer.spec}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">{lawyer.price}</span>
-                <button className="bg-slate-900 dark:bg-slate-800 text-white p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm font-bold">Написать</span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {lawyersLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-accent" />
+          </div>
+        ) : topLawyers.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+            Юристы скоро появятся
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {topLawyers.map(lawyer => (
+              <Link to={`/lawyers?search=${encodeURIComponent(lawyer.name)}`} key={lawyer.id} className="bg-white dark:bg-slate-900 rounded-[2rem] p-4 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] relative hover:shadow-lg transition-all border border-transparent dark:border-slate-800 block">
+                <img 
+                    src={lawyer.avatar_url && lawyer.avatar_url.includes('/storage/') 
+                    ? lawyer.avatar_url 
+                    : lawyer.avatar_url 
+                      ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
+                      : lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80`} 
+                    alt={lawyer.name} 
+                    referrerPolicy="no-referrer" 
+                    className="w-full h-32 sm:h-48 object-cover rounded-2xl mb-4 shadow-sm" 
+                  />
+                <div className="absolute top-6 sm:top-8 left-6 sm:left-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                  <Star className="w-3 h-3 text-accent fill-accent" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{lawyer.rating}</span>
+                </div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg mb-1">{lawyer.name}</h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mb-2">{lawyer.spec || lawyer.specialization}</p>
+                {lawyer.city && (
+                  <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mb-4">
+                    <MapPin className="w-3 h-3" />
+                    {lawyer.city}
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">{lawyer.reviews_count || lawyer.reviews || 0} отзывов</span>
+                  <div className="bg-slate-900 dark:bg-slate-800 text-white p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm font-bold">Написать</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Native Ad Banner */}
@@ -516,9 +577,15 @@ export default function Home() {
                           <span className="text-[9px] md:text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded-md font-medium max-w-[150px] md:max-w-none truncate">{caseItem.category}</span>
                         )}
                         {caseItem.status && (
-                          <span className={`text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md font-medium whitespace-nowrap truncate max-w-[120px] md:max-w-none ${caseItem.status?.includes('удовлетвор') ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : caseItem.status?.includes('отказ') ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : caseItem.status?.includes('рассмотр') ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
-                            {caseItem.status}
-                          </span>
+                          String(caseItem.status || '').trim().toLowerCase() === 'archived' ? (
+                            <span className="inline-flex items-center justify-center text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" title="В архиве" aria-label="В архиве">
+                              <Archive className="w-3 h-3" />
+                            </span>
+                          ) : (
+                            <span className={`text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md font-medium whitespace-nowrap truncate max-w-[120px] md:max-w-none ${caseItem.status?.includes('удовлетвор') ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : caseItem.status?.includes('отказ') ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : caseItem.status?.includes('рассмотр') ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                              {caseItem.status}
+                            </span>
+                          )
                         )}
                       </div>
                     </div>
@@ -529,50 +596,61 @@ export default function Home() {
                           Обновл: {new Date(caseItem.updated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
-                      {canManualRefresh ? (
+                      <div className="flex items-center gap-1">
+                        {canManualRefresh ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRefreshCase(caseItem.id);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
+                            title="Обновить данные дела"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <div
+                            className="p-1.5 text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                            title="Функция доступна для админов и пользователей с подпиской Бизнес или Премиум"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                        <a 
+                          href={caseItem.link}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
+                          title="Открыть в суде"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRefreshCase(caseItem.id);
+                            handleDeleteCase(caseItem.id);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                          title="Удалить дело"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchiveCase(caseItem.id);
                           }}
                           className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
-                          title="Обновить данные дела"
+                          title="Архивировать дело"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" />
+                          <Archive className="w-3.5 h-3.5" />
                         </button>
-                      ) : (
-                        <div
-                          className="p-1.5 text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                          title="Функция доступна для админов и пользователей с подпиской Бизнес или Премиум"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </div>
-                      )}
-                      <a 
-                        href={caseItem.link}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
-                        title="Открыть в суде"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                      </div>
                     </div>
                   </div>
-                  {/* Кнопка удаления - компактная справа внизу */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCase(caseItem.id);
-                    }}
-                    className="absolute bottom-3 right-3 p-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 rounded-lg transition-all"
-                    title="Удалить дело"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               ))}
             </div>
@@ -626,7 +704,7 @@ export default function Home() {
 
       {/* Модальное окно с карточкой дела */}
       {selectedCase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedCase(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
           <div className="relative w-full max-w-full sm:max-w-2xl max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedCase(null)}
@@ -640,10 +718,20 @@ export default function Home() {
               isLoading={false}
               onAddCase={() => {}}
               onUpdateCase={() => {}}
+              caseId={selectedCase.id}
+              userId={user?.id}
+              onCommentSaved={() => {
+                console.log('Home.tsx onCommentSaved called');
+                if (queryClient && user?.id) {
+                  queryClient.invalidateQueries({ queryKey: ['userCases', user.id] });
+                }
+              }}
               onShowPaymentModal={handleShowPaymentModal}
               onDeleteCase={() => handleDeleteCase(selectedCase.id)}
               onRefreshCase={() => handleRefreshCase(selectedCase.id)}
+              onArchiveCase={() => handleArchiveCase(selectedCase.id)}
             />
+
           </div>
         </div>
       )}

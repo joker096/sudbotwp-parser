@@ -1,22 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scale, CheckCircle2, Building, FileText, User, Calendar, Gavel, Clock, MapPin, AlertCircle, Download, Link as LinkIcon, Pencil, X, Save, Copy, Trash2, ExternalLink, MessageSquare, Share2, Send, CalendarPlus, RotateCcw } from 'lucide-react';
+import { Scale, CheckCircle2, Building, FileText, User, Calendar, Gavel, Clock, MapPin, AlertCircle, Download, Link as LinkIcon, Pencil, X, Save, Copy, Trash2, ExternalLink, MessageSquare, Share2, Send, CalendarPlus, RotateCcw, Archive } from 'lucide-react';
 import { ParsedCase, CaseEvent, CaseAppeal } from '../types';
 import { useToast } from '../hooks/useToast';
-import { courts, supabase } from '../lib/supabase';
+import { courts, supabase, cases, caseComments } from '../lib/supabase';
 import { Court } from '../types';
 import SafeLink from './SafeLink';
+import { ConfirmModal } from './ConfirmModal';
 
 interface CaseCardProps {
   caseData: ParsedCase;
+  caseId?: string | null;
   isAdded: boolean;
   isLoading: boolean;
   onAddCase: () => void;
   onUpdateCase?: (updatedData: Partial<ParsedCase>) => void;
+  onCommentSaved?: () => void;
   onShowPaymentModal: () => void;
   onDeleteCase?: () => void;
   onRefreshCase?: () => void;
   onDateDoubleClick?: (date: string, time?: string) => void;
+  onArchiveCase?: () => void;
   userId?: string;
   subscriptionTier?: string;
   canRefresh?: boolean;
@@ -29,14 +33,17 @@ const itemVariants = {};
 
 function CaseCard({ 
   caseData, 
+  caseId,
   isAdded, 
   isLoading, 
   onAddCase, 
   onUpdateCase, 
+  onCommentSaved,
   onShowPaymentModal, 
   onDeleteCase, 
   onRefreshCase, 
   onDateDoubleClick,
+  onArchiveCase,
   userId,
   subscriptionTier,
   canRefresh,
@@ -56,13 +63,20 @@ function CaseCard({
   // Состояние для комментариев
   const [comment, setComment] = useState(localCaseData.comment || '');
   const [isSavingComment, setIsSavingComment] = useState(false);
+  const [commentHistory, setCommentHistory] = useState<{id: string; content: string; created_at: string; author_id: string}[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ top: number; left: number } | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSavingField, setIsSavingField] = useState(false);
 
   // Sync local state when caseData changes
   useEffect(() => {
@@ -93,6 +107,22 @@ function CaseCard({
       };
     }
   }, [caseData]);
+
+  // Загрузка истории комментариев при переключении на вкладку
+  useEffect(() => {
+    if (activeTab === 'Комментарии' && caseId && userId) {
+      setIsLoadingHistory(true);
+      caseComments.getByCase(caseId)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error loading comment history:', error);
+          } else if (data) {
+            setCommentHistory(data);
+          }
+        })
+        .finally(() => setIsLoadingHistory(false));
+    }
+  }, [activeTab, caseId, userId]);
 
   // Закрытие popup с эмодзи при клике вне его
   useEffect(() => {
@@ -148,18 +178,39 @@ function CaseCard({
     setEditValue(field === 'plaintiff' ? localCaseData.plaintiff : localCaseData.defendant);
   };
 
-  const handleEditSave = () => {
-    if (!editingField) return;
-    const updatedFields = { [editingField]: editValue };
+const handleEditSave = async () => {
+  if (!editingField || !caseId) {
+    showToast('Ошибка: ID дела не найден', 'error');
+    return;
+  }
+  
+  setIsSavingField(true);
+  const updatedFields = { [editingField]: editValue };
 
+  try {
+    const { error } = await cases.updateCase(caseId, updatedFields);
+    if (error) {
+      console.error('Save error:', error);
+      showToast(`Ошибка сохранения: ${error.message}`, 'error');
+      return;
+    }
+
+    // Update local state
     if (editingField === 'plaintiff') {
       setLocalCaseData({ ...localCaseData, plaintiff: editValue });
     } else if (editingField === 'defendant') {
       setLocalCaseData({ ...localCaseData, defendant: editValue });
     }
+    
     onUpdateCase?.(updatedFields);
+    showToast('Поле обновлено успешно!');
+  } catch (err) {
+    showToast('Ошибка при обновлении', 'error');
+  } finally {
+    setIsSavingField(false);
     setEditingField(null);
-  };
+  }
+};
 
   const handleEditCancel = () => {
     setEditingField(null);
@@ -284,6 +335,15 @@ function CaseCard({
                     )}
                   </>
                 )}
+              </button>
+            )}
+            {isAdded && onArchiveCase && (
+              <button
+                onClick={() => onArchiveCase()}
+                className="p-1.5 text-slate-400 hover:text-accent transition-colors"
+                title="Архивировать дело"
+              >
+                <Archive className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -421,9 +481,13 @@ function CaseCard({
                           className="flex-1 px-2 py-1 text-sm border rounded-lg dark:bg-slate-700 dark:border-slate-600"
                           placeholder="Введите имя истца"
                         />
-                        <button onClick={handleEditSave} className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded">
-                          <Save className="w-4 h-4" />
-                        </button>
+<button onClick={handleEditSave} disabled={isSavingField} className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+  {isSavingField ? (
+    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+  ) : (
+    <Save className="w-4 h-4" />
+  )}
+</button>
                         <button onClick={handleEditCancel} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
                           <X className="w-4 h-4" />
                         </button>
@@ -455,9 +519,13 @@ function CaseCard({
                           className="flex-1 px-2 py-1 text-sm border rounded-lg dark:bg-slate-700 dark:border-slate-600"
                           placeholder="Введите имя ответчика"
                         />
-                        <button onClick={handleEditSave} className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded">
-                          <Save className="w-4 h-4" />
-                        </button>
+<button onClick={handleEditSave} disabled={isSavingField} className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+  {isSavingField ? (
+    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+  ) : (
+    <Save className="w-4 h-4" />
+  )}
+</button>
                         <button onClick={handleEditCancel} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
                           <X className="w-4 h-4" />
                         </button>
@@ -664,94 +732,159 @@ function CaseCard({
             {/* Вкладка Комментарии */}
             {activeTab === 'Комментарии' && (
               <div className="pb-4">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-3">
+                {/* Форма добавления нового комментария */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <MessageSquare className="w-4 h-4 text-accent" />
-                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">Ваш комментарий</h4>
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">Добавить комментарий</h4>
                   </div>
                   <div className="relative">
                     <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Добавьте заметки к делу, напоминания или важные детали..."
+                      value={newCommentText}
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                      placeholder="Напишите комментарий..."
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
                       rows={3}
                     />
-                    {/* Кнопка эмодзи с пикером */}
-                    <div ref={emojiPickerRef} className="relative">
-                      <button
-                        ref={emojiButtonRef}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!showEmojiPicker && emojiButtonRef.current) {
-                            const rect = emojiButtonRef.current.getBoundingClientRect();
-                            // Вычисляем позицию с учётом границ экрана
-                            const pickerWidth = 220;
-                            const pickerHeight = 200;
-                            
-                            let left = rect.right - pickerWidth;
-                            let top = rect.top - pickerHeight;
-                            
-                            // Корректируем если выходит за левый край
-                            if (left < 10) left = 10;
-                            // Корректируем если выходит за правый край
-                            if (left + pickerWidth > window.innerWidth - 10) {
-                              left = window.innerWidth - pickerWidth - 10;
-                            }
-                            // Корректируем если выходит за верхний край
-                            if (top < 10) top = rect.bottom + 5;
-                            
-                            setEmojiPickerPosition({ top, left });
-                          }
-                          setShowEmojiPicker(!showEmojiPicker);
-                        }}
-                        className="absolute bottom-2 right-2 p-1.5 text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                        title="Добавить эмодзи"
-                      >
-                        <span className="text-base">😀</span>
-                      </button>
-                    </div>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <p className="text-[10px] text-slate-500">
-                      {comment.length} / 1000
+                      {newCommentText.length} / 1000
                     </p>
                     <button
                       onClick={async () => {
-                        if (comment.length > 1000) {
-                          showToast('Комментарий слишком длинный (макс. 1000 символов)');
+                        if (newCommentText.trim().length === 0) {
+                          showToast('Введите текст комментария');
                           return;
                         }
+                        if (!caseId || !userId) {
+                          showToast('Ошибка: не найден ID дела или пользователя', 'error');
+                          return;
+                        }
+
                         setIsSavingComment(true);
                         try {
-                          // Обновляем локальное состояние
-                          setLocalCaseData({ ...localCaseData, comment });
-                          // Вызываем коллбэк для сохранения в родительском компоненте
-                          onUpdateCase?.({ comment });
-                          showToast('Комментарий сохранён');
-                        } catch (err) {
-                          showToast('Ошибка сохранения комментария');
+                          const { error } = await caseComments.create(caseId, userId, newCommentText);
+                          if (error) throw error;
+                          
+                          setNewCommentText('');
+                          showToast('✅ Комментарий добавлен');
+                          
+                          // Обновить историю
+                          const { data } = await caseComments.getByCase(caseId);
+                          if (data) setCommentHistory(data);
+                          
+                          if (onCommentSaved) onCommentSaved();
+                        } catch (err: any) {
+                          console.error('Error adding comment:', err);
+                          showToast('❌ Ошибка: ' + (err.message || 'Не удалось добавить комментарий'), 'error');
                         } finally {
                           setIsSavingComment(false);
                         }
                       }}
-                      disabled={isSavingComment || comment === (localCaseData.comment || '')}
+                      disabled={isSavingComment || !newCommentText.trim() || !caseId || !userId}
                       className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
                     >
                       {isSavingComment ? (
                         <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <Save className="w-3 h-3" />
+                        <Send className="w-3 h-3" />
                       )}
-                      Сохранить
+                      Добавить
                     </button>
                   </div>
                 </div>
 
+                {/* История комментариев */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">История комментариев</h4>
+                  
+                  {isLoadingHistory ? (
+                    <div className="text-center py-4">
+                      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto" />
+                    </div>
+                  ) : commentHistory.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>Пока нет комментариев</p>
+                    </div>
+                  ) : (
+                    commentHistory.map((c) => (
+                      <div key={c.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.author_id === userId ? 'bg-accent/20 text-accent' : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'}`}>
+                            {c.author_id === userId ? 'Вы' : 'Юрист'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {c.author_id === userId && (
+                              <>
+                                <button
+                                  onClick={() => { setEditingCommentId(c.id); setEditingCommentText(c.content); }}
+                                  className="p-1 text-slate-400 hover:text-accent transition-colors"
+                                  title="Редактировать"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setCommentToDelete(c.id);
+                                    setShowDeleteConfirm(true);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                  title="Удалить"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(c.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                        {editingCommentId === c.id ? (
+                          <div>
+                            <textarea
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm"
+                              rows={2}
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await caseComments.update(c.id, editingCommentText);
+                                    setCommentHistory(commentHistory.map(cm => cm.id === c.id ? { ...cm, content: editingCommentText } : cm));
+                                    setEditingCommentId(null);
+                                    showToast('Комментарий обновлён');
+                                  } catch (err) {
+                                    showToast('Ошибка обновления', 'error');
+                                  }
+                                }}
+                                className="px-2 py-1 bg-accent text-white text-xs rounded-lg"
+                              >
+                                Сохранить
+                              </button>
+                              <button
+                                onClick={() => setEditingCommentId(null)}
+                                className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-xs rounded-lg"
+                              >
+                                Отмена
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{c.content}</p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
                 {/* Поделиться с юристами */}
                 {isAdded && (
-                  <div className="bg-gradient-to-r from-accent/10 to-purple-500/10 dark:from-accent/20 dark:to-purple-500/20 p-4 rounded-2xl">
+                  <div className="bg-gradient-to-r from-accent/10 to-purple-500/10 dark:from-accent/20 dark:to-purple-500/20 p-4 rounded-2xl mt-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Share2 className="w-4 h-4 text-accent" />
                       <h4 className="font-bold text-slate-900 dark:text-white text-sm">Поделиться с юристом</h4>
@@ -775,23 +908,21 @@ function CaseCard({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-1.5 shrink-0 p-3 pt-2">
-         <button
-           onClick={onAddCase}
-           disabled={isAdded || isLoading}
-           className={`col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 ${
-             isAdded
-               ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 cursor-default'
-               : 'bg-accent hover:bg-accent-light text-white'
-           }`}
-         >
-           {isLoading ? (
-             <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /></>
-           ) : isAdded ? (
-             <><CheckCircle2 className="w-3 h-3" /><span className="hidden sm:inline ml-1">Добавлено</span></>
-           ) : (
-             <><Scale className="w-3 h-3" /><span className="hidden sm:inline ml-1">Добавить</span></>
-           )}
-         </button>
+         {!isAdded && (
+            <button
+              onClick={onAddCase}
+              disabled={isLoading}
+              className={`col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 bg-accent hover:bg-accent-light text-white ${
+                isLoading ? 'opacity-60 cursor-wait' : ''
+              }`}
+            >
+              {isLoading ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <><Scale className="w-3 h-3" /><span className="hidden sm:inline ml-1">Добавить</span></>
+              )}
+            </button>
+          )}
          <button
            onClick={() => {
              // Free PDF export using browser print
@@ -894,12 +1025,11 @@ function CaseCard({
          {isAdded && onDeleteCase && (
            <button
              onClick={() => setShowDeleteConfirm(true)}
-             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
-             title="Удалить"
-           >
-             <Trash2 className="w-3 h-3" />
-             <span className="hidden sm:inline">Удалить</span>
-           </button>
+             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
+              title="Удалить"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
          )}
          {/* Кнопка добавления в Google Календарь - только для добавленных дел */}
          {isAdded && (
@@ -1158,6 +1288,33 @@ function CaseCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Подтверждение удаления комментария */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Удалить комментарий?"
+        message="Вы уверены, что хотите удалить этот комментарий? Это действие нельзя отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="danger"
+        onConfirm={async () => {
+          if (!commentToDelete) return;
+          try {
+            await caseComments.delete(commentToDelete);
+            setCommentHistory(commentHistory.filter(cm => cm.id !== commentToDelete));
+            showToast('Комментарий удалён');
+          } catch (err) {
+            showToast('Ошибка удаления', 'error');
+          } finally {
+            setShowDeleteConfirm(false);
+            setCommentToDelete(null);
+          }
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setCommentToDelete(null);
+        }}
+      />
     </div>
   );
 }

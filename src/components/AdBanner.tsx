@@ -2,6 +2,7 @@ import { memo, useMemo, useEffect, useRef, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSiteAds, AdPosition } from '../hooks/useSiteAds';
+import { sanitizeHtml, sanitizeUrl } from '../lib/sanitizeHtml';
 
 interface AdBannerProps {
   position?: AdPosition;
@@ -12,6 +13,50 @@ interface AdBannerProps {
   customCta?: string;
   customUrl?: string;
 }
+
+const TRUSTED_SCRIPT_HOSTS = [
+  'an.yandex.ru',
+  'mc.yandex.ru',
+  'yandex.ru',
+  'googleads.g.doubleclick.net',
+  'pagead2.googlesyndication.com',
+  'googlesyndication.com',
+  'doubleclick.net',
+];
+
+const isTrustedScriptSource = (src: string): boolean => {
+  if (!src) return false;
+  try {
+    const url = new URL(src, window.location.origin);
+    return TRUSTED_SCRIPT_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+};
+
+const mountSafeAdCode = (container: HTMLDivElement, adCode: string) => {
+  container.innerHTML = '';
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = sanitizeHtml(adCode);
+
+  const scripts = tempDiv.querySelectorAll('script');
+  scripts.forEach((script) => {
+    const src = script.getAttribute('src') || '';
+    if (!isTrustedScriptSource(src)) return;
+
+    const newScript = document.createElement('script');
+    newScript.src = src;
+    newScript.async = script.async || false;
+    newScript.defer = script.defer || false;
+    container.appendChild(newScript);
+  });
+
+  const nonScriptElements = tempDiv.querySelectorAll(':not(script)');
+  nonScriptElements.forEach((el) => {
+    container.appendChild(el.cloneNode(true));
+  });
+};
 
 function AdBanner({ 
   position = 'homepage', 
@@ -36,34 +81,7 @@ function AdBanner({
   // Внедряем рекламный код на страницу
   useEffect(() => {
     if (adCode && containerRef.current) {
-      containerRef.current.innerHTML = '';
-      
-      // Создаем временный контейнер для парсинга
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = adCode;
-      
-      // Находим все скрипты и выполняем их
-      const scripts = tempDiv.querySelectorAll('script');
-      scripts.forEach(script => {
-        const newScript = document.createElement('script');
-        newScript.textContent = script.textContent;
-        newScript.src = script.src || undefined;
-        newScript.async = script.async || false;
-        newScript.defer = script.defer || false;
-        
-        // Удаляем атрибуты, которые могут вызвать повторную загрузку
-        ['onerror', 'onload'].forEach(attr => newScript.removeAttribute(attr));
-        
-        containerRef.current?.appendChild(newScript);
-      });
-      
-      // Копируем остальной контент
-      const nonScriptElements = tempDiv.querySelectorAll(':not(script)');
-      nonScriptElements.forEach(el => {
-        if (containerRef.current) {
-          containerRef.current.appendChild(el.cloneNode(true));
-        }
-      });
+      mountSafeAdCode(containerRef.current, adCode);
     }
   }, [adCode]);
 
@@ -87,17 +105,19 @@ function AdBanner({
   const displayImageUrl = bannerSettings?.bannerImageUrl || '';
   
   // Проверяем, является ли URL внешней ссылкой
-  const isExternalUrl = displayUrl.startsWith('http://') || displayUrl.startsWith('https://');
+  const safeDisplayUrl = sanitizeUrl(displayUrl);
+  const safeDisplayImageUrl = sanitizeUrl(displayImageUrl);
+  const isExternalUrl = safeDisplayUrl.startsWith('http://') || safeDisplayUrl.startsWith('https://');
 
   const bannerContent = (
     <div className="w-full bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center gap-6 border border-slate-200 dark:border-slate-700 relative overflow-hidden group cursor-pointer transition-colors">
       <div className="absolute top-4 right-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
         Реклама
       </div>
-      {displayImageUrl ? (
+      {safeDisplayImageUrl ? (
         <div className="w-full sm:w-40 h-32 sm:h-28 shrink-0 rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-700">
           <img 
-            src={displayImageUrl} 
+            src={safeDisplayImageUrl} 
             alt={displayText}
             className="w-full h-full object-cover"
           />
@@ -125,7 +145,7 @@ function AdBanner({
   if (isExternalUrl) {
     return (
       <a 
-        href={displayUrl} 
+        href={safeDisplayUrl || '#'} 
         target="_blank" 
         rel="noopener noreferrer"
         className={`block w-full ${className}`}
@@ -136,7 +156,7 @@ function AdBanner({
   }
 
   return (
-    <Link to={displayUrl} className={`block w-full ${className}`}>
+    <Link to={safeDisplayUrl || '/'} className={`block w-full ${className}`}>
       {bannerContent}
     </Link>
   );
@@ -157,29 +177,7 @@ export function AdBlock({ position, className = '' }: { position: AdPosition; cl
 
   useEffect(() => {
     if (adCode && containerRef.current) {
-      // Очищаем контейнер
-      containerRef.current.innerHTML = '';
-      
-      // Парсим и внедряем код
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = adCode;
-      
-      const scripts = tempDiv.querySelectorAll('script');
-      scripts.forEach(script => {
-        const newScript = document.createElement('script');
-        newScript.textContent = script.textContent;
-        newScript.src = script.src || undefined;
-        newScript.async = script.async || false;
-        newScript.defer = script.defer || false;
-        containerRef.current?.appendChild(newScript);
-      });
-      
-      const nonScriptElements = tempDiv.querySelectorAll(':not(script)');
-      nonScriptElements.forEach(el => {
-        if (containerRef.current) {
-          containerRef.current.appendChild(el.cloneNode(true));
-        }
-      });
+      mountSafeAdCode(containerRef.current, adCode);
     }
   }, [adCode]);
 
@@ -232,27 +230,7 @@ export function AdBetweenItems({
 
   useEffect(() => {
     if (adCode && containerRef.current) {
-      containerRef.current.innerHTML = '';
-      
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = adCode;
-      
-      const scripts = tempDiv.querySelectorAll('script');
-      scripts.forEach(script => {
-        const newScript = document.createElement('script');
-        newScript.textContent = script.textContent;
-        newScript.src = script.src || undefined;
-        newScript.async = script.async || false;
-        newScript.defer = script.defer || false;
-        containerRef.current?.appendChild(newScript);
-      });
-      
-      const nonScriptElements = tempDiv.querySelectorAll(':not(script)');
-      nonScriptElements.forEach(el => {
-        if (containerRef.current) {
-          containerRef.current.appendChild(el.cloneNode(true));
-        }
-      });
+      mountSafeAdCode(containerRef.current, adCode);
     }
   }, [adCode]);
 

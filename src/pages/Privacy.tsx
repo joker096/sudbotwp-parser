@@ -166,9 +166,7 @@ export default function Privacy() {
             <li><strong>Право на возражение</strong> — возражать против обработки данных;</li>
             <li><strong>Право на жалобу</strong> — подать жалобу в Роскомнадзор.</li>
           </ul>
-          <p className="text-slate-600 dark:text-slate-300">
-            Для реализации прав направьте запрос на электронную почту: support@cvr.name
-          </p>
+
         </Section>
 
         <Section title="9. Срок хранения данных" icon={Database}>
@@ -203,8 +201,7 @@ export default function Privacy() {
             Если у Вас есть вопросы о настоящей Политике или Вы хотите реализовать свои права, свяжитесь с нами:
           </p>
           <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300 mb-4">
-            <li>Email: support@cvr.name</li>
-            <li>Telegram: @cvrname</li>
+             <li>Telegram: @cvrname</li>
           </ul>
           <p className="text-slate-600 dark:text-slate-300">
             По вопросам защиты персональных данных: dpo@cvr.name

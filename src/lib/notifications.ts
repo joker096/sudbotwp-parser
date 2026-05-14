@@ -65,27 +65,24 @@ export const showBrowserNotification = async (
 // Отправить уведомление в Telegram через API
 export const sendTelegramNotification = async (
   chatId: string,
-  message: string,
-  botToken?: string
+  message: string
 ): Promise<boolean> => {
-  // Если токен не передан, используем переменную окружения или настроенный токен
-  const token = botToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-  
-  if (!token || !chatId) {
-    console.log('Telegram bot token or chat ID not configured');
+  if (!chatId) {
+    console.log('Telegram chat ID not configured');
     return false;
   }
 
   try {
-    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-telegram-notification`;
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
         chat_id: chatId,
         text: message,
-        parse_mode: 'HTML',
       }),
     });
 

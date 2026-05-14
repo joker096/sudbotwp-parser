@@ -1,9 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FolderOpen, Upload, FileText, File, Image, Download, Trash2, Search, Lock, Eye, FileCheck, Scale, Loader2, X, FileDigit } from 'lucide-react';
+import { FolderOpen, Upload, FileText, File, Image, Download, Trash2, Search, Lock, Eye, FileCheck, Scale, Loader2, X, FileDigit, Building2, ExternalLink, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { useSeo } from '../hooks/useSeo';
 import { supabase } from '../lib/supabase';
+
+// Тип для документа из pravo.gov.ru
+interface PravoDoc {
+  id: string;
+  url: string;
+  authority: string;
+  source: string;
+  publishDate?: string;
+  regNumber?: string;
+}
 
 interface CourtDocument {
   id: string;
@@ -28,60 +38,131 @@ interface DocumentTemplate {
 // Fallback шаблоны (если БД недоступна)
 const DEFAULT_TEMPLATES: DocumentTemplate[] = [
   {
-    id: ' исковое заявление',
+    id: 'isk',
     name: 'Исковое заявление',
     description: 'Стандартный шаблон искового заявления в суд общей юрисдикции',
     category: 'Иски',
     icon: '📝',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'возражения',
+    id: 'objection',
     name: 'Возражения на иск',
     description: 'Возражения на исковое заявление ответчика',
     category: 'Защита',
     icon: '🛡️',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'ходатайство',
+    id: 'motion',
     name: 'Ходатайство',
     description: 'Ходатайство о назначении экспертизы, привлечении свидетелей и т.д.',
     category: 'Ходатайства',
     icon: '📋',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'апелляция',
+    id: 'appeal',
     name: 'Апелляционная жалоба',
     description: 'Жалоба на решение суда в апелляционную инстанцию',
     category: 'Жалобы',
     icon: '⚖️',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'кассация',
+    id: 'cassation',
     name: 'Кассационная жалоба',
     description: 'Жалоба в кассационную инстанцию',
     category: 'Жалобы',
     icon: '📇',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'претензия',
+    id: 'claim',
     name: 'Досудебная претензия',
     description: 'Претензия перед подачей иска (обязательный досудебный порядок)',
     category: 'Претензии',
     icon: '✉️',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'расписка',
+    id: 'receipt',
     name: 'Расписка',
     description: 'Расписка о получении денег/имущества',
     category: 'Доказательства',
     icon: '💰',
+    file_url: null,
+    file_name: null,
   },
   {
-    id: 'доверенность',
+    id: 'power',
     name: 'Доверенность',
     description: 'Доверенность на представление интересов в суде',
     category: 'Полномочия',
     icon: '📜',
+    file_url: null,
+    file_name: null,
+  },
+  {
+    id: 'forms',
+    name: 'Стандартная форма заявления',
+    description: 'Универсальная форма заявления, бланк для заполнения',
+    category: 'Формы и бланки',
+    icon: '📋',
+    file_url: null,
+    file_name: null,
+  },
+  // Гражданство templates (fallback)
+  {
+    id: 'citizenship',
+    name: 'Заявление о принятии в гражданство',
+    description: 'Заявление о принятии в гражданство РФ в общем порядке для лиц старше 18 лет',
+    category: 'Гражданство',
+    icon: '🆙',
+    file_url: null,
+    file_name: null,
+  },
+  {
+    id: 'consent',
+    name: 'Согласие законных представителей',
+    description: 'Согласие родителей на гражданство РФ для ребенка',
+    category: 'Гражданство',
+    icon: '👨‍👩‍👧',
+    file_url: null,
+    file_name: null,
+  },
+  {
+    id: 'renunciation',
+    name: 'Заявление об отказе от предыдущего гражданства',
+    description: 'Заявление о выходе из иностранного гражданства',
+    category: 'Гражданство',
+    icon: '❌',
+    file_url: null,
+    file_name: null,
+  },
+  {
+    id: 'autobio',
+    name: 'Автобиография',
+    description: 'Автобиография для заявления о гражданстве',
+    category: 'Гражданство',
+    icon: '📖',
+    file_url: null,
+    file_name: null,
+  },
+  {
+    id: 'identity',
+    name: 'Анкета для установления личности',
+    description: 'Анкета-опросник для гражданства',
+    category: 'Гражданство',
+    icon: '🆔',
+    file_url: null,
+    file_name: null,
   },
 ];
 
@@ -107,7 +188,37 @@ export default function DocumentsLibrary() {
   const { isAuthenticated, user } = useAuth();
   const { setSeo } = useSeo('/documents');
   
-  const [activeTab, setActiveTab] = useState<'my' | 'templates'>('my');
+  const [activeTab, setActiveTab] = useState<'my' | 'templates' | 'official'>('templates');
+  const [pravoDocs, setPravoDocs] = useState<PravoDoc[]>([]);
+  const [pravoLoading, setPravoLoading] = useState(false);
+  const [pravoLoaded, setPravoLoaded] = useState(false);
+  const [pravoSearch, setPravoSearch] = useState('');
+  const [pravoPage, setPravoPage] = useState(1);
+  const [pravoCategory, setPravoCategory] = useState('Все');
+  const [pravoSubcategory, setPravoSubcategory] = useState('Все');
+  const [selectedDoc, setSelectedDoc] = useState<PravoDoc | null>(null);
+
+  // Категории для официальных документов
+  const pravoCategories = ['Все', 'Министерства', 'Департаменты', 'Комитеты', 'Управления', 'Правительства', 'Губернаторы', 'Службы', 'Администрации', 'Агентства', 'Инспекции', 'Главные управления', 'Мировые суды', 'Другие'];
+
+  // Подкатегории - регионы (формируются динамически)
+  const getSubcategories = (): string[] => {
+    const regions = [...new Set(pravoDocs
+      .filter(d => pravoCategory === 'Все' || getPravoCategory(d.authority) === pravoCategory)
+      .map(d => {
+        const a = d.authority;
+        // Извлекаем регион из названия
+        if (a.includes('области') || a.includes('область')) return 'Области';
+        if (a.includes('края') || a.includes('край')) return 'Края';
+        if (a.includes('республики') || a.includes('Республика')) return 'Республики';
+        if (a.includes('автономн') || a.includes('авт. округ')) return 'Автономные округа';
+        if (a.includes('города') || a.includes('Москва') || a.includes('Санкт') || a.includes('Севастополь')) return 'Города';
+        if (a.includes('Российской Федерации') || a.includes('РФ')) return 'Федеральные';
+        return 'Другие регионы';
+      }))];
+    return ['Все', ...regions.sort()];
+  };
+  const pravoPageSize = 50;
   const [documents, setDocuments] = useState<CourtDocument[]>([]);
   const [templates, setTemplates] = useState<DocumentTemplate[]>(DEFAULT_TEMPLATES);
   const [templatesLoading, setTemplatesLoading] = useState(true);
@@ -158,6 +269,8 @@ export default function DocumentsLibrary() {
         return;
       }
 
+      console.log('Documents loaded:', data?.length || 0, data);
+
       // Для каждого документа получаем подписанный URL
       const docsWithUrls = await Promise.all(
         (data || []).map(async (doc) => {
@@ -185,7 +298,7 @@ export default function DocumentsLibrary() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, supabase]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -338,6 +451,119 @@ export default function DocumentsLibrary() {
     loadTemplates();
   }, [loadTemplates]);
 
+  // Загрузка документов pravo.gov.ru
+  const loadPravoDocs = useCallback(async () => {
+    if (pravoLoaded) return;
+    setPravoLoading(true);
+    try {
+      const response = await fetch('/pravo-docs-minimal.json');
+      const data = await response.json();
+      const docs: PravoDoc[] = (data.d || []).map((d: any) => ({
+        id: d.i,
+        url: d.u,
+        authority: d.a,
+        source: 'pravo.gov.ru'
+      }));
+      setPravoDocs(docs);
+      setPravoLoaded(true);
+    } catch (err) {
+      console.error('Error loading pravo docs:', err);
+    } finally {
+      setPravoLoading(false);
+    }
+  }, [pravoLoaded]);
+
+  const handleShowOfficial = () => {
+    setActiveTab('official');
+    loadPravoDocs();
+  };
+
+  // Извлечение даты из ID документа
+  // ID имеет формат: регион(2) + код(4) + DDMM + номер(4) для региональных документов
+  // Пример: 9100202602270003 -> 27.02.2026 (0227 = 27.02)
+  const extractDateFromId = (id: string): string => {
+    if (id.length >= 12) {
+      // Пробуем разные форматы:
+      
+      // Формат региональных: 9100202602270003
+      // 91 - регион, 0026 - код, 0227 - дата (DDMM), 0003 - номер
+      const dateStr = id.slice(-8, -4); // берём 4 цифры перед номером
+      const dayNum = parseInt(dateStr.slice(0, 2));
+      const monthNum = parseInt(dateStr.slice(2, 4));
+      
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+        // Определяем год из ID
+        let year = 2026; // по умолчанию - текущий год
+        // Пробуем найти год в ID (может быть в начале или в середине)
+        const potentialYear = id.match(/20\d{2}/);
+        if (potentialYear) {
+          year = parseInt(potentialYear[0]);
+        }
+        return `${dayNum.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
+      }
+      
+      // Формат федеральных: XXXXXXXXXYYYYMMDDNNNN
+      // Пробуем извлечь из позиции 9-15
+      const yearStr = id.substring(9, 13);
+      const monthStr = id.substring(13, 15);
+      const dayStr = id.substring(15, 17);
+      const yearNum = parseInt(yearStr);
+      const monthNum2 = parseInt(monthStr);
+      const dayNum2 = parseInt(dayStr);
+      
+      if (yearNum >= 2000 && yearNum <= 2100 && monthNum2 >= 1 && monthNum2 <= 12 && dayNum2 >= 1 && dayNum2 <= 31) {
+        return `${dayNum2.toString().padStart(2, '0')}.${monthNum2.toString().padStart(2, '0')}.${yearNum}`;
+      }
+    }
+    return '—';
+  };
+
+  // Определение категории органа власти
+  const getPravoCategory = (authority: string): string => {
+    const a = authority.toLowerCase();
+    if (a.includes('миров') || a.includes('судей')) return 'Мировые суды';
+    if (authority.startsWith('Министерство') || authority.startsWith('министерство')) return 'Министерства';
+    if (authority.startsWith('Департамент')) return 'Департаменты';
+    if (authority.startsWith('Комитет')) return 'Комитеты';
+    if (authority.startsWith('Управление')) return 'Управления';
+    if (authority.startsWith('Правительство')) return 'Правительства';
+    if (authority.startsWith('Губернатор')) return 'Губернаторы';
+    if (authority.startsWith('Служба')) return 'Службы';
+    if (authority.startsWith('Администрация')) return 'Администрации';
+    if (authority.startsWith('Агентство')) return 'Агентства';
+    if (authority.startsWith('Инспекция')) return 'Инспекции';
+    if (authority.startsWith('Главное управление') || a.includes('главное управление')) return 'Главные управления';
+    return 'Другие';
+  };
+
+  // Фильтрация pravo документов
+  const filteredPravoDocs = pravoDocs.filter(doc => {
+    const matchesSearch = pravoSearch === '' || 
+      doc.id.toLowerCase().includes(pravoSearch.toLowerCase()) ||
+      doc.authority.toLowerCase().includes(pravoSearch.toLowerCase());
+    const matchesCategory = pravoCategory === 'Все' || getPravoCategory(doc.authority) === pravoCategory;
+    
+    // Фильтр по подкатегории (региону)
+    let matchesSubcategory = pravoSubcategory === 'Все';
+    if (matchesSubcategory === false) {
+      const a = doc.authority;
+      if (pravoSubcategory === 'Области') matchesSubcategory = a.includes('области') || a.includes('область');
+      else if (pravoSubcategory === 'Края') matchesSubcategory = a.includes('края') || a.includes('край');
+      else if (pravoSubcategory === 'Республики') matchesSubcategory = a.includes('республики') || a.includes('Республика');
+      else if (pravoSubcategory === 'Автономные округа') matchesSubcategory = a.includes('автономн') || a.includes('авт. округ');
+      else if (pravoSubcategory === 'Города') matchesSubcategory = a.includes('города') || a.includes('Москва') || a.includes('Санкт') || a.includes('Севастополь');
+      else if (pravoSubcategory === 'Федеральные') matchesSubcategory = a.includes('Российской Федерации') || a.includes('РФ');
+      else matchesSubcategory = a.includes(pravoSubcategory);
+    }
+    
+    return matchesSearch && matchesCategory && matchesSubcategory;
+  });
+
+  const paginatedPravoDocs = filteredPravoDocs.slice(
+    (pravoPage - 1) * pravoPageSize,
+    pravoPage * pravoPageSize
+  );
+
   // Фильтрация документов
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -351,40 +577,7 @@ export default function DocumentsLibrary() {
     return matchesCategory && matchesSearch;
   });
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="w-10 h-10 text-accent" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-            Библиотека документов
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
-            Доступ к библиотеке документов и шаблонам имеют только зарегистрированные пользователи.
-          </p>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-3">Что доступно:</h3>
-            <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300 text-left">
-              <li className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-accent" />
-                Личное хранилище документов
-              </li>
-              <li className="flex items-center gap-2">
-                <FileCheck className="w-4 h-4 text-accent" />
-                Шаблоны для судов
-              </li>
-              <li className="flex items-center gap-2">
-                <Scale className="w-4 h-4 text-accent" />
-                Иски, жалобы, ходатайства
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -402,21 +595,22 @@ export default function DocumentsLibrary() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
         <button
           onClick={() => setActiveTab('my')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
-            activeTab === 'my'
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${
+            activeTab === 'my' && isAuthenticated
               ? 'bg-slate-900 dark:bg-accent text-white'
-              : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer'
           }`}
+          disabled={!isAuthenticated}
         >
           <FolderOpen className="w-4 h-4" />
-          Мои документы
+          Мои документы{!isAuthenticated && ' (войдите)'}
         </button>
         <button
           onClick={() => setActiveTab('templates')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${
             activeTab === 'templates'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -425,18 +619,17 @@ export default function DocumentsLibrary() {
           <FileCheck className="w-4 h-4" />
           Шаблоны
         </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Поиск..."
-          className="w-full bg-white dark:bg-slate-900 py-3 pl-12 pr-4 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-accent/20"
-        />
+        <button
+          onClick={handleShowOfficial}
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${
+            activeTab === 'official'
+              ? 'bg-slate-900 dark:bg-accent text-white'
+              : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Database className="w-4 h-4" />
+          Официальные ({pravoDocs.length || '...'})
+        </button>
       </div>
 
       {/* Error */}
@@ -450,9 +643,20 @@ export default function DocumentsLibrary() {
         </div>
       )}
 
-      {/* My Documents Tab */}
-      {activeTab === 'my' && (
+      {/* My Documents Tab - only for authenticated */}
+      {activeTab === 'my' && isAuthenticated ? (
         <div className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск..."
+              className="w-full bg-white dark:bg-slate-900 py-3 pl-12 pr-4 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-accent/20"
+            />
+          </div>
           {/* Upload Area */}
           <div
             onDragEnter={handleDrag}
@@ -557,13 +761,37 @@ export default function DocumentsLibrary() {
             </div>
           )}
         </div>
-      )}
+      ) : activeTab === 'my' && !isAuthenticated ? (
+        <div className="p-8 text-center">
+          <Lock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Войдите в аккаунт</h3>
+          <p className="text-slate-500 mb-6 max-w-md mx-auto">
+            Для загрузки и управления личными документами нужна авторизация. 
+            Шаблоны документов доступны всем посетителям.
+          </p>
+          <a href="/login" className="inline-block bg-accent hover:bg-accent-light text-white px-8 py-3 rounded-xl text-sm font-bold transition-colors">
+            Войти
+          </a>
+        </div>
+      ) : null}
 
       {/* Templates Tab */}
-      {activeTab === 'templates' && (
+{activeTab === 'templates' && (
         <div className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск шаблонов..."
+              className="w-full bg-white dark:bg-slate-900 py-3 pl-12 pr-4 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-accent/20"
+            />
+          </div>
+
           {/* Categories */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
             {templatesLoading ? (
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -639,6 +867,246 @@ export default function DocumentsLibrary() {
           )}
         </div>
       )}
+
+      {/* Official Documents Tab */}
+      {activeTab === 'official' && (
+        <div className="space-y-4">
+          {/* Info Banner */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-blue-900 dark:text-blue-300 text-sm">
+                  Официальные документы
+                </h3>
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                  Документы органов власти с портала <a href="http://publication.pravo.gov.ru" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-900">publication.pravo.gov.ru</a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Search for Official Documents */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={pravoSearch}
+              onChange={(e) => { setPravoSearch(e.target.value); setPravoPage(1); }}
+              placeholder="Поиск по документам (номер, орган)..."
+              className="w-full bg-white dark:bg-slate-900 py-2.5 pl-10 pr-4 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-accent/20"
+            />
+          </div>
+
+          {/* Categories */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+            {pravoCategories.map((category) => (
+              <button
+                key={category}
+                onClick={() => { setPravoCategory(category); setPravoSubcategory('Все'); setPravoPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                  pravoCategory === category
+                    ? 'bg-accent text-white'
+                    : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+          {/* Subcategories - Регионы */}
+          {pravoCategory !== 'Все' && pravoDocs.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs text-slate-400 py-1.5">Регион:</span>
+              {getSubcategories().map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => { setPravoSubcategory(sub); setPravoPage(1); }}
+                  className={`px-2 py-1 rounded-md text-xs transition-colors ${
+                    pravoSubcategory === sub
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          )}
+
+
+
+          {/* Count */}
+          <div className="flex items-center justify-between text-sm text-slate-500">
+            <span>Найдено: <strong className="text-slate-700 dark:text-slate-300">{filteredPravoDocs.length}</strong></span>
+            <span>Всего документов: {pravoDocs.length}</span>
+          </div>
+
+          {/* Documents List */}
+          {pravoLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-accent animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {paginatedPravoDocs.map((doc) => (
+                <div
+                  key={doc.id}
+                  onClick={() => setSelectedDoc(doc)}
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Scale className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2">
+                        {doc.id}
+                      </h3>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        {doc.authority}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        📅 {extractDateFromId(doc.id)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {Math.ceil(filteredPravoDocs.length / pravoPageSize) > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <button
+                onClick={() => setPravoPage(p => Math.max(1, p - 1))}
+                disabled={pravoPage === 1}
+                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Назад
+              </button>
+              <span className="px-4 py-2 text-sm text-slate-500">
+                Страница {pravoPage} из {Math.ceil(filteredPravoDocs.length / pravoPageSize)}
+              </span>
+              <button
+                onClick={() => setPravoPage(p => Math.min(Math.ceil(filteredPravoDocs.length / pravoPageSize), p + 1))}
+                disabled={pravoPage >= Math.ceil(filteredPravoDocs.length / pravoPageSize)}
+                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Вперёд
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Модальное окно документа */}
+      <AnimatePresence>
+        {selectedDoc && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4"
+            onClick={() => setSelectedDoc(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-full sm:max-w-4xl max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h2 className="font-bold text-lg text-slate-900 dark:text-white">
+                    Документ
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    ID: {selectedDoc.id}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedDoc(null)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Информация о документе */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-slate-500 text-xs">Номер документа (ID)</p>
+                    <p className="font-mono text-slate-900 dark:text-white">{selectedDoc.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Дата публикации</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{extractDateFromId(selectedDoc.id)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-slate-500 text-xs">Орган власти</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{selectedDoc.authority}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-slate-500 text-xs">Ссылка на оригинал</p>
+                    <a
+                      href={selectedDoc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline text-sm flex items-center gap-1"
+                    >
+                      {selectedDoc.url}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Реклама */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                <div className="text-center text-xs text-slate-400 mb-3">Реклама</div>
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-700">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Юридическая консультация</p>
+                  <p className="text-xs text-slate-500 mb-3">Нужна помощь юриста? Получите консультацию прямо сейчас.</p>
+                  <a
+                    href="/ai-lawyer"
+                    className="inline-block px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-light transition-colors"
+                  >
+                    Получить консультацию
+                  </a>
+                </div>
+              </div>
+
+              {/* Ссылки на документ */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-sm text-slate-500 mb-3">
+                  Для просмотра документа перейдите по ссылке:
+                </p>
+                <a
+                  href={selectedDoc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full px-4 py-3 bg-blue-500 text-white text-center rounded-xl hover:bg-blue-600 transition-colors font-medium"
+                >
+                  <ExternalLink className="w-4 h-4 inline mr-2" />
+                  Открыть документ на pravo.gov.ru
+                </a>
+
+                <p className="text-xs text-slate-400 mt-3 text-center">
+                  Документ откроется в новой вкладке
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

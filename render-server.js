@@ -5,6 +5,7 @@ import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,8 +13,45 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const KNOWN_SPA_ROUTES = [
+  '/',
+  '/search',
+  '/lawyers',
+  '/calculator',
+  '/blog',
+  '/help',
+  '/login',
+  '/taxpayer',
+  '/privacy',
+  '/documents',
+  '/messages',
+  '/monitoring',
+  '/profile',
+  '/leads',
+  '/apply-lawyer',
+  '/auth/callback',
+  '/admin/blog',
+];
+
+const isKnownSpaRoute = (pathname) =>
+  KNOWN_SPA_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+
+// Canonical host redirect: www -> non-www
+app.use((req, res, next) => {
+  const host = req.headers.host || '';
+  if (host.startsWith('www.')) {
+    const canonicalHost = host.replace(/^www\./, '');
+    return res.redirect(301, `https://${canonicalHost}${req.originalUrl}`);
+  }
+  return next();
+});
+
 // ScrapingBee API - free tier 100 requests/month
 const SCRAPINGBEE_API_KEY = process.env.SCRAPINGBEE_API_KEY || '';
+
+// Supabase configuration for parsing all cases
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qhiietjvfuekfaehddox.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 app.use(express.json());
 app.use(cors());
@@ -268,6 +306,120 @@ app.post('/parse-case', async (req, res) => {
   }
 });
 
+// GET/POST /parse-all-cases - Parse all cases that need updating
+app.get('/parse-all-cases', async (req, res) => {
+  if (!SUPABASE_KEY) {
+    return res.status(500).json({ error: 'Supabase service role key not configured' });
+  }
+  
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  
+  const MAX_AGE_HOURS = 24;
+  const MAX_CONCURRENT = 3;
+  
+  console.log(`\n[Parse All] Starting parse for cases older than ${MAX_AGE_HOURS}h...`);
+  
+  try {
+    // 1. Get all cases that need refresh
+    const cutoffDate = new Date(Date.now() - MAX_AGE_HOURS * 60 * 60 * 1000).toISOString();
+    
+    const { data: cases, error } = await supabase
+      .from('cases')
+      .select('id, link, user_id')
+      .not('status', 'eq', 'deleted')
+      .lt('updated_at', cutoffDate)
+      .limit(500);
+    
+    if (error) {
+      console.error('[Parse All] Error fetching cases:', error.message);
+      return res.status(500).json({ error: `Failed to fetch cases: ${error.message}` });
+    }
+    
+    if (!cases || cases.length === 0) {
+      return res.json({ 
+        message: 'No cases need refresh',
+        parsed: 0,
+        failed: 0,
+        updated: 0,
+        skipped: 0
+      });
+    }
+    
+    console.log(`[Parse All] Found ${cases.length} cases to parse`);
+    
+    // 2. Parse cases with concurrency limit
+    const results = [];
+    for (let i = 0; i < cases.length; i += MAX_CONCURRENT) {
+      const batch = cases.slice(i, i + MAX_CONCURRENT);
+      const batchPromises = batch.map(async (caseItem) => {
+        try {
+          const parsed = await parseCase(caseItem.link);
+          results.push({ success: true, caseId: caseItem.id, data: parsed });
+        } catch (error) {
+          console.warn(`[Parse All] Failed to parse case ${caseItem.id}:`, error.message);
+          results.push({ success: false, caseId: caseItem.id, error: error.message });
+        }
+      });
+      await Promise.all(batchPromises);
+      
+      // Small delay between batches
+      if (i + MAX_CONCURRENT < cases.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // 3. Update Supabase with successful parses
+    let updatedCount = 0;
+    let skippedCount = 0;
+    
+    for (const result of results) {
+      if (result.success) {
+        try {
+          await supabase
+            .from('cases')
+            .update({
+              number: result.data.number,
+              court: result.data.court,
+              status: result.data.status,
+              date: result.data.date,
+              category: result.data.category,
+              judge: result.data.judge,
+              plaintiff: result.data.plaintiff,
+              defendant: result.data.defendant,
+              link: result.data.link,
+              events: JSON.stringify(result.data.events),
+              appeals: JSON.stringify(result.data.appeals),
+              judicial_uid: result.data.judicial_uid || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', result.caseId)
+            .select();
+          updatedCount++;
+        } catch (error) {
+          console.warn(`[Parse All] Update failed for case ${result.caseId}:`, error.message);
+          skippedCount++;
+        }
+      } else {
+        skippedCount++;
+      }
+    }
+    
+    return res.json({
+      message: 'Parse completed',
+      parsed: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+      updated: updatedCount,
+      skipped: skippedCount,
+      total: results.length
+    });
+  } catch (error) {
+    console.error('[Parse All] Fatal error:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({
@@ -277,9 +429,15 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Sitemap redirect to Supabase dynamic generator
+// Serve sitemap.xml statically (generated at build time)
 app.get('/sitemap.xml', (req, res) => {
-  res.redirect(301, 'https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap');
+  const sitemapPath = path.join(__dirname, 'dist', 'sitemap.xml');
+  if (fs.existsSync(sitemapPath)) {
+    res.setHeader('Content-Type', 'application/xml');
+    res.sendFile(sitemapPath);
+  } else {
+    res.status(404).send('sitemap.xml not found. Run "npm run build" first.');
+  }
 });
 
 // Serve static files from dist folder (Vite build)
@@ -287,9 +445,13 @@ const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   
-  // SPA fallback - serve index.html for all non-API routes
+  // SPA fallback only for known routes; unknown routes should return proper 404
   app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    const pathname = req.path;
+    if (isKnownSpaRoute(pathname)) {
+      return res.sendFile(path.join(distPath, 'index.html'));
+    }
+    return res.status(404).sendFile(path.join(distPath, '404.html'));
   });
 } else {
   console.log('Warning: dist folder not found. Run "npm run build" first.');
@@ -312,6 +474,8 @@ if (fs.existsSync(distPath)) {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('POST /parse-case - Parse court case');
+  console.log('POST /parse-case - Parse single court case');
+  console.log('GET  /parse-all-cases - Parse all cases older than 24h');
   console.log('ScrapingBee:', SCRAPINGBEE_API_KEY ? 'Configured' : 'Not configured');
+  console.log('Supabase:', SUPABASE_KEY ? 'Configured' : 'Not configured');
 });

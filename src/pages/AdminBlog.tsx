@@ -9,57 +9,7 @@ import { useToast } from '../hooks/useToast';
 import { generateSlug } from '../lib/transliterate';
 import HtmlEditor from '../components/HtmlEditor';
 import { ConfirmModal, useConfirmModal } from '../components/ConfirmModal';
-
-// Import sitemap generator
-const generateSitemap = async () => {
-  try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-    
-    if (!supabaseUrl) {
-      console.warn('⚠️ SUPABASE_URL not configured');
-      return { success: true };
-    }
-    
-    // Call Supabase Edge Function for sitemap generation
-    const response = await fetch(`${supabaseUrl}/functions/v1/generate-sitemap`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
-    });
-    
-    if (response.ok) {
-      // Edge function returns XML (sitemap), which is expected behavior
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/xml')) {
-        const text = await response.text();
-        // Verify it's valid XML by checking for sitemap root element
-        if (text.includes('<urlset')) {
-          console.log('✅ Sitemap generated successfully');
-          return { success: true };
-        }
-      }
-      // Also handle JSON responses (for backwards compatibility)
-      if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        console.log('✅ Sitemap generated successfully:', data);
-        return { success: true, data };
-      }
-      // If neither XML nor JSON, still consider it success
-      console.log('✅ Sitemap endpoint responded');
-      return { success: true };
-    } else {
-      console.warn('⚠️ Sitemap generation returned non-ok status:', response.status);
-      return { success: true };
-    }
-  } catch (error) {
-    console.error('Error generating sitemap:', error);
-    // Don't block the user flow if sitemap fails
-    return { success: true };
-  }
-};
+import { sanitizeHtml } from '../lib/sanitizeHtml';
 
 interface BlogCategory {
   id: number;
@@ -361,11 +311,7 @@ export default function AdminBlog() {
         }
       }
 
-      // Генерируем новую карту сайта после сохранения
-      if (post.published) {
-        console.log('Generating new sitemap...');
-        await generateSitemap();
-      }
+ 
     } catch (error) {
       console.error('Error saving post:', error);
       // Сохраняем в localStorage как fallback
@@ -460,9 +406,6 @@ export default function AdminBlog() {
       setCategoryForm({ name: '', slug: '', description: '', color: '#6366f1' });
       setEditingCategory(null);
       loadCategories();
-      
-      // Обновляем карту сайта
-      generateSitemap();
     } catch (error: any) {
       console.error('Error saving category:', error);
       showToast('Ошибка сохранения категории: ' + (error.message || ''));
@@ -501,9 +444,6 @@ export default function AdminBlog() {
           if (error) throw error;
           showToast('Категория удалена');
           loadCategories();
-          
-          // Обновляем карту сайта
-          generateSitemap();
         } catch (error) {
           console.error('Error deleting category:', error);
           showToast('Ошибка удаления категории');
@@ -534,9 +474,6 @@ export default function AdminBlog() {
       
       showToast(!currentEnabled ? 'Категория включена' : 'Категория отключена');
       loadCategories();
-      
-      // Обновляем карту сайта
-      generateSitemap();
     } catch (error: any) {
       console.error('Error toggling category:', error);
       if (!error.message?.includes('is_enabled')) {
@@ -556,9 +493,6 @@ export default function AdminBlog() {
       if (error) throw error;
       showToast(!currentPublished ? 'Статья опубликована' : 'Статья снята с публикации');
       loadPosts();
-      
-      // Обновляем карту сайта
-      generateSitemap();
     } catch (error) {
       console.error('Error toggling post:', error);
       showToast('Ошибка изменения статуса статьи');
@@ -568,10 +502,6 @@ export default function AdminBlog() {
   const handlePublish = async () => {
     setPost(prev => ({ ...prev, published: !prev.published }));
     await handleSave();
-    
-    // Generate sitemap when publishing/unpublishing
-    console.log('Generating new sitemap after publish/unpublish...');
-    await generateSitemap();
   };
 
   const handleTitleChange = (value: string) => {
@@ -1442,7 +1372,7 @@ export default function AdminBlog() {
                   {post.excerpt || 'Анонс статьи...'}
                 </p>
                 {post.content ? (
-                  <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '', { allowYouTubeIframes: true }) }} />
                 ) : (
                   <p className="text-slate-400 italic">Содержание статьи будет отображаться здесь...</p>
                 )}

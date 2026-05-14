@@ -251,8 +251,8 @@ export const AdminBlogPostForm: React.FC<AdminBlogPostFormProps> = ({
               Контент <span className="text-red-500">*</span>
             </label>
             <HtmlEditor
-              content={formData.content}
-              onChange={(content) => setFormData({ ...formData, content })}
+              value={formData.content}
+              onChange={(value) => setFormData({ ...formData, content: value })}
             />
           </div>
 

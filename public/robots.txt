@@ -2,8 +2,8 @@
 User-agent: *
 Allow: /
 
-# Sitemap - Dynamic Supabase generator
-Sitemap: https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap
+# Sitemap - Static sitemap.xml
+Sitemap: https://sud.cvr.name/sitemap.xml
 
 # Disallow admin/private areas
 Disallow: /profile

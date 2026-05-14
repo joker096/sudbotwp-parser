@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, Info, CheckCircle2, MoreVertical, ChevronDown, Paperclip, X, ArrowLeft, Phone, Video } from 'lucide-react';
+import { ShieldCheck, Info, CheckCircle2, MoreVertical, ChevronDown, Paperclip, X, ArrowLeft, Phone, Video, Plus } from 'lucide-react';
 import MentionInput, { useLawyers } from '../components/MentionInput';
 import EncryptedFileUpload from '../components/EncryptedFileUpload';
 import { useSeo } from '../hooks/useSeo';
 import SafeDealModal from '../components/SafeDealModal';
+import LeadModal from '../components/LeadModal';
 
 // Типы для чата
 interface Chat {
@@ -36,6 +37,7 @@ export default function Messages() {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showSafeDealModal, setShowSafeDealModal] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ name: string; url: string; path: string }>>([]);
+  const [showLeadModal, setShowLeadModal] = useState(false);
   
   // Установка SEO мета тегов
   useEffect(() => {
@@ -101,8 +103,15 @@ export default function Messages() {
       
       {/* ===== МОБИЛЬНАЯ ВЕРСИЯ: СПИСОК ЧАТОВ ===== */}
       <div className={`w-full md:w-80 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 flex flex-col overflow-hidden shrink-0 h-full ${mobileShowChat ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Сообщения</h2>
+          <button
+            onClick={() => setShowLeadModal(true)}
+            className="p-2 bg-accent text-white rounded-xl hover:bg-accent-light transition-colors"
+            title="Создать заявку"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
         </div>
         <div className="overflow-y-auto flex-1 p-2">
           {DEMO_CHATS.map((chat) => (
@@ -297,6 +306,14 @@ export default function Messages() {
             onClose={() => setShowSafeDealModal(false)}
           />
         )}
+
+        {/* Lead Modal - создание заявки */}
+        <LeadModal
+          isOpen={showLeadModal}
+          onClose={() => setShowLeadModal(false)}
+          lawyer={null}
+          lawyerId={undefined}
+        />
       </div>
     </div>
   );

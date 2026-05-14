@@ -27,8 +27,7 @@ const DocumentsLibrary = lazy(() => import('./pages/DocumentsLibrary'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const TestEditor = lazy(() => import('./pages/TestEditor'));
-
-export default function App() {
+const LegalActs = lazy(() => import('./pages/LegalActs'));export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
@@ -64,6 +63,8 @@ export default function App() {
                   <Route path="login" element={<Login />} />
                   <Route path="taxpayer" element={<TaxpayerCheck />} />
                   <Route path="privacy" element={<Privacy />} />
+                  <Route path="legal-acts" element={<LegalActs />} />
+                  {/* apply-lawyer route removed */}
                   <Route path="test-editor" element={<TestEditor />} />
                   
                   {/* Protected routes */}
@@ -107,14 +108,7 @@ export default function App() {
                       </ProtectedRoute>
                     } 
                   />
-                  <Route 
-                    path="documents" 
-                    element={
-                      <ProtectedRoute>
-                        <DocumentsLibrary />
-                      </ProtectedRoute>
-                    } 
-                  />
+                  <Route path="documents" element={<DocumentsLibrary />} />
                 </Route>
                 
                 {/* Auth callback route - outside Layout */}

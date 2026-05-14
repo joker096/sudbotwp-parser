@@ -80,7 +80,7 @@ export default function Leads() {
     staleTime: 1000 * 60 * 5, // 5 минут
     gcTime: 1000 * 60 * 10, // 10 минут
   });
-  const [activeTab, setActiveTab] = useState<'available' | 'purchased'>('available');
+  const [activeTab, setActiveTab] = useState<'available' | 'purchased' | 'my'>('available');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filterCaseType, setFilterCaseType] = useState('');
@@ -119,6 +119,7 @@ export default function Leads() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lawyer_id: null, // Платный лид
     },
     {
       id: '2',
@@ -137,6 +138,7 @@ export default function Leads() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lawyer_id: null, // Платный лид
     },
     {
       id: '3',
@@ -155,6 +157,7 @@ export default function Leads() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lawyer_id: null, // Платный лид
     },
     {
       id: '4',
@@ -173,6 +176,7 @@ export default function Leads() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lawyer_id: null, // Платный лид
     },
     {
       id: '5',
@@ -191,6 +195,7 @@ export default function Leads() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lawyer_id: null, // Платный лид
     },
     {
       id: '6',
@@ -209,11 +214,25 @@ export default function Leads() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lawyer_id: null, // Платный лид
     },
   ];
 
   // Фильтрация лидов (используем leadsList из кеша)
   const filteredLeads = leadsList.filter(lead => {
+    // Фильтр по типу заявки
+    if (activeTab === 'available') {
+      // Платные лиды - без lawyer_id
+      if (lead.lawyer_id !== null) return false;
+    } else if (activeTab === 'my') {
+      // Мои заявки - с lawyer_id (заявки конкретным юристам)
+      // Пока показываем все заявки с lawyer_id для демо
+      if (!lead.lawyer_id) return false;
+    } else if (activeTab === 'purchased') {
+      // Купленные - показываем только купленные
+      return false; // Фильтр applied в handlePurchase
+    }
+    
     const matchesSearch = !searchQuery || 
       lead.case_description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.region?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -354,7 +373,17 @@ export default function Leads() {
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
-          Доступные
+          Доступные (платные)
+        </button>
+        <button
+          onClick={() => setActiveTab('my')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+            activeTab === 'my'
+              ? 'bg-slate-900 dark:bg-accent text-white'
+              : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          Мои заявки (бесплатные)
         </button>
         <button
           onClick={() => setActiveTab('purchased')}
@@ -364,7 +393,7 @@ export default function Leads() {
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
-          Мои лиды ({purchasedLeads.size})
+          Купленные ({purchasedLeads.size})
         </button>
       </div>
 
@@ -538,37 +567,65 @@ export default function Leads() {
                   
                   {/* Right: Price & Action */}
                   <div className="flex lg:flex-col items-center lg:items-end gap-3">
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-accent">{formatPrice(lead.price)}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {isPurchased ? 'Куплено' : 'Стоимость'}
-                      </p>
-                    </div>
-                    
-                    {isPurchased ? (
-                      <button
-                        onClick={() => handleRevealContact(lead)}
-                        disabled={revealingContact}
-                        className="flex items-center gap-2 px-4 py-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-base font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
-                      >
-                        {revealingContact ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Phone className="w-4 h-4" />
+                    {activeTab === 'my' ? (
+                      // Бесплатные заявки - показываем статус и кнопки
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          lead.status === 'new' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          lead.status === 'contacted' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                          'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                          {lead.status === 'new' ? 'Новая' : lead.status === 'contacted' ? 'Обработана' : 'Закрыта'}
+                        </span>
+                        {lead.status === 'new' && (
+                          <button
+                            onClick={() => {
+                              // Логика обработки заявки
+                              console.log('Обработать заявку:', lead.id);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Связаться
+                          </button>
                         )}
-                        Контакты
-                      </button>
+                      </div>
                     ) : (
-                      <button
-                        onClick={() => {
-                          setSelectedLead(lead);
-                          setShowPurchaseModal(true);
-                        }}
-                        className="flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-accent text-white rounded-xl text-base font-bold hover:bg-slate-800 dark:hover:bg-accent-light transition-colors"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Купить
-                      </button>
+                      // Платные лиды - показываем цену и кнопку
+                      <>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-accent">{formatPrice(lead.price)}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {isPurchased ? 'Куплено' : 'Стоимость'}
+                          </p>
+                        </div>
+                        
+                        {isPurchased ? (
+                          <button
+                            onClick={() => handleRevealContact(lead)}
+                            disabled={revealingContact}
+                            className="flex items-center gap-2 px-4 py-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-base font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                          >
+                            {revealingContact ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Phone className="w-4 h-4" />
+                            )}
+                            Контакты
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedLead(lead);
+                              setShowPurchaseModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-accent text-white rounded-xl text-base font-bold hover:bg-slate-800 dark:hover:bg-accent-light transition-colors"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            Купить
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -587,7 +644,7 @@ export default function Leads() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !purchasing && setShowPurchaseModal(false)} />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -685,7 +742,7 @@ export default function Leads() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowContactModal(false)} />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}

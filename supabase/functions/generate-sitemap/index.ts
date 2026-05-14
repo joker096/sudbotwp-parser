@@ -8,6 +8,12 @@ const corsHeaders = {
 
 const SITE_URL = Deno.env.get('SITE_URL') || 'https://sud.cvr.name';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
 // Static pages
 const pages = [
   { url: '/', priority: '1.0', changefreq: 'daily' },

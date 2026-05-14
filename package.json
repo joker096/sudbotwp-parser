@@ -7,15 +7,16 @@
     "start": "node render-server.js",
     "server": "node simple-server.js",
     "dev": "vite --host=127.0.0.1",
-    "build": "vite build && node generate-sitemap.js",
+    "build": "vite build && node generate-sitemap.js && echo 'Sitemap generated: dist/sitemap.xml'",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "sitemap": "node generate-sitemap.js"
+    "sitemap": "node generate-sitemap.js",
+    "parse-all": "node parse-all-cases.js"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
-    "@supabase/supabase-js": "^2.97.0",
+    "@supabase/supabase-js": "^2.99.1",
     "@tailwindcss/postcss": "^4.2.1",
     "@tailwindcss/vite": "^4.1.14",
     "@tanstack/react-query": "^5.90.21",

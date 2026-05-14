@@ -1,17 +1,21 @@
 import { useState, useEffect, memo } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Home, Search, Users, Calculator, Scale, Sun, Moon, BookOpen, MessageCircle, LogIn, Shield, Target, HelpCircle, UserCheck, AtSign, Phone, MapPin, Send, MessageSquare, ExternalLink, ChevronUp, ChevronDown, Menu, X, Sparkles, FolderOpen } from 'lucide-react';
+import { Home, Search, Users, Calculator, Scale, Sun, Moon, BookOpen, MessageCircle, LogIn, Shield, Target, HelpCircle, UserCheck, AtSign, Phone, MapPin, Send, MessageSquare, ExternalLink, ChevronUp, ChevronDown, Menu, X, Sparkles, FolderOpen, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FloatingButtons from './FloatingButtons';
 import { useAuth } from '../hooks/useAuth';
 import { useNofollowLinks } from '../hooks/useNofollowLinks';
 import GoogleAnalytics from './GoogleAnalytics';
+import LeadModal from './LeadModal';
 
 export default memo(function Layout() {
   const location = useLocation();
   
   // Состояние для мобильного меню - по умолчанию скрыто
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Состояние для общей формы заявки
+  const [showLeadModal, setShowLeadModal] = useState(false);
   
   // Custom scroll function that handles footer links better
   const scrollToTop = () => {
@@ -342,6 +346,11 @@ export default memo(function Layout() {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/legal-acts" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                    Нормативные акты
+                  </Link>
+                </li>
+                <li>
                   <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
                     Онлайн-консультация
                   </Link>
@@ -368,15 +377,18 @@ export default memo(function Layout() {
                     Политика cookie
                   </Link>
                 </li>
-                <li>
-                  <Link to="/lawyers" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
-                    Рейтинг юристов
-                  </Link>
-                </li>
-                <li>
+                 <li>
                   <Link to="/leads" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
                     Заявки юристам
                   </Link>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setShowLeadModal(true)}
+                    className="text-sm text-accent hover:text-accent-light font-medium transition-colors"
+                  >
+                    Оставить заявку
+                  </button>
                 </li>
                 <li>
                   <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
@@ -395,15 +407,6 @@ export default memo(function Layout() {
             <div>
               <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Контакты</h4>
               <ul className="space-y-3">
-                <li>
-                  <a 
-                    href="mailto:support@cvr.name" 
-                    className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors"
-                  >
-                    <AtSign className="w-4 h-4 flex-shrink-0" />
-                    support@cvr.name
-                  </a>
-                </li>
                 <li>
                   <a 
                     href="https://t.me/cvrname/4243" 
@@ -464,13 +467,7 @@ export default memo(function Layout() {
             >
               <Send className="w-5 h-5" />
             </a>
-            <a 
-              href="mailto:support@cvr.name" 
-              className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-accent hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              aria-label="Email"
-            >
-              <AtSign className="w-5 h-5" />
-            </a>
+
           </div>
 
           {/* Links Grid */}
@@ -493,12 +490,7 @@ export default memo(function Layout() {
                     Пошлины
                   </Link>
                 </li>
-                <li>
-                  <Link to="/lawyers" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
-                    Юристы
-                  </Link>
-                </li>
-              </ul>
+               </ul>
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Информация</h4>
@@ -518,6 +510,14 @@ export default memo(function Layout() {
                     Заявки
                   </Link>
                 </li>
+                <li>
+                  <button 
+                    onClick={() => setShowLeadModal(true)}
+                    className="text-xs text-accent hover:text-accent-light font-medium transition-colors"
+                  >
+                    Оставить заявку
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
@@ -533,6 +533,20 @@ export default memo(function Layout() {
 
       {/* Floating Buttons */}
       <FloatingButtons />
+
+      {/* Общая форма заявки (без привязки к юристу) */}
+      <LeadModal
+        isOpen={showLeadModal}
+        onClose={() => setShowLeadModal(false)}
+        lawyer={null}
+        lawyerId={undefined}
+      />
     </div>
   );
 });
+
+// Экспорт функции для открытия модального окна извне
+export const openLeadModal = () => {
+  // Эта функция будет использоваться для программного открытия модального окна
+  window.dispatchEvent(new CustomEvent('open-lead-modal'));
+};

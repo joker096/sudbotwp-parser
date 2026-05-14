@@ -1,25 +1,25 @@
 import { useState, memo } from 'react';
 import { X, CheckCircle2, Loader2, Send, Phone, MessageSquare, Calendar, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Lawyer } from '../types';
+import { leads } from '../lib/supabase';
+import { useToast } from '../hooks/useToast';
 
 interface LeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lawyer: {
-    id: number;
-    name: string;
-    spec: string;
-    city: string;
-  } | null;
+  lawyer: Lawyer | null;
+  lawyerId?: string;
 }
 
 type CaseType = 'civil' | 'criminal' | 'family' | 'arbitration' | 'administrative' | 'other';
 type Urgency = 'low' | 'medium' | 'high';
 
-function LeadModal({ isOpen, onClose, lawyer }: LeadModalProps) {
+function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    city: '',
     caseType: '' as CaseType | '',
     description: '',
     budget: '',
@@ -27,6 +27,7 @@ function LeadModal({ isOpen, onClose, lawyer }: LeadModalProps) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { showToast } = useToast();
 
   const caseTypes = [
     { value: 'civil', label: 'Гражданские споры' },
@@ -41,36 +42,44 @@ function LeadModal({ isOpen, onClose, lawyer }: LeadModalProps) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Имитация отправки (в реальности - сохранение в Supabase)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Сохраняем лид в localStorage для демонстрации
-    const leads = JSON.parse(localStorage.getItem('leads') || '[]');
-    leads.push({
-      id: Date.now(),
-      lawyerId: lawyer?.id,
-      lawyerName: lawyer?.name,
-      ...formData,
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem('leads', JSON.stringify(leads));
-
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-
-    // Закрываем через 2 секунды
-    setTimeout(() => {
-      onClose();
-      setIsSubmitted(false);
-      setFormData({
-        name: '',
-        phone: '',
-        caseType: '',
-        description: '',
-        budget: '',
-        urgency: 'medium',
+    try {
+      // Сохраняем заявку в Supabase
+     const { data, error } = await leads.create({
+        client_name: formData.name,
+        client_phone: formData.phone,
+        region: formData.city || null,
+        case_type: formData.caseType || 'other',
+        case_description: formData.description,
+        budget: formData.budget || null,
+        urgency: formData.urgency,
+        price: lawyerId ? 0 : 0,
+        lawyer_id: lawyerId || null,
       });
-    }, 2000);
+
+      if (error) throw error;
+
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+
+      // Закрываем через 2 секунды
+      setTimeout(() => {
+        onClose();
+        setIsSubmitted(false);
+        setFormData({
+          name: '',
+          phone: '',
+          city: '',
+          caseType: '',
+          description: '',
+          budget: '',
+          urgency: 'medium',
+        });
+      }, 2000);
+    } catch (err) {
+      console.error('Error creating lead:', err);
+      showToast('Ошибка отправки заявки', 'error');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,7 +100,7 @@ function LeadModal({ isOpen, onClose, lawyer }: LeadModalProps) {
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="relative bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent"
           >
             <button 
               onClick={onClose}
@@ -157,6 +166,19 @@ function LeadModal({ isOpen, onClose, lawyer }: LeadModalProps) {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="+7 (999) 123-45-67"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
+                      Город
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="Например: Москва"
                       className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
                     />
                   </div>

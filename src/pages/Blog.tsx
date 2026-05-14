@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Search, Filter, Calendar, ArrowRight, ChevronLeft, ChevronRight, Share2, Bookmark, Eye, ThumbsUp, MessageSquare, Settings, Plus, Edit } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import AdBanner from '../components/AdBanner';
 import { useSeo } from '../hooks/useSeo';
-import BlogComments from '../components/BlogComments';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, blogPosts } from '../lib/supabase';
-import { YouTubeEmbed, extractYouTubeVideoId } from '../components/YouTubeEmbed';
 import { useInView } from 'react-intersection-observer';
 import { useExternalLinksAdSettings } from '../hooks/useExternalLinksAdSettings';
+import { sanitizeHtml, sanitizeUrl } from '../lib/sanitizeHtml';
+
+const AdBanner = lazy(() => import('../components/AdBanner'));
+const LazyBlogComments = lazy(() => import('../components/BlogComments'));
 
 export { extractYouTubeVideoId } from '../components/YouTubeEmbed';
 
@@ -156,7 +157,7 @@ const processContent = (content: string): string => {
 // Компонент для отображения контента с рекламой
 const BlogContentWithAds = ({ content, adSettings }: { content: string; adSettings: any }) => {
   if (!adSettings.enabled || adSettings.afterParagraph <= 0) {
-    return <div dangerouslySetInnerHTML={{ __html: content }} />;
+    return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content, { allowYouTubeIframes: true }) }} />;
   }
 
   // Проверяем, есть ли кастомный баннер (заголовок и URL)
@@ -181,17 +182,19 @@ const BlogContentWithAds = ({ content, adSettings }: { content: string; adSettin
         
         // Если есть кастомный баннер - показываем его
         if (hasCustomBanner) {
-          const isExternalUrl = adSettings.bannerUrl.startsWith('http://') || adSettings.bannerUrl.startsWith('https://');
+          const safeBannerUrl = sanitizeUrl(adSettings.bannerUrl);
+          const safeBannerImage = sanitizeUrl(adSettings.bannerImageUrl || '');
+          const isExternalUrl = safeBannerUrl.startsWith('http://') || safeBannerUrl.startsWith('https://');
           const targetAttr = isExternalUrl ? ' target="_blank" rel="noopener noreferrer"' : '';
-          const bannerImageHtml = adSettings.bannerImageUrl 
+          const bannerImageHtml = safeBannerImage 
             ? `<div class="w-full sm:w-40 h-32 sm:h-28 shrink-0 rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-700 ml-4">
-                <img src="${adSettings.bannerImageUrl}" alt="${adSettings.bannerText}" class="w-full h-full object-cover" />
+                <img src="${safeBannerImage}" alt="${adSettings.bannerText}" class="w-full h-full object-cover" />
               </div>`
             : '';
           
           adHtml = `
             <div class="blog-ad-container my-8">
-              <a href="${adSettings.bannerUrl}"${targetAttr} class="w-full bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center gap-6 border border-slate-200 dark:border-slate-700 relative overflow-hidden group cursor-pointer transition-colors hover:border-accent dark:hover:border-accent text-decoration-none">
+              <a href="${safeBannerUrl || '#'}"${targetAttr} class="w-full bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center gap-6 border border-slate-200 dark:border-slate-700 relative overflow-hidden group cursor-pointer transition-colors hover:border-accent dark:hover:border-accent text-decoration-none">
                 <div class="absolute top-4 right-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
                   Реклама
                 </div>
@@ -232,7 +235,7 @@ const BlogContentWithAds = ({ content, adSettings }: { content: string; adSettin
     }
   }
 
-  return <div dangerouslySetInnerHTML={{ __html: result.join('') }} />;
+  return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(result.join(''), { allowYouTubeIframes: true }) }} />;
 };
 
 // Fallback данные для блога
@@ -750,12 +753,21 @@ export default function Blog() {
         // Проверяем data-iframe атрибут
         const iframeHtml = placeholder.getAttribute('data-iframe');
         if (iframeHtml) {
-          placeholder.innerHTML = iframeHtml;
+          const decoded = iframeHtml.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+          const videoIdMatch = decoded.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+          if (videoIdMatch) {
+            const videoId = videoIdMatch[1];
+            placeholder.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe>`;
+          }
         } else {
           // Альтернативный формат с data-embed-url
           const embedUrl = placeholder.getAttribute('data-embed-url');
           if (embedUrl) {
-            placeholder.innerHTML = `<iframe width="100%" height="100%" src="${embedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe>`;
+            const videoIdMatch = embedUrl.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+            if (videoIdMatch) {
+              const videoId = videoIdMatch[1];
+              placeholder.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe>`;
+            }
           }
         }
       }
@@ -952,7 +964,9 @@ export default function Blog() {
 
             {/* Комментарии к статье */}
             <div id="blog-comments">
-              <BlogComments postId={selectedPost.id.toString()} />
+              <Suspense fallback={<div className="p-4 text-slate-500">Загрузка комментариев...</div>}>
+                <LazyBlogComments postId={selectedPost.id.toString()} />
+              </Suspense>
             </div>
           </div>
         </article>
@@ -1257,7 +1271,9 @@ export default function Blog() {
             {/* Вставляем рекламу после 2-го поста */}
             {index === 1 && (
               <div className="md:col-span-2">
-                <AdBanner />
+                <Suspense fallback={<div className="h-32 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />}>
+                  <AdBanner />
+                </Suspense>
               </div>
             )}
           </div>

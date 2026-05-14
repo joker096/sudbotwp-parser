@@ -1191,8 +1191,15 @@ app.put('/api/seo/:pagePath(*)', async (req, res) => {
 
 // ==================== SITEMAP & ROBOTS.TXT ====================
 
+// Serve sitemap.xml directly (generated at build time)
 app.get('/sitemap.xml', (req, res) => {
-  res.redirect(301, 'https://qhiietjvfuekfaehddox.supabase.co/functions/v1/generate-sitemap');
+  const sitemapPath = path.join(__dirname, 'dist', 'sitemap.xml');
+  if (fs.existsSync(sitemapPath)) {
+    res.setHeader('Content-Type', 'application/xml');
+    res.sendFile(sitemapPath);
+  } else {
+    res.status(404).send('sitemap.xml not found. Run "npm run build" first.');
+  }
 });
 
 app.get('/robots.txt', (req, res) => {

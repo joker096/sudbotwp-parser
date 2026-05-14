@@ -1,5 +1,5 @@
 import React from 'react';
-import { SecuritySettings } from './SecuritySettings';
+import SecuritySettings from './SecuritySettings';
 
 /**
  * AdminSecuritySettings - компонент для настроек безопасности в админке

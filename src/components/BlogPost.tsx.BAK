@@ -1,0 +1,87 @@
+import React, { useState } from 'react';
+
+interface CategoryOption {
+  id: number;
+  name: string;
+}
+
+/**
+ * SearchForm - форма поиска и фильтрации постов блога
+ */
+export const SearchForm: React.FC<{ onSearch?: (q: string) => void }> = ({ onSearch }) => {
+  const [query, setQuery] = useState('');
+
+  return (
+    <form onSubmit={(e) => e.preventDefault()}>
+      <label htmlFor="blog-search" className="block text-sm font-medium mb-1">Поиск</label>
+      <input
+        id='blog-search'
+        type='text'
+        placeholder='Найти пост...'
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onBlur={() => query.trim() && onSearch?.(query.trim())}
+        className="w-full p-2 border rounded"
+      />
+    </form>
+  );
+};
+
+/**
+ * CategoryFilter - список категорий для фильтрации постов блога (заглушка)
+ */
+export const CategoryFilter: React.FC<{ categories?: CategoryOption[]; selectedId?: number }> = ({ 
+  /*categories,*/ _selectedId }) => {
+  return <div className="text-gray-500 text-sm">Фильтр категорий</div>; // TODO: fill from real data when ready
+};
+
+/**
+ * BlogSidebar - сайдбар блога с формой поиска и категориями (заглушка)
+ */
+export const BlogSidebar = () => {
+  return <BlogSidebarContent />; 
+};
+
+
+interface SidebarProps {}
+
+const defaultCategories: CategoryOption[] = []; // TODO replace with real data when ready
+
+/**
+ * BlogSidebar - компонент боковой панели блога с поиском и фильтрами по категориям. Заглушка для интеграции, пока нет данных о категориях в API.
+ */
+export const BlogSidebarContent: React.FC<SidebarProps> & { SearchForm: typeof SearchForm; CategoryFilter: typeof CategoryFilter } = () => (
+  <div className="space-y-6">
+    {/* Placeholder for search form — will be integrated when needed */}
+    <SearchForm />
+
+    {/* TODO: populate categories data from Supabase and wire to BlogSidebarContent props if/when available. For now, show a static placeholder so sidebar renders in all states. */}
+    {defaultCategories.length > 0 && (
+      <>
+        <h3 className="text-lg font-semibold mb-2">Категории</h3>
+        {/* TODO: render category list from defaultCategories or props if available */}
+        <div role='list'>
+          {/* example placeholder item, remove when real data wired up */}
+          <a href='/blog' className='block py-1 text-gray-600 hover:text-blue-700 cursor-pointer'>Все посты</a>
+        </div>
+      </>
+    )}
+
+    {defaultCategories.length === 0 && (
+      <>
+        {/* No categories data yet — show placeholder */}
+        <h3 className="text-lg font-semibold mb-2">Категории</h3>
+        <ul role='list'>
+          <li><a href='/blog' className='block py-1 text-gray-600 hover:text-blue-700 cursor-pointer'>Все посты</a></li>
+        </ul>
+      </>
+    )}
+
+    {/* TODO: Recent posts section — will be filled when API provides data */}
+  </div>
+);
+
+
+// Attach subcomponents for easy use by parent Blog page later. 
+(BlogSidebarContent as any).SearchForm = SearchForm;
+(BlogSidebarContent as any).CategoryFilter = CategoryFilter;

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Filter, Scale, ChevronRight, Loader2, Link as LinkIcon, Building, User, Calendar, FileText, CheckCircle2, Clock, MapPin, AlertCircle, Gavel, Download, Pencil, X, Trash2 } from 'lucide-react';
+import { Search, Filter, Scale, ChevronRight, Loader2, Link as LinkIcon, Building, User, Calendar, FileText, CheckCircle2, Clock, MapPin, AlertCircle, Gavel, Download, Pencil, X, Trash2, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
-import { parseCase, cases, refreshCase } from '../lib/supabase';
+import { parseCase, cases, refreshCase, supabase } from '../lib/supabase';
 import { useToast } from '../hooks/useToast';
 import ManualCaseEntryForm from '../components/ManualCaseEntryForm';
 import { ParsedCase } from '../types';
@@ -18,7 +18,7 @@ export default function CaseSearch() {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [parsedCase, setParsedCase] = useState<ParsedCase | null>(null);
+  const [parsedCase, setParsedCase] = useState<{ data: ParsedCase; comment: string } | null>(null);
   const [selectedCase, setSelectedCase] = useState<ParsedCase | null>(null);
   const [isAdded, setIsAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,7 +169,7 @@ export default function CaseSearch() {
             setError(`Ошибка при парсинге дела: ${error.message}`);
           }
         } else if (data) {
-          setParsedCase(data);
+          setParsedCase({ data: data as ParsedCase, comment: (data as any).comment || '' });
         } else {
           setError('Не удалось распознать данные о деле');
         }
@@ -181,56 +181,83 @@ export default function CaseSearch() {
       });
   }, []);
 
-  const handleAddCase = async () => {
-    if (!user || !parsedCase) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Проверяем, не существует ли уже это дело у пользователя
-      const { data: existingCases } = await cases.getCasesByUser(user.id);
-      const caseNumber = parsedCase.number?.toLowerCase().trim();
-      const exists = existingCases?.some(c => c.number?.toLowerCase().trim() === caseNumber);
-      
-      if (exists) {
-        setError('Это дело уже есть в Моих делах');
-        setIsLoading(false);
-        return;
-      }
-      
-      const { data, error } = await cases.createCase({
-        user_id: user.id,
-        ...parsedCase,
-      });
-      
-      if (error) {
-        setError(error.message);
-      } else {
-        setIsAdded(true);
-        showToast('Дело добавлено в Мои дела');
+      const handleAddCase = async () => {
+        if (!user || !parsedCase) return;
         
-        // Сбрасываем состояние для нового поиска
-        setTimeout(() => {
-          setParsedCase(null);
-          setIsAdded(false);
-          setQuery('');
-          setError(null);
-        }, 1500);
-      }
-    } catch (err) {
-      setError('Произошла ошибка при добавлении дела');
-      console.error('Error adding case:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+          // Проверяем, не существует ли уже это дело у пользователя
+          const { data: existingCases } = await cases.getCasesByUser(user.id);
+          const caseNumber = parsedCase.data.number?.toLowerCase().trim();
+          const exists = existingCases?.some(c => c.number?.toLowerCase().trim() === caseNumber);
+          
+          if (exists) {
+            setError('Это дело уже есть в Моих делах');
+            setIsLoading(false);
+            return;
+          }
+          
+          const { data, error } = await cases.createCase({
+            user_id: user.id,
+            ...parsedCase.data,
+            comment: parsedCase.comment || '',
+          });
+          
+          if (error) {
+            setError(error.message);
+          } else {
+            setIsAdded(true);
+            showToast('Дело добавлено в Мои дела');
+            
+            // Сбрасываем состояние для нового поиска
+            setTimeout(() => {
+              setParsedCase(null);
+              setIsAdded(false);
+              setQuery('');
+              setError(null);
+            }, 1500);
+          }
+        } catch (err) {
+          setError('Произошла ошибка при добавлении дела');
+          console.error('Error adding case:', err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-  const handleUpdateCase = (updatedData: Partial<ParsedCase>) => {
-    if (!parsedCase) return;
-    // Update local state. The changes will be saved when the user clicks "Add Case".
-    setParsedCase({ ...parsedCase, ...updatedData });
-    showToast('Изменения сохранены локально');
+  const handleUpdateCase = async (updatedData: Partial<ParsedCase>) => {
+    // Обновляем локальное состояние
+    if (parsedCase) {
+      setParsedCase({ ...parsedCase, data: { ...parsedCase.data, ...updatedData }, ...(updatedData.comment !== undefined ? { comment: updatedData.comment || '' } : {}) });
+    }
+    
+    // Если это существующее дело (selectedCase), сохраняем в базу
+    if (selectedCase && updatedData.comment !== undefined) {
+      try {
+        const { error } = await cases.updateCaseComment(selectedCase.id, updatedData.comment);
+        
+        if (error) {
+          console.error('Error saving comment:', error);
+          showToast('Ошибка сохранения комментария');
+          return;
+        }
+        
+        // Обновляем selectedCase
+        setSelectedCase({ ...selectedCase, comment: updatedData.comment });
+        // Обновляем в списке дел
+        setUserCases(userCases.map(c => 
+          c.id === selectedCase.id ? { ...c, comment: updatedData.comment } : c
+        ));
+        showToast('Комментарий сохранён');
+      } catch (err) {
+        console.error('Error saving comment:', err);
+        showToast('Ошибка сохранения комментария');
+      }
+    } else if (parsedCase) {
+      showToast('Комментарий сохранён локально');
+    }
   };
 
   const handleDeleteCase = (caseId: string) => {
@@ -246,13 +273,35 @@ export default function CaseSearch() {
           if (!error) {
             setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'deleted' } : c).filter(c => c.status !== 'deleted'));
             setSelectedCase(null);
-            // Инвалидируем кеш для обновления данных
             queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
             showToast('Дело перемещено в корзину');
           }
         } catch (err) {
           console.error('Error deleting case:', err);
           showToast('Ошибка при удалении дела');
+        }
+      },
+    });
+  };
+
+  const handleArchiveCase = (caseId: string) => {
+    confirm({
+      title: 'Архивировать дело',
+      message: 'Дело будет перемещено в архив. Вы сможете восстановить его позже.',
+      confirmText: 'Архивировать',
+      cancelText: 'Отмена',
+      onConfirm: async () => {
+        try {
+          const { error } = await cases.archiveCase(caseId);
+          if (!error) {
+            setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'archived' } : c).filter(c => c.status !== 'archived'));
+            setSelectedCase(null);
+            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
+            showToast('Дело архивировано');
+          }
+        } catch (err) {
+          console.error('Error archiving case:', err);
+          showToast('Ошибка при архивировании');
         }
       },
     });
@@ -400,13 +449,16 @@ export default function CaseSearch() {
         {parsedCase ? (
           <div className="relative w-full max-h-[85vh] flex">
             <CaseCard 
-              caseData={parsedCase}
+              caseData={parsedCase!.data} 
+              caseId={null}
               isAdded={isAdded}
               isLoading={isLoading}
               onAddCase={handleAddCase}
               onUpdateCase={handleUpdateCase}
+              onCommentSaved={undefined}
               onShowPaymentModal={handleShowPaymentModal}
               onDateDoubleClick={handleDateDoubleClick}
+              userId={user?.id}
             />
           </div>
         ) : (
@@ -470,7 +522,7 @@ export default function CaseSearch() {
       {/* Модальное окно с карточкой дела */}
       <AnimatePresence>
         {selectedCase && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedCase(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
             <div className="relative w-full max-w-full sm:max-w-2xl max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedCase(null)}
@@ -481,14 +533,18 @@ export default function CaseSearch() {
               <CaseCard
                 key={selectedCase.id}
                 caseData={selectedCase}
-                isAdded={userCases.some(c => c.id === selectedCase.id)}
+                caseId={selectedCase.id}
+                isAdded={true}
                 isLoading={isLoading}
                 onAddCase={handleAddCase}
                 onUpdateCase={handleUpdateCase}
+                onCommentSaved={undefined}
                 onShowPaymentModal={handleShowPaymentModal}
                 onDeleteCase={() => handleDeleteCase(selectedCase.id)}
                 onRefreshCase={() => handleRefreshCase(selectedCase.id)}
+                onArchiveCase={() => handleArchiveCase(selectedCase.id)}
                 onDateDoubleClick={handleDateDoubleClick}
+                userId={user?.id}
               />
             </div>
           </div>
@@ -498,7 +554,7 @@ export default function CaseSearch() {
       <PaymentModal 
         isOpen={showPaymentModal}
         onClose={handleClosePaymentModal}
-        caseData={parsedCase}
+        caseData={parsedCase?.data || null}
         onSuccess={handlePaymentSuccess}
         userEmail={user?.email}
         branding={brandingInfo}

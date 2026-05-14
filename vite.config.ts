@@ -8,6 +8,17 @@ import {imagetools} from 'vite-imagetools';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-ui': ['@tanstack/react-query', 'framer-motion', 'lucide-react'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+          },
+        },
+      },
+    },
     plugins: [
       react(),
       tailwindcss(),
