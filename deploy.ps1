@@ -1,46 +1,52 @@
-# deploy.ps1 - Деплой parse-all-cases.js на VDS
-# Usage: VDS_HOST=your-vds VDS_USER=user node deploy.ps1
-# Or set $env:VDS_HOST and $env:VDS_USER before running
+# deploy.ps1 - Деплой sud.cvr.name
+# Usage:
+#   .\deploy.ps1                         # build + upload
+#   .\deploy.ps1 -BuildOnly              # only build
+#   .\deploy.ps1 -UploadOnly             # only upload
+#   .\deploy.ps1 -Server myserver.com -User admin
 
-$VDS_HOST = $env:VDS_HOST
-$VDS_USER = $env:VDS_USER
-
-if (-not $VDS_HOST -or -not $VDS_USER) {
-  Write-Host "Set VDS_HOST and VDS_USER environment variables" -ForegroundColor Red
-  Write-Host "Example: $env:VDS_HOST='your-vps'; $env:VDS_USER='root'" -ForegroundColor Yellow
-  exit 1
-}
-
-Write-Host "Deploying to ${VDS_USER}@${VDS_HOST}..."
-
-# Files to copy
-$files = @(
-  "scripts\parse-all-cases.js",
-  "cron-parse-cases.sh",
-  "sudo-cases-parser.service",
-  "sud-parser.timer"
+param(
+  [switch]$BuildOnly,
+  [switch]$UploadOnly,
+  [string]$Server = "130.49.175.224",
+  [string]$User = "user0",
+  [string]$ServerPath = "/var/www/sud.cvr.name"
 )
 
-foreach ($file in $files) {
-  if (Test-Path $file) {
-    Write-Host "Copying $file..."
-    scp "$file" "${VDS_USER}@${VDS_HOST}:/tmp/"
-  } else {
-    Write-Host "File not found: $file" -ForegroundColor Yellow
+$ErrorActionPreference = "Stop"
+
+Write-Host "=== Deploy sud.cvr.name ===" -ForegroundColor Cyan
+Write-Host "Server: $Server" -ForegroundColor Gray
+Write-Host "Path: $ServerPath" -ForegroundColor Gray
+
+# Build
+if (-not $UploadOnly) {
+  Write-Host "`n[1/3] Building..." -ForegroundColor Yellow
+  npm run build
+  if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+  Write-Host "Build OK" -ForegroundColor Green
+}
+
+# Upload
+if (-not $BuildOnly) {
+  Write-Host "`n[2/3] Uploading dist/ to server..." -ForegroundColor Yellow
+  scp -r dist/* "${User}@${Server}:${ServerPath}/dist/"
+  if ($LASTEXITCODE -ne 0) { throw "Upload failed" }
+  Write-Host "Upload OK" -ForegroundColor Green
+
+  # Verify sitemap
+  Write-Host "`n[3/3] Verifying sitemap.xml..." -ForegroundColor Yellow
+  $sitemapUrl = "https://${Server}/sitemap.xml"
+  try {
+    $resp = Invoke-WebRequest -Uri $sitemapUrl -Method HEAD -TimeoutSec 10
+    if ($resp.StatusCode -eq 200) {
+      Write-Host "sitemap.xml OK (HTTP $($resp.StatusCode))" -ForegroundColor Green
+    } else {
+      Write-Host "sitemap.xml warning: HTTP $($resp.StatusCode)" -ForegroundColor Yellow
+    }
+  } catch {
+    Write-Host "sitemap.xml check failed: $_" -ForegroundColor Yellow
   }
 }
 
-Write-Host "`nRun these commands on VDS:" -ForegroundColor Green
-Write-Host @"
-
-sudo mv /tmp/parse-all-cases.js /opt/sud-app/
-sudo mv /tmp/cron-parse-cases.sh /opt/sud-app/
-sudo cp /tmp/sudo-cases-parser.service /etc/systemd/system/sud-parser.service
-sudo cp /tmp/sud-parser.timer /etc/systemd/system/
-sudo sed -i 's/<YOUR_SERVICE_ROLE_KEY>/$env:SUPABASE_SERVICE_ROLE_KEY/g' /etc/systemd/system/sud-parser.service
-sudo systemctl daemon-reload
-sudo systemctl enable sud-parser.timer
-sudo systemctl start sud-parser.timer
-sudo systemctl list-timers --all | grep sud-parser
-
-"@
+Write-Host "`n=== Deploy complete ===" -ForegroundColor Cyan
