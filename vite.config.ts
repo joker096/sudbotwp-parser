@@ -48,7 +48,7 @@ export default defineConfig(({mode}) => {
           ]
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
           // Не кешировать HTML файлы - они всегда должны загружаться с сервера
           navigateFallback: undefined,
           // Уменьшаем время кеширования для JS файлов
