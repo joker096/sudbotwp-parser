@@ -167,8 +167,9 @@ export default function Profile() {
       const caseEvents = userCases
         .filter(c => c.status !== 'deleted' && c.events)
         .flatMap(c => 
-          (c.events || [])
+(c.events || [])
             .filter(e => {
+              if (!e.date) return false;
               const parts = e.date.split('.');
               if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}` === dateIsoStr;
               return false;
@@ -176,6 +177,7 @@ export default function Profile() {
         );
 
       const customEventsOnDate = customEvents.filter(e => {
+        if (!e.date) return false;
         const parts = e.date.split('.');
         if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}` === dateIsoStr;
         return e.event_date === dateIsoStr;
@@ -1710,6 +1712,7 @@ END:VEVENT
                     .flatMap(c => 
                         (c.events || [])
                             .filter(e => {
+                                if (!e.date) return false;
                                 const parts = e.date.split('.');
                                 if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}` === selectedDateStr;
                                 return false;
