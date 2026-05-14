@@ -957,7 +957,7 @@ export default function Profile() {
   const handleExportToIcs = () => {
     const caseEvents = userCases
       .filter(c => c.status !== 'deleted' && c.events && c.events.length > 0)
-      .flatMap(c => c.events.map(e => ({ ...e, caseNumber: c.number, court: c.court })));
+      .flatMap(c => c.events.map(e => { if (!e || !e.date) return null; return ({ ...e, caseNumber: c.number, court: c.court }); }).filter(Boolean));
       
     const allCustomEvents = customEvents.map(e => ({
         ...e,
@@ -1045,6 +1045,7 @@ END:VEVENT
 
   const expandEvents = (events: any[], caseInfo?: { caseNumber: string; court: string; }) => {
     return events.flatMap((event: any) => {
+      if (!event.date) return [];
       const baseEvent = { ...event, ...caseInfo };
       const occurrences = [];
       const startDateParts = baseEvent.date.split('.');
@@ -1712,7 +1713,7 @@ END:VEVENT
                     .flatMap(c => 
                         (c.events || [])
                             .filter(e => {
-                                if (!e.date) return false;
+                                if (!e || !e.date) return false;
                                 const parts = e.date.split('.');
                                 if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}` === selectedDateStr;
                                 return false;
