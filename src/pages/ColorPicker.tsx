@@ -24,6 +24,80 @@ export default function ColorPickerPage() {
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Palette ──────────────────────────────────────────────────────────────
+  const [palette, setPalette] = useState<Swatch[]>([]);
+  const MAX_PALETTE = 5;
+
+  const addToPalette = useCallback(() => {
+    if (!pickedColor || palette.length >= MAX_PALETTE) return;
+    setPalette(prev => [...prev, { ...pickedColor, id: crypto.randomUUID() }]);
+  }, [pickedColor, palette.length]);
+
+  const removeSwatch = useCallback((id: string) => {
+    setPalette(prev => prev.filter(s => s.id !== id));
+  }, []);
+
+  const copySwatchHex = useCallback(async (hex: string) => {
+    try { await navigator.clipboard.writeText(hex); } catch { /* ignored */ }
+  }, []);
+
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.naturalWidth / rect.width;
+    const scaleY = canvas.naturalHeight / rect.height;
+    const px = Math.floor((e.clientX - rect.left) * scaleX);
+    const py = Math.floor((e.clientY - rect.top) * scaleY);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    const pixel = ctx.getImageData(px, py, 1, 1).data;
+    const hex = pixelDataToHex(pixel);
+    const rgbStr = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+    const swatch: Swatch = { id: crypto.randomUUID(), hex, rgb: rgbStr, alpha: 1 };
+    if (e.shiftKey) {
+      if (palette.length < MAX_PALETTE) {
+        setPalette(prev => [...prev, swatch]);
+      }
+    } else {
+      setPickedColor(swatch);
+    }
+  }, [palette.length]);
+
+  const PaletteSwatch = ({
+    swatch,
+    onRemove,
+    onCopy,
+  }: {
+    swatch: Swatch;
+    onRemove: (id: string) => void;
+    onCopy: (hex: string) => void;
+  }) => {
+    const [hovered, setHovered] = React.useState(false);
+    return (
+      <div
+        className="relative w-12 h-12 rounded-xl cursor-pointer group"
+        style={{ backgroundColor: swatch.hex }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onDoubleClick={() => onCopy(swatch.hex)}
+        aria-label={`Color ${swatch.hex}`}
+      >
+        {hovered && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl gap-1">
+            <span className="text-[9px] text-white font-mono uppercase">{swatch.hex}</span>
+            <button
+              onClick={(ev) => { ev.stopPropagation(); onRemove(swatch.id); }}
+              className="p-0.5 text-white/80 hover:text-red-400"
+              aria-label={`Remove ${swatch.hex}`}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
@@ -69,21 +143,6 @@ export default function ColorPickerPage() {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const pixel = ctx.getImageData(px, py, 1, 1).data;
     setHoveredHex(pixelDataToHex(pixel));
-  }, []);
-
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.naturalWidth / rect.width;
-    const scaleY = canvas.naturalHeight / rect.height;
-    const px = Math.floor((e.clientX - rect.left) * scaleX);
-    const py = Math.floor((e.clientY - rect.top) * scaleY);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-    const pixel = ctx.getImageData(px, py, 1, 1).data;
-    const hex = pixelDataToHex(pixel);
-    const rgbStr = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-    setPickedColor({ id: crypto.randomUUID(), hex, rgb: rgbStr, alpha: 1 });
   }, []);
 
   return (
@@ -154,6 +213,23 @@ export default function ColorPickerPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── PaletteRail ── */}
+      {palette.length > 0 && (
+        <div
+          className="fixed right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-40"
+          aria-label="Saved color palette"
+        >
+          {palette.map(swatch => (
+            <PaletteSwatch
+              key={swatch.id}
+              swatch={swatch}
+              onRemove={removeSwatch}
+              onCopy={copySwatchHex}
+            />
+          ))}
         </div>
       )}
     </div>
