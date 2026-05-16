@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scale, CheckCircle2, Building, FileText, User, Calendar, Gavel, Clock, MapPin, AlertCircle, Download, Link as LinkIcon, Pencil, X, Save, Copy, Trash2, ExternalLink, MessageSquare, Share2, Send, CalendarPlus, RotateCcw, Archive } from 'lucide-react';
-import { ParsedCase, CaseEvent, CaseAppeal } from '../types';
+import { Building, FileText, User, Calendar, Gavel, AlertCircle, Download, Link as LinkIcon, X, Trash2, ExternalLink, Share2, CalendarPlus, Archive, Copy, Scale, Pencil, Save } from 'lucide-react';
+import { ParsedCase, CaseEvent } from '../types';
 import { useToast } from '../hooks/useToast';
-import { courts, supabase, cases, caseComments } from '../lib/supabase';
+import { courts, cases, caseComments } from '../lib/supabase';
 import { Court } from '../types';
 import SafeLink from './SafeLink';
 import { ConfirmModal } from './ConfirmModal';
+import CaseCardHeader from './CaseCardHeader';
+import CaseCardEvents from './CaseCardEvents';
+import CaseCardComments from './CaseCardComments';
+import CaseCardParties from './CaseCardParties';
+import CaseCardAppeals from './CaseCardAppeals';
 
 interface CaseCardProps {
   caseData: ParsedCase;
@@ -28,8 +33,7 @@ interface CaseCardProps {
 }
 
 // Анимации отключены
-const cardVariants = {};
-const itemVariants = {};
+const CASE_CARD_TABS = ['Информация', 'Движение дела', 'Стороны', 'Обжалование', 'Комментарии'] as const;
 
 function CaseCard({ 
   caseData, 
@@ -54,14 +58,14 @@ function CaseCard({
   const [editValue, setEditValue] = useState('');
   const [localCaseData, setLocalCaseData] = useState<ParsedCase>(caseData);
   const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteCaseConfirm, setShowDeleteCaseConfirm] = useState(false);
+  const [showDeleteCommentConfirm, setShowDeleteCommentConfirm] = useState(false);
   const [showSourceWarning, setShowSourceWarning] = useState(false);
   const [courtData, setCourtData] = useState<Court | null>(null);
   const { showToast } = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Состояние для комментариев
-  const [comment, setComment] = useState(localCaseData.comment || '');
   const [isSavingComment, setIsSavingComment] = useState(false);
   const [commentHistory, setCommentHistory] = useState<{id: string; content: string; created_at: string; author_id: string}[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -71,18 +75,12 @@ function CaseCard({
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ top: number; left: number } | null>(null);
-const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSavingField, setIsSavingField] = useState(false);
 
   // Sync local state when caseData changes
   useEffect(() => {
     setLocalCaseData(caseData);
     setSelectedEventIndex(null);
-    setComment(caseData.comment || '');
     
     // Ищем данные о суде - с защитой от повторных вызовов
     let isMounted = true;
@@ -124,23 +122,6 @@ const [isRefreshing, setIsRefreshing] = useState(false);
     }
   }, [activeTab, caseId, userId]);
 
-  // Закрытие popup с эмодзи при клике вне его
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
-        setShowEmojiPicker(false);
-      }
-    };
-
-    if (showEmojiPicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showEmojiPicker]);
-
   // Scroll to bottom when 'Движение дела' tab is active
   useEffect(() => {
     if (activeTab === 'Движение дела' && scrollContainerRef.current) {
@@ -151,7 +132,7 @@ const [isRefreshing, setIsRefreshing] = useState(false);
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, localCaseData.events]);
+  }, [activeTab, localCaseData.events, localCaseData.events?.length]);
 
   const handleTabClick = (tab: string) => {
     if (tab === 'Движение дела' && activeTab === 'Движение дела') {
@@ -161,15 +142,6 @@ const [isRefreshing, setIsRefreshing] = useState(false);
       });
     } else {
       setActiveTab(tab);
-    }
-  };
-
-  const handleCopyNumber = async () => {
-    try {
-      await navigator.clipboard.writeText(localCaseData.number);
-      showToast('Номер дела скопирован!');
-    } catch (err) {
-      console.error('Failed to copy:', err);
     }
   };
 
@@ -222,7 +194,7 @@ const handleEditSave = async () => {
     // Ищем ближайшее событие с датой и временем
     let targetEvent: CaseEvent | null = null;
     
-    if (localCaseData.events && localCaseData.events.length > 0) {
+    if (localCaseData.events && Array.isArray(localCaseData.events) && localCaseData.events.length > 0) {
       // Ищем последнее событие с датой
       for (let i = localCaseData.events.length - 1; i >= 0; i--) {
         const event = localCaseData.events[i];
@@ -286,85 +258,74 @@ const handleEditSave = async () => {
     showToast('Открываю Google Календарь...');
   };
 
+  const handleAddComment = async () => {
+    if (newCommentText.trim().length === 0) {
+      showToast('Введите текст комментария');
+      return;
+    }
+    if (!caseId || !userId) {
+      showToast('Ошибка: не найден ID дела или пользователя', 'error');
+      return;
+    }
+
+    setIsSavingComment(true);
+    try {
+      const { error } = await caseComments.create(caseId, userId, newCommentText);
+      if (error) throw error;
+
+      setNewCommentText('');
+      showToast('✅ Комментарий добавлен');
+
+      const { data } = await caseComments.getByCase(caseId);
+      if (data) setCommentHistory(data);
+
+      if (onCommentSaved) onCommentSaved();
+    } catch (err: any) {
+      console.error('Error adding comment:', err);
+      showToast('❌ Ошибка: ' + (err.message || 'Не удалось добавить комментарий'), 'error');
+    } finally {
+      setIsSavingComment(false);
+    }
+  };
+
+  const handleSaveEditedComment = async (commentId: string) => {
+    try {
+      await caseComments.update(commentId, editingCommentText);
+      setCommentHistory(commentHistory.map((cm) => cm.id === commentId ? { ...cm, content: editingCommentText } : cm));
+      setEditingCommentId(null);
+      showToast('Комментарий обновлён');
+    } catch (err) {
+      showToast('Ошибка обновления', 'error');
+    }
+  };
+
   return (
     <div
       className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 flex flex-col w-full"
     >
-      <div className="flex items-center gap-3 mb-6 p-6 sm:p-8 pb-0 shrink-0">
-        <div className="bg-accent/10 p-1.5 rounded-2xl">
-          <Scale className="w-4 h-4 text-accent" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">{localCaseData.number}</h2>
-            <button
-              onClick={handleCopyNumber}
-              className="p-1.5 text-slate-400 hover:text-accent transition-colors"
-              title="Копировать номер дела"
-            ><Copy className="w-4 h-4" /></button>
-            {isAdded && onRefreshCase && (
-              <button
-                onClick={() => {
-                  // Проверяем ограничения перед обновлением
-                  if (subscriptionTier === 'free') {
-                    showToast('Ручное обновление доступно только для подписчиков. Оформите подписку или дождитесь автоматического обновления (1 раз в день).', 'info');
-                    return;
-                  }
-                  if (canRefresh === false) {
-                    showToast(refreshLimitReason || 'Вы уже обновляли дело сегодня. Следующее обновление будет доступно завтра.', 'info');
-                    return;
-                  }
-                  onRefreshCase();
-                }}
-                disabled={isRefreshing}
-                className="p-1.5 text-slate-400 hover:text-accent transition-colors disabled:opacity-50 relative"
-                title={subscriptionTier === 'free' 
-                  ? 'Ручное обновление доступно только для подписчиков' 
-                  : canRefresh === false 
-                    ? refreshLimitReason || 'Лимит обновлений исчерпан'
-                    : 'Обновить данные дела'}
-              >
-                {isRefreshing ? (
-                  <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <RotateCcw className={`w-4 h-4 ${subscriptionTier === 'free' || canRefresh === false ? 'opacity-50' : ''}`} />
-                    {/* Иконка замка для бесплатных пользователей */}
-                    {(subscriptionTier === 'free' || canRefresh === false) && (
-                      <span className="absolute -bottom-1 -right-1 text-[8px] text-slate-400">🔒</span>
-                    )}
-                  </>
-                )}
-              </button>
-            )}
-            {isAdded && onArchiveCase && (
-              <button
-                onClick={() => onArchiveCase()}
-                className="p-1.5 text-slate-400 hover:text-accent transition-colors"
-                title="Архивировать дело"
-              >
-                <Archive className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          {localCaseData.updated_at && (
-            <p className="text-[10px] text-slate-400 dark:text-slate-500">
-              Обновлено: {new Date(localCaseData.updated_at).toLocaleString('ru-RU', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </p>
-          )}
-        </div>
-      </div>
+      <CaseCardHeader
+        caseNumber={localCaseData.number}
+        updatedAt={localCaseData.updated_at}
+        isAdded={isAdded}
+        canRefresh={canRefresh}
+        refreshLimitReason={refreshLimitReason}
+        subscriptionTier={subscriptionTier}
+        onRefresh={onRefreshCase}
+        isRefreshing={false}
+        actions={isAdded && onArchiveCase ? (
+          <button
+            onClick={() => onArchiveCase()}
+            className="p-1.5 text-slate-400 hover:text-accent transition-colors"
+            title="Архивировать дело"
+          >
+            <Archive className="w-4 h-4" />
+          </button>
+        ) : null}
+      />
 
       {/* Tabs for Case Details */}
        <div className="flex flex-col sm:flex-row flex-wrap gap-2 pb-2 mb-6 border-b border-slate-100 dark:border-slate-800 shrink-0 px-6 sm:px-8">
-         {['Информация', 'Движение дела', 'Стороны', 'Обжалование', 'Комментарии'].map((tab) => (
+         {CASE_CARD_TABS.map((tab) => (
            <button
              key={tab}
              onClick={() => handleTabClick(tab)}
@@ -555,353 +516,66 @@ const handleEditSave = async () => {
 
             {activeTab === 'Движение дела' && (
               <div className="pb-8">
-              {localCaseData.events && localCaseData.events.length > 0 ? (
-                <>
-                  {localCaseData.events.map((event: CaseEvent, index: number) => (
-                    <div 
-                      key={index} 
-                      onClick={(e) => {
-                        const newIndex = selectedEventIndex === index ? null : index;
-                        setSelectedEventIndex(newIndex);
-                        if (newIndex !== null) {
-                          e.currentTarget.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                          });
-                        }
-                      }}
-                      className={`relative flex items-start gap-4 mb-4 p-4 rounded-xl border transition-colors duration-200 cursor-pointer ${
-                        selectedEventIndex === index ? 'bg-accent/10 dark:bg-accent/20 border-accent/30' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800'
-                      }`}>
-                      <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0">
-                          <Clock className="w-4 h-4" />
-                        </div>
-                        {index < localCaseData.events.length - 1 && (
-                          <div className="w-0.5 h-full bg-slate-200 dark:bg-slate-700 mt-1" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span 
-                            className="font-bold text-slate-900 dark:text-white text-sm cursor-pointer hover:text-accent transition-colors select-none"
-                            onDoubleClick={() => {
-                              if (event.date && onDateDoubleClick) {
-                                onDateDoubleClick(event.date, event.time);
-                              }
-                            }}
-                            title="Двойной клик для перехода в календарь"
-                          >
-                            {event.date}
-                          </span>
-                          <span className="text-xs font-medium text-slate-500">{event.time}</span>
-                        </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-300 font-medium mb-1">{event.name}</p>
-                        {event.location && <p className="text-xs text-slate-500 flex items-center gap-1 mb-1"><MapPin className="w-3 h-3" /> {event.location}</p>}
-                        {event.result && <p className="text-xs font-bold text-accent flex items-center gap-1 mt-2"><CheckCircle2 className="w-3 h-3" /> {event.result}</p>}
-                        {event.reason && <p className="text-xs text-slate-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {event.reason}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Нет данных о движении дела</p>
-                </div>
-              )}
+                <CaseCardEvents
+                  events={Array.isArray(localCaseData.events) ? localCaseData.events : []}
+                  selectedEventIndex={selectedEventIndex}
+                  onDateDoubleClick={onDateDoubleClick}
+                  onSelectEvent={(newIndex, element) => {
+                    setSelectedEventIndex(newIndex);
+                    if (newIndex !== null && element) {
+                      element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                      });
+                    }
+                  }}
+                />
             </div>
             )}
 
             {activeTab === 'Стороны' && (
-              <div className="space-y-4 pb-8">
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500">
-                  <User className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Истец</p>
-                  {localCaseData.plaintiff && !localCaseData.plaintiff.includes('скрыта') ? (
-                    editingField === 'plaintiff' ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="flex-1 px-2 py-1 text-sm border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                          placeholder="Введите имя истца"
-                        />
-                        <button onClick={handleEditSave} className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded">
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button onClick={handleEditCancel} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white flex-1">{localCaseData.plaintiff}</p>
-                        <button onClick={() => handleEditStart('plaintiff')} className="p-1 text-slate-400 hover:text-accent transition-colors">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )
-                  ) : (
-                    <p className="text-sm font-bold text-slate-400">Информация скрыта</p>
-                  )}
-                </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500">
-                  <User className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Ответчик</p>
-                  {localCaseData.defendant && !localCaseData.defendant.includes('скрыта') ? (
-                    editingField === 'defendant' ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="flex-1 px-2 py-1 text-sm border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                          placeholder="Введите имя ответчика"
-                        />
-                        <button onClick={handleEditSave} className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded">
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button onClick={handleEditCancel} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white flex-1">{localCaseData.defendant}</p>
-                        <button onClick={() => handleEditStart('defendant')} className="p-1 text-slate-400 hover:text-accent transition-colors">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )
-                  ) : (
-                    <p className="text-sm font-bold text-slate-400">Информация скрыта</p>
-                  )}
-                </div>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500">
-                  <User className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Третье лицо</p>
-                  <p className="text-sm font-bold text-slate-400">Информация скрыта</p>
-                </div>
-              </div>
-            </div>
+              <CaseCardParties
+                plaintiff={localCaseData.plaintiff}
+                defendant={localCaseData.defendant}
+                editingField={editingField}
+                editValue={editValue}
+                isSavingField={isSavingField}
+                setEditValue={setEditValue}
+                onEditStart={handleEditStart}
+                onEditSave={handleEditSave}
+                onEditCancel={handleEditCancel}
+              />
             )}
 
             {activeTab === 'Обжалование' && (
               <div className="space-y-4 pb-8">
-              {localCaseData.appeals && localCaseData.appeals.length > 0 ? (
-                <>
-                  {localCaseData.appeals.map((appeal: CaseAppeal) => (
-                    <div key={appeal.id} className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{appeal.type}</h4>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-md">{appeal.date || '—'}</span>
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        <p className="flex justify-between"><span className="text-slate-500">Заявитель:</span> <span className="font-medium text-slate-900 dark:text-white">{appeal.applicant}</span></p>
-                        <p className="flex justify-between"><span className="text-slate-500">Вышестоящий суд:</span> <span className="font-medium text-slate-900 dark:text-white text-right">{appeal.court}</span></p>
-                        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Результат обжалования</p>
-                          <p className="font-bold text-accent text-sm">{appeal.result}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Нет данных об обжаловании</p>
-                </div>
-              )}
-            </div>
+                <CaseCardAppeals appeals={Array.isArray(localCaseData.appeals) ? localCaseData.appeals : []} />
+              </div>
             )}
 
             {/* Вкладка Комментарии */}
             {activeTab === 'Комментарии' && (
-              <div className="pb-4">
-                {/* Форма добавления нового комментария */}
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare className="w-4 h-4 text-accent" />
-                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">Добавить комментарий</h4>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={newCommentText}
-                      onChange={(e) => setNewCommentText(e.target.value)}
-                      placeholder="Напишите комментарий..."
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-[10px] text-slate-500">
-                      {newCommentText.length} / 1000
-                    </p>
-                    <button
-                      onClick={async () => {
-                        if (newCommentText.trim().length === 0) {
-                          showToast('Введите текст комментария');
-                          return;
-                        }
-                        if (!caseId || !userId) {
-                          showToast('Ошибка: не найден ID дела или пользователя', 'error');
-                          return;
-                        }
-
-                        setIsSavingComment(true);
-                        try {
-                          const { error } = await caseComments.create(caseId, userId, newCommentText);
-                          if (error) throw error;
-                          
-                          setNewCommentText('');
-                          showToast('✅ Комментарий добавлен');
-                          
-                          // Обновить историю
-                          const { data } = await caseComments.getByCase(caseId);
-                          if (data) setCommentHistory(data);
-                          
-                          if (onCommentSaved) onCommentSaved();
-                        } catch (err: any) {
-                          console.error('Error adding comment:', err);
-                          showToast('❌ Ошибка: ' + (err.message || 'Не удалось добавить комментарий'), 'error');
-                        } finally {
-                          setIsSavingComment(false);
-                        }
-                      }}
-                      disabled={isSavingComment || !newCommentText.trim() || !caseId || !userId}
-                      className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
-                    >
-                      {isSavingComment ? (
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Send className="w-3 h-3" />
-                      )}
-                      Добавить
-                    </button>
-                  </div>
-                </div>
-
-                {/* История комментариев */}
-                <div className="space-y-3">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">История комментариев</h4>
-                  
-                  {isLoadingHistory ? (
-                    <div className="text-center py-4">
-                      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto" />
-                    </div>
-                  ) : commentHistory.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                      <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>Пока нет комментариев</p>
-                    </div>
-                  ) : (
-                    commentHistory.map((c) => (
-                      <div key={c.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.author_id === userId ? 'bg-accent/20 text-accent' : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'}`}>
-                            {c.author_id === userId ? 'Вы' : 'Юрист'}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {c.author_id === userId && (
-                              <>
-                                <button
-                                  onClick={() => { setEditingCommentId(c.id); setEditingCommentText(c.content); }}
-                                  className="p-1 text-slate-400 hover:text-accent transition-colors"
-                                  title="Редактировать"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setCommentToDelete(c.id);
-                                    setShowDeleteConfirm(true);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                  title="Удалить"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </>
-                            )}
-                            <span className="text-[10px] text-slate-400">
-                              {new Date(c.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        </div>
-                        {editingCommentId === c.id ? (
-                          <div>
-                            <textarea
-                              value={editingCommentText}
-                              onChange={(e) => setEditingCommentText(e.target.value)}
-                              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm"
-                              rows={2}
-                            />
-                            <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await caseComments.update(c.id, editingCommentText);
-                                    setCommentHistory(commentHistory.map(cm => cm.id === c.id ? { ...cm, content: editingCommentText } : cm));
-                                    setEditingCommentId(null);
-                                    showToast('Комментарий обновлён');
-                                  } catch (err) {
-                                    showToast('Ошибка обновления', 'error');
-                                  }
-                                }}
-                                className="px-2 py-1 bg-accent text-white text-xs rounded-lg"
-                              >
-                                Сохранить
-                              </button>
-                              <button
-                                onClick={() => setEditingCommentId(null)}
-                                className="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-xs rounded-lg"
-                              >
-                                Отмена
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{c.content}</p>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Поделиться с юристами */}
-                {isAdded && (
-                  <div className="bg-gradient-to-r from-accent/10 to-purple-500/10 dark:from-accent/20 dark:to-purple-500/20 p-4 rounded-2xl mt-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Share2 className="w-4 h-4 text-accent" />
-                      <h4 className="font-bold text-slate-900 dark:text-white text-sm">Поделиться с юристом</h4>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-                      Отправьте это дело юристу для консультации
-                    </p>
-                    <button
-                      onClick={() => setShowShareModal(true)}
-                      className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <Send className="w-3 h-3" />
-                      Поделиться с юристом
-                    </button>
-                  </div>
-                )}
-              </div>
+              <CaseCardComments
+                caseId={caseId}
+                userId={userId}
+                isAdded={isAdded}
+                newCommentText={newCommentText}
+                setNewCommentText={setNewCommentText}
+                isSavingComment={isSavingComment}
+                isLoadingHistory={isLoadingHistory}
+                commentHistory={commentHistory}
+                editingCommentId={editingCommentId}
+                editingCommentText={editingCommentText}
+                setEditingCommentId={setEditingCommentId}
+                setEditingCommentText={setEditingCommentText}
+                onAddComment={handleAddComment}
+                onSaveEditedComment={handleSaveEditedComment}
+                onRequestDeleteComment={(commentId) => {
+                  setCommentToDelete(commentId);
+                  setShowDeleteCommentConfirm(true);
+                }}
+                onOpenShareModal={() => setShowShareModal(true)}
+              />
             )}
           </div>
         </div>
@@ -963,12 +637,12 @@ const handleEditSave = async () => {
                      <div class="label">Результат:</div>
                      <div class="value">${localCaseData.status}</div>
                    </div>
-                   ${localCaseData.events && localCaseData.events.length > 0 ? `
-                   <div class="section">
-                     <h2>Движение дела</h2>
-                     <table>
-                       <tr><th>Дата</th><th>Время</th><th>Событие</th><th>Результат</th></tr>
-                       ${localCaseData.events.map(e => `
+${localCaseData.events && Array.isArray(localCaseData.events) && localCaseData.events.length > 0 ? `
+                    <div class="section">
+                      <h2>Движение дела</h2>
+                      <table>
+                        <tr><th>Дата</th><th>Время</th><th>Событие</th><th>Результат</th></tr>
+                        ${(Array.isArray(localCaseData.events) ? localCaseData.events : []).map(e => `
                          <tr>
                            <td>${e.date}</td>
                            <td>${e.time || '—'}</td>
@@ -979,12 +653,12 @@ const handleEditSave = async () => {
                      </table>
                    </div>
                    ` : ''}
-                   ${localCaseData.appeals && localCaseData.appeals.length > 0 ? `
-                   <div class="section">
-                     <h2>Обжалование</h2>
-                     <table>
-                       <tr><th>Тип</th><th>Дата</th><th>Заявитель</th><th>Суд</th><th>Результат</th></tr>
-                       ${localCaseData.appeals.map(a => `
+${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData.appeals.length > 0 ? `
+                    <div class="section">
+                      <h2>Обжалование</h2>
+                      <table>
+                        <tr><th>Тип</th><th>Дата</th><th>Заявитель</th><th>Суд</th><th>Результат</th></tr>
+                        ${(Array.isArray(localCaseData.appeals) ? localCaseData.appeals : []).map(a => `
                          <tr>
                            <td>${a.type}</td>
                            <td>${a.date || '—'}</td>
@@ -1024,7 +698,7 @@ const handleEditSave = async () => {
          </a>
          {isAdded && onDeleteCase && (
            <button
-             onClick={() => setShowDeleteConfirm(true)}
+             onClick={() => setShowDeleteCaseConfirm(true)}
              className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
               title="Удалить"
             >
@@ -1056,7 +730,7 @@ const handleEditSave = async () => {
          {/* Кнопка скрытия всегда видна если передан onDeleteCase и дело не добавлено */}
          {!isAdded && onDeleteCase && (
            <button
-             onClick={() => setShowDeleteConfirm(true)}
+             onClick={() => setShowDeleteCaseConfirm(true)}
              className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
              title="Скрыть из результатов"
            >
@@ -1065,49 +739,6 @@ const handleEditSave = async () => {
            </button>
          )}
        </div>
-
-     {/* Подтверждение удаления */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Удалить дело?</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Вы уверены, что хотите удалить дело {localCaseData.number}? Это действие нельзя отменить.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={() => {
-                    onDeleteCase();
-                    setShowDeleteConfirm(false);
-                  }}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
-                >
-                  Удалить
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Предупреждение о переходе на сайт суда */}
       <AnimatePresence>
@@ -1167,39 +798,6 @@ const handleEditSave = async () => {
                 </a>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Эмодзи-пикер с fixed позиционированием */}
-      <AnimatePresence>
-        {showEmojiPicker && emojiPickerPosition && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="fixed bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-2 z-[9999]"
-            style={{
-              top: `${emojiPickerPosition.top}px`,
-              left: `${emojiPickerPosition.left}px`,
-            }}
-          >
-            <div className="grid grid-cols-6 gap-1">
-              {['😀', '😂', '🤣', '😊', '😍', '🤔', '👍', '👎', '❤️', '⚠️', '✅', '❌', '📌', '🔔', '📎', '💼', '📋', '⚖️', '🏛', '📅', '⏰', '💰', '🏠', '🚗'].map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => {
-                    setComment(prev => prev + emoji);
-                    setShowEmojiPicker(false);
-                  }}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors text-lg"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1291,7 +889,7 @@ const handleEditSave = async () => {
 
       {/* Подтверждение удаления комментария */}
       <ConfirmModal
-        isOpen={showDeleteConfirm}
+        isOpen={showDeleteCommentConfirm}
         title="Удалить комментарий?"
         message="Вы уверены, что хотите удалить этот комментарий? Это действие нельзя отменить."
         confirmText="Удалить"
@@ -1306,14 +904,31 @@ const handleEditSave = async () => {
           } catch (err) {
             showToast('Ошибка удаления', 'error');
           } finally {
-            setShowDeleteConfirm(false);
+            setShowDeleteCommentConfirm(false);
             setCommentToDelete(null);
           }
         }}
         onCancel={() => {
-          setShowDeleteConfirm(false);
+          setShowDeleteCommentConfirm(false);
           setCommentToDelete(null);
         }}
+      />
+      <ConfirmModal
+        isOpen={showDeleteCaseConfirm}
+        title={isAdded ? 'Удалить дело?' : 'Скрыть дело?'}
+        message={
+          isAdded
+            ? `Вы уверены, что хотите удалить дело ${localCaseData.number}? Это действие нельзя отменить.`
+            : `Вы уверены, что хотите скрыть дело ${localCaseData.number} из результатов?`
+        }
+        confirmText={isAdded ? 'Удалить' : 'Скрыть'}
+        cancelText="Отмена"
+        variant="danger"
+        onConfirm={() => {
+          onDeleteCase?.();
+          setShowDeleteCaseConfirm(false);
+        }}
+        onCancel={() => setShowDeleteCaseConfirm(false)}
       />
     </div>
   );
