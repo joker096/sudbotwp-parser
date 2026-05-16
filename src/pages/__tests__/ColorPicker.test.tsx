@@ -28,3 +28,20 @@ describe('pixelDataToHex', () => {
     expect(pixelDataToHex(data)).toBe('#FF8000');
   });
 });
+
+describe('ColorPickerPage — UploadZone', () => {
+  it('renders the upload zone with file picker text', () => {
+    render(<ColorPickerPage />);
+    expect(screen.getByText(/drag & drop/i)).toBeInTheDocument();
+  });
+
+  it('has a hidden file input', () => {
+    render(<ColorPickerPage />);
+    expect(document.querySelector('input[type="file"]')).toBeInTheDocument();
+  });
+
+  it('has no canvas before an image is loaded', () => {
+    render(<ColorPickerPage />);
+    expect(document.querySelector('canvas')).toBeNull();
+  });
+});
