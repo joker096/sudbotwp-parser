@@ -18,6 +18,10 @@ export const pixelDataToHex = (data: Uint8ClampedArray): string => {
 
 export default function ColorPickerPage() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hoveredHex, setHoveredHex] = useState<string | null>(null);
+  const [pickedColor, setPickedColor] = useState<Swatch | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((file: File) => {
@@ -38,6 +42,49 @@ export default function ColorPickerPage() {
     const f = e.target.files?.[0];
     if (f) handleFile(f);
   }, [handleFile]);
+
+  // Draw image into canvas when src changes
+  React.useEffect(() => {
+    if (!imageSrc || !canvasRef.current) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = canvasRef.current!;
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = imageSrc;
+  }, [imageSrc]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.naturalWidth / rect.width;
+    const scaleY = canvas.naturalHeight / rect.height;
+    const px = Math.floor((e.clientX - rect.left) * scaleX);
+    const py = Math.floor((e.clientY - rect.top) * scaleY);
+    setCursorPos({ x: e.clientX, y: e.clientY });
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    const pixel = ctx.getImageData(px, py, 1, 1).data;
+    setHoveredHex(pixelDataToHex(pixel));
+  }, []);
+
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.naturalWidth / rect.width;
+    const scaleY = canvas.naturalHeight / rect.height;
+    const px = Math.floor((e.clientX - rect.left) * scaleX);
+    const py = Math.floor((e.clientY - rect.top) * scaleY);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    const pixel = ctx.getImageData(px, py, 1, 1).data;
+    const hex = pixelDataToHex(pixel);
+    const rgbStr = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+    setPickedColor({ id: crypto.randomUUID(), hex, rgb: rgbStr, alpha: 1 });
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans">
@@ -71,6 +118,44 @@ export default function ColorPickerPage() {
           Drag &amp; Drop or Click to Upload
         </span>
       </label>
+
+      {/* ── Canvas + magnifier + readout ── */}
+      {imageSrc && (
+        <div className="relative w-[80vw] max-w-5xl mx-auto">
+          <canvas
+            ref={canvasRef}
+            onMouseMove={handleCanvasMouseMove}
+            onClick={handleCanvasClick}
+            className="mx-auto block rounded-xl cursor-crosshair"
+            style={{ maxWidth: '100%' }}
+            role="img"
+            aria-label="Image color picker canvas"
+          />
+
+          {/* Floating magnifier */}
+          {cursorPos && hoveredHex && (
+            <div
+              className="fixed z-50 pointer-events-none w-16 h-16 border border-white/20 rounded overflow-hidden backdrop-blur-sm shadow-lg"
+              style={{ top: cursorPos.y + 12, left: cursorPos.x + 12 }}
+              data-testid="magnifier"
+            >
+              <div className="w-full h-full" style={{ backgroundColor: hoveredHex }} />
+            </div>
+          )}
+
+          {/* Color readout */}
+          {pickedColor && (
+            <div className="mt-4 text-center">
+              <div className="text-6xl font-bold tracking-tighter text-white">
+                {pickedColor.hex}
+              </div>
+              <div className="text-xs uppercase tracking-widest text-gray-500 mt-1">
+                {pickedColor.rgb}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

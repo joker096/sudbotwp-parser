@@ -45,3 +45,10 @@ describe('ColorPickerPage — UploadZone', () => {
     expect(document.querySelector('canvas')).toBeNull();
   });
 });
+
+describe('ColorPickerPage — Canvas', () => {
+  it('shows no canvas before an image is loaded', () => {
+    render(<ColorPickerPage />);
+    expect(document.querySelector('canvas')).toBeNull();
+  });
+});
