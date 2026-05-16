@@ -98,6 +98,27 @@ export default function ColorPickerPage() {
     );
   };
 
+  // ── Export helpers ───────────────────────────────────────────────────────
+  const exportCSS = (hexes: string[]) =>
+    `:root {\n${hexes.map((h, i) => `  --color-${i+1}: ${h};`).join('\n')}\n}`;
+
+  const exportJSON = (hexes: string[]) =>
+    JSON.stringify({ palette: hexes }, null, 2);
+
+  const exportTXT = (hexes: string[]) => hexes.join('\n');
+
+  const triggerDownload = (filename: string, content: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const [showExport, setShowExport] = useState(false);
+
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
@@ -213,6 +234,71 @@ export default function ColorPickerPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Export Button — shows when palette has items or a picked color ── */}
+      {(palette.length > 0 || pickedColor) && (
+        <div className="mt-4 text-center">
+          <button
+            onClick={() => setShowExport(true)}
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-xl border border-white/10
+                       text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
+      )}
+
+      {/* ── Export Modal ── */}
+      {showExport && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowExport(false)}
+        >
+          <div
+            className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-white mb-4">Export Palette</h2>
+            {palette.length > 0 && (
+              <>
+                <button
+                  onClick={() => {
+                    triggerDownload('palette.css', exportCSS(palette.map(s => s.hex)), 'text/css');
+                    setShowExport(false);
+                  }}
+                  className="w-full py-3 mb-2 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                >
+                  CSS Variables
+                </button>
+                <button
+                  onClick={() => {
+                    triggerDownload('palette.json', exportJSON(palette.map(s => s.hex)), 'application/json');
+                    setShowExport(false);
+                  }}
+                  className="w-full py-3 mb-2 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                >
+                  JSON
+                </button>
+                <button
+                  onClick={() => {
+                    triggerDownload('palette.txt', exportTXT(palette.map(s => s.hex)), 'text/plain');
+                    setShowExport(false);
+                  }}
+                  className="w-full py-3 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                >
+                  Plain Hex
+                </button>
+              </>
+            )}
+            {palette.length === 0 && pickedColor && (
+              <p className="text-sm text-gray-500 text-center">
+                Save colors to the palette first, then export.
+              </p>
+            )}
+          </div>
         </div>
       )}
 

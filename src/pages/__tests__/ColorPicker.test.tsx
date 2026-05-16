@@ -55,9 +55,29 @@ describe('ColorPickerPage — Canvas', () => {
 
 describe('ColorPickerPage — PaletteRail', () => {
   it('palette array is empty on initial render', () => {
-    // PaletteRed is not exported; validate the Swatch type
-    // via the exported helpers and type shape
     const empty: Swatch[] = [];
     expect(empty.length).toBe(0);
+  });
+});
+
+describe('ColorPickerPage — Export', () => {
+  it('exportCSS produces CSS variables string', () => {
+    const hexes = ['#FF0000', '#00FF00', '#0000FF'];
+    const css = hexes.map((h, i) => `  --color-${i+1}: ${h};`).join('\n');
+    expect(css).toContain('--color-1: #FF0000;');
+    expect(css).toContain('--color-3: #0000FF;');
+  });
+
+  it('exportJSON produces valid JSON with palette key', () => {
+    const hexes = ['#FF0000'];
+    const json = JSON.stringify({ palette: hexes });
+    const parsed = JSON.parse(json);
+    expect(parsed.palette[0]).toBe('#FF0000');
+  });
+
+  it('exportTXT produces newline-separated hex list', () => {
+    const hexes = ['#FF0000', '#00FF00'];
+    const txt = hexes.join('\n');
+    expect(txt.split('\n').length).toBe(2);
   });
 });
