@@ -19,6 +19,10 @@ View your app in AI Studio: https://ai.studio/apps/4f9c3433-9310-49e4-b0fd-0a148
 3. Run the app:
    `npm run dev`
 
+Optional backend URLs:
+- `VITE_API_BASE_URL` for app backend endpoints like `/add-case-manual` and `/api/search-company`
+- `VITE_PARSE_CASE_URL` for the dedicated case parsing endpoint
+
 
 
 

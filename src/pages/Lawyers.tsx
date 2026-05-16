@@ -1,15 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { MapPin, Star, ShieldCheck, MessageCircle, MessageSquare, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ArrowDown, ExternalLink, Bookmark } from 'lucide-react';
+import { MapPin, Star, ShieldCheck, MessageCircle, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ExternalLink, Bookmark, BookmarkCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import LeadModal from '../components/LeadModal';
 import StarRating from '../components/StarRating';
 import SafeLink from '../components/SafeLink';
 import { useSeo } from '../hooks/useSeo';
-import { lawyers, Lawyer, supabase, lawyerViewLimits, yandexMaps } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
+import { lawyers, lawyerFavorites, Lawyer, supabase, lawyerViewLimits, yandexMaps } from '../lib/supabase';
 
-// Полный список регионов России
 const RUSSIAN_REGIONS = [
   'Москва и Московская область',
   'Санкт-Петербург и Ленинградская область',
@@ -93,7 +93,6 @@ const RUSSIAN_REGIONS = [
   'Ярославская область',
 ];
 
-// Крупные города для быстрого доступа
 const POPULAR_CITIES = [
   'Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань',
   'Нижний Новгород', 'Челябинск', 'Самара', 'Омск', 'Ростов-на-Дону',
@@ -103,10 +102,31 @@ const POPULAR_CITIES = [
   'Оренбург', 'Кемерово', 'Новокузнецк', 'Астрахань', 'Пенза',
 ];
 
+const STORAGE_KEY = 'profile-favorite-lawyers';
+
+function getLocalFavorites(): any[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function getAvatarUrl(lawyer: Lawyer): string {
+  if (lawyer.avatar_url?.includes('/storage/')) return lawyer.avatar_url;
+  if (lawyer.avatar_url) return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}`;
+  return lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80`;
+}
+
+const formatUrl = (url: string): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return 'https://' + url;
+};
+
 export default function Lawyers() {
   const { setSeo } = useSeo('/lawyers');
-  
-  // Установка SEO мета тегов
+
   useEffect(() => {
     setSeo({
       title: 'Юристы и адвокаты - поиск и рейтинг',
@@ -116,8 +136,9 @@ export default function Lawyers() {
       ogDescription: 'Найдите лучшего юриста или адвоката. Отзывы, рейтинги, контакты специалистов.',
     });
   }, [setSeo]);
-  
+
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Все');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [showFilters, setShowFilters] = useState(false);
@@ -129,8 +150,8 @@ export default function Lawyers() {
   const [selectedLawyer, setSelectedLawyer] = useState<Lawyer | null>(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // Дополнительные данные юриста
+  const [favorites, setFavorites] = useState<string[]>([]);
+
   const [showExtraData, setShowExtraData] = useState(false);
   const [extraDataLoading, setExtraDataLoading] = useState(false);
   const [extraDataFetched, setExtraDataFetched] = useState(false);
@@ -138,12 +159,18 @@ export default function Lawyers() {
   const [viewLimitReached, setViewLimitReached] = useState(false);
   const [remainingViews, setRemainingViews] = useState<number | null>(null);
 
-  const formatUrl = (url: string): string => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return 'https://' + url;
-  };
+  const syncFavorites = useCallback(async () => {
+    if (user) {
+      const { data } = await lawyerFavorites.getIds(user.id);
+      if (data) setFavorites(data);
+    } else {
+      setFavorites(getLocalFavorites().map((l: any) => l.id));
+    }
+  }, [user]);
 
+  useEffect(() => {
+    syncFavorites();
+  }, [syncFavorites]);
 
   useEffect(() => {
     loadLawyers();
@@ -167,41 +194,61 @@ export default function Lawyers() {
     setShowLeadModal(false);
   }, []);
 
+  const handleToggleFavorite = useCallback(async (lawyer: Lawyer, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isFav = favorites.includes(lawyer.id);
+    if (user) {
+      if (isFav) {
+        await lawyerFavorites.remove(user.id, lawyer.id);
+        setFavorites(prev => prev.filter(id => id !== lawyer.id));
+      } else {
+        await lawyerFavorites.add(user.id, lawyer.id);
+        setFavorites(prev => [...prev, lawyer.id]);
+      }
+    } else {
+      const saved = getLocalFavorites();
+      if (isFav) {
+        const idx = saved.findIndex((l: any) => l.id === lawyer.id);
+        if (idx >= 0) saved.splice(idx, 1);
+      } else {
+        saved.push({ id: lawyer.id, name: lawyer.name, spec: lawyer.spec || '', city: lawyer.city || '', rating: lawyer.rating || 0, reviews: lawyer.reviews || 0, verified: lawyer.verified || false, img: lawyer.avatar_url?.includes('/storage/') ? lawyer.avatar_url : lawyer.avatar_url ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` : lawyer.img || '' });
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      setFavorites(prev => isFav ? prev.filter(id => id !== lawyer.id) : [...prev, lawyer.id]);
+    }
+  }, [favorites, user]);
+
   const [allLawyers, setAllLawyers] = useState<Lawyer[]>([]);
 
   const tabs = ['Все', 'Гражданские', 'Уголовные', 'Семейные', 'Арбитраж', 'Недвижимость', 'Трудовое право', 'Наследство', 'Банкротство'];
 
-  // Уникальные регионы из данных юристов + полный список регионов России
   const availableRegions = Array.from(new Set([
     ...allLawyers.map(l => l.region),
-    ...RUSSIAN_REGIONS
+    ...RUSSIAN_REGIONS,
   ])).sort();
 
-  // Для фильтрации: объединяем уникальные регионы и города
   const uniqueCities = Array.from(new Set(allLawyers.map(l => l.city))).sort();
 
   const filteredLawyers = allLawyers.filter(lawyer => {
     const matchesTab = activeTab === 'Все' || lawyer.spec === activeTab;
-    const matchesSearch = lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          lawyer.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          lawyer.region.toLowerCase().includes(searchQuery.toLowerCase());
-    // Фильтр по региону или городу
+    const matchesSearch = lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lawyer.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lawyer.region?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRegion = filterCity === '' || lawyer.region === filterCity || lawyer.city === filterCity;
     const matchesRating = lawyer.rating >= filterRating;
     const matchesVerified = !filterVerified || lawyer.verified;
-    const matchesExperience = filterExperience === '' || parseInt(lawyer.experience) >= parseInt(filterExperience);
+    const matchesExperience = filterExperience === '' || parseInt(lawyer.experience || '0') >= parseInt(filterExperience);
     return matchesTab && matchesSearch && matchesRegion && matchesRating && matchesVerified && matchesExperience;
   }).sort((a, b) => {
     if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'reviews') return b.reviews - a.reviews;
-    if (sortBy === 'experience') return parseInt(b.experience) - parseInt(a.experience);
+    if (sortBy === 'experience') return parseInt(b.experience || '0') - parseInt(a.experience || '0');
     return 0;
   });
 
-  // Показать доп. данные юриста
   const handleShowExtraData = async () => {
     if (!selectedLawyer) return;
-    
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setShowExtraData(true);
@@ -213,7 +260,7 @@ export default function Lawyers() {
 
     const { hasLimit, remaining } = await lawyerViewLimits.checkLimit(session.user.id, selectedLawyer.id);
     setRemainingViews(remaining);
-    
+
     if (hasLimit) {
       setViewLimitReached(true);
       return;
@@ -225,39 +272,35 @@ export default function Lawyers() {
     setExtraData(null);
 
     try {
-      // Сначала ищем по имени, потом по городу + "юрист"
       let result: any = null;
       let searchQuery: string;
-      
+
       searchQuery = selectedLawyer.name;
       result = await yandexMaps.searchOrganization(searchQuery);
-      
-      // Если не нашли по имени — ищем по городу + юрист
+
       if (!result?.data?.places || result.data.places.length === 0) {
         searchQuery = `${selectedLawyer.name} юрист`;
         result = await yandexMaps.searchOrganization(searchQuery);
       }
-      
-      // Если всё ещё не нашли — ищем по городу + юридическая компания
+
       if (!result?.data?.places || result.data.places.length === 0) {
         searchQuery = `юрист ${selectedLawyer.city}`;
         result = await yandexMaps.searchOrganization(searchQuery);
       }
-      
-      // Если всё ещё не нашли — ищем по городу
+
       if (!result?.data?.places || result.data.places.length === 0) {
         searchQuery = selectedLawyer.city;
         result = await yandexMaps.searchOrganization(searchQuery);
       }
-      
+
       if (result.data && result.data.places?.length > 0) {
         await lawyerViewLimits.trackView(session.user.id, selectedLawyer.id);
         setExtraData(result.data.places[0]);
         setExtraDataFetched(true);
-        
+
         const yandexData = result.data.places[0];
         const yandexRating = yandexData.meta?.organization?.rating || null;
-        
+
         if (yandexRating && (!selectedLawyer.yandex_rating || selectedLawyer.yandex_rating === 0)) {
           const { error } = await supabase
             .from('lawyers')
@@ -284,16 +327,18 @@ export default function Lawyers() {
 
       <div className="relative flex items-center">
         <Search className="absolute left-4 w-5 h-5 text-slate-400" />
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Поиск по ФИО или городу..." 
+          placeholder="Поиск по ФИО или городу..."
           className="w-full bg-white dark:bg-slate-900 py-4 pl-12 pr-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
         />
-        <button 
+        <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`absolute right-2 p-2.5 rounded-xl transition-colors ${showFilters ? 'bg-accent text-white shadow-lg shadow-accent/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+          className={`absolute right-2 p-2.5 rounded-xl transition-colors ${
+            showFilters ? 'bg-accent text-white shadow-lg shadow-accent/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+          }`}
         >
           <Filter className="w-4 h-4" />
         </button>
@@ -301,7 +346,7 @@ export default function Lawyers() {
 
       <AnimatePresence>
         {showFilters && (
-          <motion.div 
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -310,7 +355,7 @@ export default function Lawyers() {
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
               <div>
                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Регион / Город</label>
-                <select 
+                <select
                   value={filterCity}
                   onChange={(e) => setFilterCity(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
@@ -323,7 +368,7 @@ export default function Lawyers() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Рейтинг</label>
-                <select 
+                <select
                   value={filterRating}
                   onChange={(e) => setFilterRating(Number(e.target.value))}
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
@@ -336,7 +381,7 @@ export default function Lawyers() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Опыт работы</label>
-                <select 
+                <select
                   value={filterExperience}
                   onChange={(e) => setFilterExperience(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
@@ -350,7 +395,7 @@ export default function Lawyers() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Сортировка</label>
-                <select 
+                <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
@@ -361,7 +406,7 @@ export default function Lawyers() {
                 </select>
               </div>
               <div className="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-center gap-3 mt-2">
-                <button 
+                <button
                   onClick={() => {
                     setFilterCity('');
                     setFilterRating(0);
@@ -373,7 +418,7 @@ export default function Lawyers() {
                 >
                   Сбросить фильтры
                 </button>
-                <Link 
+                <Link
                   to="/apply-lawyer"
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-accent hover:text-accent/80 transition-colors text-center"
                 >
@@ -387,12 +432,12 @@ export default function Lawyers() {
 
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6 sm:mx-0 sm:px-0 sm:flex-wrap items-center">
         {tabs.map((tab) => (
-          <button 
-            key={tab} 
+          <button
+            key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
-              activeTab === tab 
-                ? 'bg-slate-900 dark:bg-accent text-white' 
+              activeTab === tab
+                ? 'bg-slate-900 dark:bg-accent text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
           >
@@ -400,11 +445,11 @@ export default function Lawyers() {
           </button>
         ))}
         <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
-        <button 
+        <button
           onClick={() => setFilterVerified(!filterVerified)}
           className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 ${
-            filterVerified 
-              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' 
+            filterVerified
+              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
           }`}
         >
@@ -413,7 +458,6 @@ export default function Lawyers() {
         </button>
       </div>
 
-      {/* Recommended Verified Lawyers Section - Only show when no search/filters are active */}
       {!searchQuery && !filterCity && !filterRating && !filterExperience && activeTab === 'Все' && !filterVerified && (
         <div className="pt-4 pb-2">
           <div className="flex items-center gap-2 mb-4">
@@ -422,24 +466,20 @@ export default function Lawyers() {
           </div>
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-6 px-6 sm:mx-0 sm:px-0">
             {allLawyers.filter(l => l.verified && l.rating >= 4.8).map((lawyer) => (
-              <div 
-                key={`rec-${lawyer.id}`} 
+              <div
+                key={`rec-${lawyer.id}`}
                 onClick={() => setSelectedLawyer(lawyer)}
                 className="min-w-[280px] sm:min-w-[320px] bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-accent/10 dark:border-accent/20 cursor-pointer hover:-translate-y-1 transition-transform"
               >
                 <div className="flex gap-4 items-center mb-4">
                   <div className="relative shrink-0">
-                  <img 
-                    src={lawyer.avatar_url && lawyer.avatar_url.includes('/storage/') 
-                      ? lawyer.avatar_url 
-                      : lawyer.avatar_url 
-                        ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
-                        : lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80`} 
-                    alt={lawyer.name} 
-                    referrerPolicy="no-referrer" 
-                    loading="lazy" 
-                    className="w-16 h-16 rounded-2xl object-cover shadow-sm" 
-                  />
+                    <img
+                      src={getAvatarUrl(lawyer)}
+                      alt={lawyer.name}
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      className="w-16 h-16 rounded-2xl object-contain bg-slate-100 dark:bg-slate-800 shadow-sm"
+                    />
                     <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
                       <ShieldCheck className="w-4 h-4 text-accent" />
                     </div>
@@ -449,9 +489,9 @@ export default function Lawyers() {
                       {lawyer.name}
                     </h3>
                     <p className="text-xs text-accent font-semibold mb-1">{lawyer.spec}</p>
-                    <StarRating 
-                      targetType="lawyer" 
-                      targetId={lawyer.id} 
+                    <StarRating
+                      targetType="lawyer"
+                      targetId={lawyer.id}
                       initialRating={lawyer.rating}
                       initialVotes={lawyer.reviews}
                       size="sm"
@@ -470,137 +510,117 @@ export default function Lawyers() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-        {filteredLawyers.map((lawyer, index) => (
-          <div key={lawyer.id} className="contents">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
+        {filteredLawyers.map((lawyer, index) => {
+          const isFav = favorites.includes(lawyer.id);
+          return (
+            <div key={lawyer.id} className="contents">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
                 <div className="flex gap-4 cursor-pointer" onClick={() => setSelectedLawyer(lawyer)}>
-                <div className="relative shrink-0">
-                  <img 
-                    src={lawyer.avatar_url && lawyer.avatar_url.includes('/storage/') 
-                      ? lawyer.avatar_url 
-                      : lawyer.avatar_url 
-                        ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
-                        : lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80`} 
-                    alt={lawyer.name}
-                    referrerPolicy="no-referrer" 
-                    loading="lazy" 
-                    className="w-20 h-20 rounded-2xl object-cover shadow-sm" 
-                  />
-                  {lawyer.verified && (
-                    <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
-                      <ShieldCheck className="w-5 h-5 text-primary" />
-                    </div>
-                  )}
-                </div>
-<div className="flex-1">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight hover:text-accent transition-colors">
+                  <div className="relative shrink-0">
+                    <img
+                      src={getAvatarUrl(lawyer)}
+                      alt={lawyer.name}
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      className="w-20 h-20 rounded-2xl object-contain bg-slate-100 dark:bg-slate-800 shadow-sm"
+                    />
+                    {lawyer.verified && (
+                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
+                        <ShieldCheck className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1 gap-1">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight hover:text-accent transition-colors truncate">
                         {lawyer.name}
                       </h3>
-                      <div className="flex items-center gap-1">
-                        <StarRating
-                          targetType="lawyer"
-                          targetId={lawyer.id}
-                          initialRating={lawyer.rating}
-                          initialVotes={lawyer.reviews}
-                          size="sm"
-                          showCount={false}
-                          showVoting={true}
-                        />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const saved = JSON.parse(localStorage.getItem('profile-favorite-lawyers') || '[]');
-                            const exists = saved.some((l: any) => l.id === lawyer.id);
-                            if (!exists) {
-                              saved.push({ id: lawyer.id, name: lawyer.name, spec: lawyer.spec || '', city: lawyer.city || '', rating: lawyer.rating || 0, reviews: lawyer.reviews || 0, verified: lawyer.verified || false, img: lawyer.avatar_url?.includes('/storage/') ? lawyer.avatar_url : lawyer.avatar_url ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` : lawyer.img || '' });
-                              localStorage.setItem('profile-favorite-lawyers', JSON.stringify(saved));
-                            }
-                          }}
-                          className="p-1.5 hover:bg-accent/10 text-slate-400 hover:text-accent rounded-lg transition-colors"
-                          title="В избранное"
-                        >
-                          <Bookmark className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={(e) => handleToggleFavorite(lawyer, e)}
+                        className={`p-1.5 shrink-0 rounded-lg transition-colors ${
+                          isFav
+                            ? 'text-accent bg-accent/10 hover:bg-accent/20'
+                            : 'text-slate-400 hover:text-accent hover:bg-accent/10'
+                        }`}
+                        title={isFav ? 'Убрать из избранного' : 'В избранное'}
+                      >
+                        {isFav ? <BookmarkCheck className="w-4 h-4 fill-accent" /> : <Bookmark className="w-4 h-4" />}
+                      </button>
                     </div>
-                  <p className="text-xs text-primary font-semibold mb-2">{lawyer.spec}</p>
-                  <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    <MapPin className="w-3 h-3 text-slate-400" /> {lawyer.city}
-                    <span className="text-slate-300 dark:text-slate-600 mx-1">•</span>
-                    <span>{lawyer.reviews} отз.</span>
+                    <p className="text-xs text-primary font-semibold mb-2">{lawyer.spec}</p>
+                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <MapPin className="w-3 h-3 text-slate-400" /> {lawyer.city}
+                      <span className="text-slate-300 dark:text-slate-600 mx-1">•</span>
+                      <span>{lawyer.reviews} отз.</span>
+                    </div>
+                    <div className="mt-1.5">
+                      <StarRating
+                        targetType="lawyer"
+                        targetId={lawyer.id}
+                        initialRating={lawyer.rating}
+                        initialVotes={lawyer.reviews}
+                        size="sm"
+                        showCount={false}
+                        showVoting={true}
+                      />
+                    </div>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedLawyer(lawyer)}
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-colors"
+                  >
+                    Профиль
+                  </button>
+                  <button
+                    onClick={() => handleToggleFavorite(lawyer, new MouseEvent('click') as any)}
+                    className={`p-2.5 rounded-xl transition-colors ${
+                      isFav
+                        ? 'bg-accent/10 text-accent hover:bg-accent/20'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-accent hover:bg-accent/20'
+                    }`}
+                    title={isFav ? 'Убрать из избранного' : 'В избранное'}
+                  >
+                    {isFav ? <BookmarkCheck className="w-4 h-4 fill-accent" /> : <Bookmark className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => { setSelectedLawyer(lawyer); setShowLeadModal(true); }}
+                    className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Написать
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setSelectedLawyer(lawyer)}
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-colors"
-                >
-                  Профиль
-                </button>
-                <button 
-                  onClick={() => {
-                    const saved = JSON.parse(localStorage.getItem('profile-favorite-lawyers') || '[]');
-                    const exists = saved.some((l: any) => l.id === lawyer.id);
-                    if (!exists) {
-                      saved.push({
-                        id: lawyer.id,
-                        name: lawyer.name,
-                        spec: lawyer.spec || '',
-                        city: lawyer.city || '',
-                        rating: lawyer.rating || 0,
-                        reviews: lawyer.reviews || 0,
-                        verified: lawyer.verified || false,
-                        img: lawyer.avatar_url?.includes('/storage/') 
-                          ? lawyer.avatar_url 
-                          : lawyer.avatar_url 
-                            ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${lawyer.avatar_url}` 
-                            : lawyer.img || ''
-                      });
-                      localStorage.setItem('profile-favorite-lawyers', JSON.stringify(saved));
-                    }
-                  }}
-                  className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-accent/20 text-slate-400 hover:text-accent rounded-xl transition-colors"
-                  title="В избранное"
-                >
-                  <Bookmark className="w-4 h-4" />
-                </button>
-                <button onClick={() => { setSelectedLawyer(lawyer); setShowLeadModal(true); }}
-                  className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  Написать
-                </button>
+
+              {index === 2 && (
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <AdBanner />
+                </div>
+              )}
             </div>
-            
-            {/* Рекламный баннер после 3-го юриста */}
-            {index === 2 && (
-              <div className="sm:col-span-2 lg:col-span-3">
-                <AdBanner />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
-      
+
       {filteredLawyers.length === 0 && (
         <div className="text-center py-12">
           <p className="text-slate-500 dark:text-slate-400">Юристы не найдены.</p>
         </div>
       )}
 
-      {/* Lawyer Profile Modal */}
       <AnimatePresence>
         {selectedLawyer && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedLawyer(null)}
               className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm z-[100]"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 100, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 100, scale: 0.95 }}
@@ -608,7 +628,7 @@ export default function Lawyers() {
               className="fixed bottom-0 sm:bottom-auto sm:top-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:max-w-lg bg-white dark:bg-slate-900 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                <button 
+                <button
                   onClick={() => setSelectedLawyer(null)}
                   className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-colors z-10"
                 >
@@ -617,16 +637,12 @@ export default function Lawyers() {
 
                 <div className="flex flex-col items-center text-center mt-4 mb-6">
                   <div className="relative mb-4">
-                    <img 
-                      src={selectedLawyer.avatar_url && selectedLawyer.avatar_url.includes('/storage/') 
-                        ? selectedLawyer.avatar_url 
-                        : selectedLawyer.avatar_url 
-                          ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${selectedLawyer.avatar_url}` 
-                          : selectedLawyer.img || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'} 
-                      alt={selectedLawyer.name} 
-                      referrerPolicy="no-referrer" 
-                      loading="lazy" 
-                      className="w-28 h-28 rounded-full object-cover shadow-lg border-4 border-white dark:border-slate-800" 
+                    <img
+                      src={getAvatarUrl(selectedLawyer)}
+                      alt={selectedLawyer.name}
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      className="w-28 h-28 rounded-2xl object-contain bg-slate-100 dark:bg-slate-800 shadow-lg border-4 border-white dark:border-slate-800"
                     />
                     {selectedLawyer.verified && (
                       <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-900 p-1 rounded-full shadow-sm">
@@ -636,11 +652,11 @@ export default function Lawyers() {
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{selectedLawyer.name}</h2>
                   <p className="text-primary font-semibold mb-3">{selectedLawyer.spec}</p>
-                  
+
                   <div className="flex items-center gap-4 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl">
-                    <StarRating 
-                      targetType="lawyer" 
-                      targetId={selectedLawyer.id} 
+                    <StarRating
+                      targetType="lawyer"
+                      targetId={selectedLawyer.id}
                       initialRating={selectedLawyer.rating}
                       initialVotes={selectedLawyer.reviews}
                       size="md"
@@ -653,8 +669,7 @@ export default function Lawyers() {
                       <span>{selectedLawyer.city}</span>
                     </div>
                   </div>
-                  
-                  {/* Кнопка показа доп. данных */}
+
                   {!viewLimitReached && (
                     <button
                       onClick={handleShowExtraData}
@@ -674,7 +689,7 @@ export default function Lawyers() {
                       )}
                     </button>
                   )}
-                  
+
                   {viewLimitReached && (
                     <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl text-center">
                       <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -689,7 +704,7 @@ export default function Lawyers() {
                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                     {selectedLawyer.description}
                   </p>
-                  
+
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3">
                       <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
@@ -705,7 +720,7 @@ export default function Lawyers() {
                         <Star className="w-4 h-4 text-red-500 fill-red-500" />
                       </div>
                       <div>
-                       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Яндекс Карты</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Яндекс Карты</p>
                         {selectedLawyer?.yandex_rating && selectedLawyer.yandex_rating > 0 ? (
                           <SafeLink href={"https://yandex.ru/maps/?text=" + encodeURIComponent(selectedLawyer.name)} className="text-sm font-bold text-slate-900 dark:text-white">
                             {selectedLawyer.yandex_rating} / 5.0
@@ -736,14 +751,13 @@ export default function Lawyers() {
                   </div>
                 </div>
 
-                {/* Яндекс Карты - доп. данные */}
                 {showExtraData && (
                   <div className="space-y-4">
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
                       <Building2 className="w-5 h-5 text-accent" />
                       Данные организации
                     </h3>
-                    
+
                     {extraDataLoading ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin text-accent" />
@@ -765,7 +779,7 @@ export default function Lawyers() {
                             )}
                           </div>
                         </div>
-                        
+
                         {extraData.meta?.organization?.rating && (
                           <div className="flex items-center gap-2 mb-3">
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
@@ -774,7 +788,7 @@ export default function Lawyers() {
                             </span>
                           </div>
                         )}
-                        
+
                         {extraData.meta?.organization?.categories && (
                           <div className="flex flex-wrap gap-2 mb-3">
                             {extraData.meta.organization.categories.slice(0, 3).map((cat: any, i: number) => (
@@ -784,19 +798,19 @@ export default function Lawyers() {
                             ))}
                           </div>
                         )}
-                        
+
                         {extraData.meta?.organization?.phone && (
-                          <a 
-                            href={`tel:${extraData.meta.organization.phone}`} 
+                          <a
+                            href={`tel:${extraData.meta.organization.phone}`}
                             className="flex items-center gap-2 mb-3 text-sm text-slate-600 dark:text-slate-300 hover:text-accent transition-colors"
                           >
                             <Phone className="w-4 h-4" />
                             {extraData.meta.organization.phone}
                           </a>
                         )}
-                        
-                        <SafeLink 
-                          href={`https://yandex.ru/maps/${extraData.location.x}:${extraData.location.y}`} 
+
+                        <SafeLink
+                          href={`https://yandex.ru/maps/${extraData.location.x}:${extraData.location.y}`}
                           className="flex items-center gap-2 w-full bg-white dark:bg-slate-700 p-3 rounded-xl text-sm font-bold text-accent hover:bg-accent/10 hover:text-accent-light transition-colors justify-center"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -813,11 +827,11 @@ export default function Lawyers() {
                   </div>
                 )}
 
-                <button 
+                <button
                   onClick={() => { setSelectedLawyer(null); setShowLeadModal(true); }}
                   className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-4 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 dark:shadow-accent/30"
                 >
-                  <MessageSquare className="w-5 h-5" />
+                  <MessageCircle className="w-5 h-5" />
                   Написать сообщение
                 </button>
               </div>

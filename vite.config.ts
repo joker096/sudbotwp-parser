@@ -19,6 +19,17 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: ['./src/vitest-setup.ts'],
+      include: ['src/**/*.{test,spec}.{ts,tsx}'],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'json', 'html'],
+        include: ['src/lib/**', 'src/hooks/**', 'src/components/**'],
+      },
+    },
     plugins: [
       react(),
       tailwindcss(),
@@ -155,7 +166,7 @@ export default defineConfig(({mode}) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: 'http://localhost:3007',
           changeOrigin: true,
         },
       },

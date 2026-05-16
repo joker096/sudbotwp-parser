@@ -122,7 +122,7 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(caseData?.link || '')}&size=80x80&margin=0`;
 
     // Filter events that represent a status change
-    const statusChangeEvents = caseData?.events?.filter(event => event.result && event.result.trim() !== '');
+    const statusChangeEvents = Array.isArray(caseData?.events) ? caseData.events.filter(event => event.result && event.result.trim() !== '') : [];
 
     const lawyerContactsHtml = branding?.name
       ? `
@@ -379,7 +379,7 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
             <section>
               <h2>Движение дела</h2>
               <div class="timeline">
-                ${caseData.events.map((event) => `
+                ${(Array.isArray(caseData?.events) ? caseData.events : []).map((event) => `
                   <div class="timeline-item">
                     <div class="timeline-dot"></div>
                     <div class="timeline-date">${event.date} ${event.time || ''}</div>

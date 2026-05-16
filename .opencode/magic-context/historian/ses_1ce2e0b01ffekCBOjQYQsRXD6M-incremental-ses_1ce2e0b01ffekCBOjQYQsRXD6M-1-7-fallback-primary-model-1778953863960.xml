@@ -1,0 +1,14 @@
+## Goal
+- Refactor `CaseCard` by extracting components and consolidating local API configuration details.
+
+## Constraints & Preferences
+- None
+
+## Progress
+### Done
+- Extracted comment tab to `CaseCardComments.tsx`.
+- Moved header logic to `CaseCardHeader.tsx`.
+- Moved workflow logic to `CaseCardEvents.tsx`.
+- Extracted appeal tab to `src/components/CaseCardAppeals.tsx`.
+- Updated `CaseCard.tsx` using new components and separated delete confirmation modals (`ConfirmModal`).
+- Removed unused emoji picker from `CaseCard.

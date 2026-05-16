@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check, MapPin, Archive } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import AdBanner from '../components/AdBanner';
 import { supabase, cases, refreshCase, parseCase, lawyers } from '../lib/supabase';
 import { ParsedCase, Lawyer } from '../types';
@@ -11,6 +11,9 @@ import { useAuth } from '../hooks/useAuth';
 import PaymentModal from '../components/PaymentModal';
 import { useToast } from '../hooks/useToast';
 import { ConfirmModal, useConfirmModal } from '../components/ConfirmModal';
+import { normalizeParsedCase } from '../lib/caseNormalization';
+import { useUserCases } from '../hooks/useUserCases';
+import { useCaseActions } from '../hooks/useCaseActions';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -31,71 +34,33 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [caseUrl, setCaseUrl] = useState('');
   const [isLoadingCase, setIsLoadingCase] = useState(false);
-  const [userCases, setUserCases] = useState<ParsedCase[]>([]);
-  const [isLoadingCases, setIsLoadingCases] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCase, setSelectedCase] = useState<ParsedCase | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const casesPerPage = 6;
   const { confirm, confirmModalProps } = useConfirmModal();
   const queryClient = useQueryClient();
+  const { addCase, archiveCase, deleteCase, refreshUserCase } = useCaseActions(user?.id);
 
-  // Кеширование списка дел с помощью React Query
-  const { data: cachedCases, isLoading: isCasesLoading, refetch: refetchCases } = useQuery({
-    queryKey: ['userCases', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await cases.getCasesByUser(user.id);
-      if (error) throw error;
-      return (data || []).map((c: ParsedCase) => ({
-        ...c,
-        status: c.status || 'active',
-        events: c.events?.map((e: any, index: number) => ({ ...e, id: e.id || `${c.id}-evt-${index}` }))
-      }));
-    },
-    staleTime: 1000 * 60 * 5, // 5 минут
-    gcTime: 1000 * 60 * 10, // 10 минут
-    enabled: !!user,
-  });
+  const { data: userCases = [], isLoading: isLoadingCases } = useUserCases(user?.id);
 
-  // Синхронизация кешированных данных с локальным состоянием
   useEffect(() => {
-    if (cachedCases) {
-      const activeCases = (cachedCases as ParsedCase[]).filter(c => c.status !== 'deleted');
-      setUserCases(activeCases);
+    if (!selectedCase?.id) return;
+    const freshSelectedCase = userCases.find((caseItem) => caseItem.id === selectedCase.id);
+    if (!freshSelectedCase) {
+      setSelectedCase(null);
+      return;
     }
-  }, [cachedCases]);
-
-  // Обновляем isLoading на основе isCasesLoading
-  useEffect(() => {
-    setIsLoadingCases(isCasesLoading);
-  }, [isCasesLoading]);
-
-  // Fetch user's cases on mount
-  useEffect(() => {
-    const fetchUserCases = async () => {
-      setIsLoadingCases(true);
-      try {
-        if (user) {
-          console.log('Fetching user cases...');
-          const { data, error } = await cases.getCasesByUser(user.id);
-          if (data && !error) {
-            // Фильтруем только активные дела (не удалённые)
-            const activeCases = (data as ParsedCase[]).filter(c => c.status !== 'deleted');
-            setUserCases(activeCases);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching cases:', err);
-      } finally {
-        setIsLoadingCases(false);
-      }
-    };
-    fetchUserCases();
-  }, [user]);
+    if (freshSelectedCase !== selectedCase) {
+      setSelectedCase(freshSelectedCase);
+    }
+  }, [selectedCase, userCases]);
 
   const totalPages = Math.ceil(userCases.length / casesPerPage);
-  const paginatedCases = userCases.slice(currentPage * casesPerPage, (currentPage + 1) * casesPerPage);
+  const paginatedCases = useMemo(
+    () => userCases.slice(currentPage * casesPerPage, (currentPage + 1) * casesPerPage),
+    [currentPage, userCases]
+  );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,9 +120,9 @@ export default function Home() {
       }
       
       // Сохраняем дело
-      const { data: newCase, error: createError } = await cases.createCase({
-        user_id: user.id,
-        ...data,
+      const { data: newCase, error: createError } = await addCase({
+        userId: user.id,
+        caseData: normalizeParsedCase(data as ParsedCase),
       });
       
       if (createError) {
@@ -167,20 +132,6 @@ export default function Home() {
       }
       
       showToast('Дело успешно добавлено в Мои дела!');
-      
-      // Инвалидируем кеш для обновления списка дел
-      queryClient.invalidateQueries({ queryKey: ['userCases', user.id] });
-      
-      // Обновляем локальное состояние
-      if (newCase) {
-        setUserCases(prev => [{
-          ...data,
-          id: newCase.id,
-          status: 'active',
-          events: data.events || [],
-          appeals: data.appeals || [],
-        }, ...prev]);
-      }
       
       // Очищаем поле ввода
       setCaseUrl('');
@@ -231,7 +182,7 @@ export default function Home() {
     
     try {
       showToast('Обновление данных дела...');
-      const { data, error } = await refreshCase(caseId, caseToRefresh.link);
+      const { data, error, normalizedCase } = await refreshUserCase(caseId, caseToRefresh);
       
       if (error) {
         console.error('Error refreshing case:', error);
@@ -239,21 +190,9 @@ export default function Home() {
         return;
       }
       
-      if (data) {
-        // Обновляем локальное состояние
-        const updatedCase = {
-          ...caseToRefresh,
-          ...data,
-          events: typeof data.events === 'string' ? JSON.parse(data.events) : data.events || [],
-          appeals: typeof data.appeals === 'string' ? JSON.parse(data.appeals) : data.appeals || [],
-        };
-        
-        setUserCases(prevCases =>
-          prevCases.map(c => c.id === caseId ? updatedCase : c)
-        );
-        
+      if (data && normalizedCase) {
         if (selectedCase && selectedCase.id === caseId) {
-          setSelectedCase(updatedCase);
+          setSelectedCase(normalizedCase);
         }
         
         showToast('Дело успешно обновлено!');
@@ -276,13 +215,9 @@ export default function Home() {
       variant: 'danger',
       onConfirm: async () => {
         try {
-          const { error } = await cases.deleteCase(caseId);
+          const { error } = await deleteCase(caseId);
           if (!error) {
-            // Меняем статус на удалённый вместо полного удаления
-            setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'deleted' } : c).filter(c => c.status !== 'deleted'));
             setSelectedCase(null);
-            // Инвалидируем кеш для обновления данных
-            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
             showToast('Дело перемещено в корзину');
           }
         } catch (err) {
@@ -301,11 +236,9 @@ export default function Home() {
       cancelText: 'Отмена',
       onConfirm: async () => {
         try {
-          const { error } = await cases.archiveCase(caseId);
+          const { error } = await archiveCase(caseId);
           if (!error) {
-            setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'archived' } : c).filter(c => c.status !== 'archived'));
             setSelectedCase(null);
-            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
             showToast('Дело архивировано');
           }
         } catch (err) {
@@ -488,7 +421,7 @@ export default function Home() {
                       : lawyer.img || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=400&q=80`} 
                     alt={lawyer.name} 
                     referrerPolicy="no-referrer" 
-                    className="w-full h-32 sm:h-48 object-cover rounded-2xl mb-4 shadow-sm" 
+                    className="w-full h-32 sm:h-48 object-contain bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 shadow-sm" 
                   />
                 <div className="absolute top-6 sm:top-8 left-6 sm:left-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                   <Star className="w-3 h-3 text-accent fill-accent" />
@@ -578,8 +511,9 @@ export default function Home() {
                         )}
                         {caseItem.status && (
                           String(caseItem.status || '').trim().toLowerCase() === 'archived' ? (
-                            <span className="inline-flex items-center justify-center text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" title="В архиве" aria-label="В архиве">
+                            <span className="inline-flex items-center gap-1 text-[9px] md:text-[10px] px-2 py-0.5 rounded-md font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" title="В архиве">
                               <Archive className="w-3 h-3" />
+                              Архив
                             </span>
                           ) : (
                             <span className={`text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md font-medium whitespace-nowrap truncate max-w-[120px] md:max-w-none ${caseItem.status?.includes('удовлетвор') ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : caseItem.status?.includes('отказ') ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : caseItem.status?.includes('рассмотр') ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>

@@ -3,6 +3,7 @@ import { Search, Building, AlertTriangle, Scale, Shield, Bell, CheckCircle2, XCi
 import { motion, AnimatePresence } from 'framer-motion';
 import { checkTaxpayerStatus, isValidInn, TaxpayerStatusResponse } from '../lib/npd';
 import { useSeo } from '../hooks/useSeo';
+import { apiConfig } from '../lib/apiConfig';
 
 interface CompanyData {
   inn: string;
@@ -80,7 +81,7 @@ export default function Monitoring() {
     setCompanyData(null);
 
     try {
-      const response = await fetch('http://localhost:3000/api/search-company', {
+      const response = await fetch(apiConfig.searchCompanyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

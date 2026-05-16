@@ -22,7 +22,7 @@
 
     # For unknown routes return 404 (keeps SEO clean)
     RewriteCond %{REQUEST_URI} !^/$
-    RewriteCond %{REQUEST_URI} !^/(search|lawyers|calculator|blog|help|login|taxpayer|privacy|documents|messages|monitoring|profile|leads|apply-lawyer|auth/callback|admin/blog)(/.*)?$ [NC]
+    RewriteCond %{REQUEST_URI} !^/(search|lawyers|calculator|blog|help|login|taxpayer|privacy|documents|messages|monitoring|profile|leads|apply-lawyer|auth/callback|admin/blog|ai-lawyer|legal-acts|test-editor)(/.*)?$ [NC]
     RewriteRule ^ - [R=404,L]
     
     # All other requests - serve index.html for SPA

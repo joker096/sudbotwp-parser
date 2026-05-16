@@ -2,10 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import { Profile, Court, CourtRegion, CaseCalendarEvent, CaseEvent, CaseAppeal, ParsedCase } from '../types';
 import { parseCaseClient, parseCaseHtml, ParsedCaseData } from './clientParser';
 import { parseWithFullFallback } from './browserlessParser';
+import { apiConfig } from './apiConfig';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const PARSE_CASE_URL = import.meta.env.VITE_PARSE_CASE_URL || `${SUPABASE_URL}/functions/v1/parse-case`;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Supabase credentials are missing. Please check your .env file.');
@@ -15,32 +15,30 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const auth = {
   signInWithGoogle: async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/auth/callback',
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+    return withRetry(() =>
+      supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/auth/callback',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
-      },
-    });
-    return { data, error };
+      })
+    );
   },
 
   signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    return withRetry(() => supabase.auth.signOut());
   },
 
   getSession: async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    return { data: { session }, error };
+    return withRetry(() => supabase.auth.getSession());
   },
 
   getCurrentUser: async () => {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    return { user, error };
+    return withRetry(() => supabase.auth.getUser());
   },
 
   onAuthStateChange: (callback: (event: string, session: any) => void) => {
@@ -50,41 +48,44 @@ export const auth = {
 
 export const profile = {
   getProfile: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    return { data: data as Profile | null, error };
+    return withRetry(() =>
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+    );
   },
 
   updateProfile: async (userId: string, updates: Partial<Profile>) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-    return { data: data as Profile | null, error };
+    return withRetry(() =>
+      supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single()
+    );
   },
 
   createProfile: async (userId: string, email: string, name: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert([
-        {
-          id: userId,
-          email,
-          full_name: name,
-          avatar_url: null,
-          phone: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single();
-    return { data: data as Profile | null, error };
+    return withRetry(() =>
+      supabase
+        .from('profiles')
+        .insert([
+          {
+            id: userId,
+            email,
+            full_name: name,
+            avatar_url: null,
+            phone: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+    );
   },
 };
 
@@ -155,300 +156,262 @@ const safeJsonParse = (value: any, fieldName: string): any[] => {
   return [];
 };
 
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 500;
+
+/**
+ * Generic exponential backoff retry wrapper for Supabase calls.
+ * Works with any function that returns { data, error }.
+ * Retries up to `attempts` times with exponential delay.
+ * Returns the last error if all attempts fail.
+ */
+async function withRetry<T>(fn: () => Promise<{ data: T; error: any }>, attempts = RETRY_ATTEMPTS, delayMs = RETRY_DELAY_MS): Promise<{ data: T | null; error: any }> {
+  let lastError: any = null;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const result = await fn();
+      if (!result.error) {
+        return result;
+      }
+      lastError = result.error;
+    } catch (e) {
+      lastError = e;
+    }
+    // Wait before next attempt (skip delay on last attempt)
+    if (i < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs * Math.pow(2, i)));
+    }
+  }
+  return { data: null, error: lastError };
+}
+
+// Cases - actual case management
 export const cases = {
-  getCasesByUser: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .select('*')
-      .eq('user_id', userId)
-      .neq('status', 'deleted')
-      .order('created_at', { ascending: false });
-    
-    console.log('getCasesByUser - raw data count:', data?.length || 0);
-    
-    // Обрабатываем events и appeals - они могут быть строкой (JSON), массивом или JSONB объектом
-    if (data) {
-      return {
-        data: data.map((caseItem: any) => {
-          // Безопасно парсим events
-          let events = safeJsonParse(caseItem.events, 'events');
-          // Фильтруем и валидируем события, добавляем ID если отсутствует
-          events = events.filter(isValidCaseEvent).map((e: any, index: number) => {
-            // Защита от NaN в датах
-            const safeDate = e.date && !isNaN(Date.parse(e.date)) ? e.date : null;
-            return {
-              ...e,
-              id: e.id || `${caseItem.id}-evt-${index}`,
-              date: safeDate,
-            };
-          });
-
-          // Безопасно парсим appeals
-          let appeals = safeJsonParse(caseItem.appeals, 'appeals');
-          // Фильтруем и валидируем апелляции, добавляем ID если отсутствует
-          appeals = appeals.filter(isValidCaseAppeal).map((a: any, index: number) => {
-            // Защита от NaN в датах
-            const safeDate = a.date && !isNaN(Date.parse(a.date)) ? a.date : null;
-            return {
-              ...a,
-              id: a.id || `${caseItem.id}-apl-${index}`,
-              date: safeDate,
-            };
-          });
-          
-          return {
-            ...caseItem,
-            events,
-            appeals,
-            // Гарантируем наличие статуса
-            status: caseItem.status || 'active',
-          };
-        }),
-        error
-      };
-    }
-    return { data, error };
-  },
-
-  getCaseById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .select('*')
-      .eq('id', id)
-      .single();
-    return { data, error };
-  },
-
-  createCase: async (caseData: Record<string, unknown>) => {
-    // Сериализуем events и appeals в JSON для сохранения в БД
-    // Убедимся, что это массивы перед сериализацией
-    let events = caseData.events;
-    let appeals = caseData.appeals;
-    
-    // Если это уже строка - не преобразуем снова
-    if (typeof events !== 'string') {
-      events = JSON.stringify(events || []);
-    }
-    if (typeof appeals !== 'string') {
-      appeals = JSON.stringify(appeals || []);
-    }
-    
-    console.log('Creating case with events:', events);
-    console.log('Creating case with appeals:', appeals);
-    
-    const dataToSave = {
-      ...caseData,
-      events: events,
-      appeals: appeals,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    
-    const { data, error } = await supabase
-      .from('cases')
-      .insert([dataToSave])
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  updateCase: async (id: string, updates: Record<string, unknown>) => {
-    // Фильтруем поля, которые не должны сохраняться в БД напрямую
-    const { comment, ...dbUpdates } = updates;
-    
-    // Сериализуем events и appeals если они есть
-    if (dbUpdates.events) {
-      dbUpdates.events = typeof dbUpdates.events === 'string' 
-        ? dbUpdates.events 
-        : JSON.stringify(dbUpdates.events);
-    }
-    if (dbUpdates.appeals) {
-      dbUpdates.appeals = typeof dbUpdates.appeals === 'string' 
-        ? dbUpdates.appeals 
-        : JSON.stringify(dbUpdates.appeals);
-    }
-    
-    const { data, error } = await supabase
-      .from('cases')
-      .update({
-        ...dbUpdates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  /**
-   * Update case comment specifically - bypasses general filtering
-   * Used for comment saving from CaseCard
-   */
-  updateCaseComment: async (id: string, comment: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ 
-        comment: comment.trim(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  // Архивировать дело
-  archiveCase: async (id: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'archived', updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  // Массовое архивирование дел
-  archiveMultipleCases: async (ids: string[]) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'archived', updated_at: new Date().toISOString() })
-      .in('id', ids)
-      .select();
-    return { data, error };
-  },
-
-  // Удалить дело (soft delete)
-  deleteCase: async (id: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'deleted', updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
-  },
-
-  // Массовое удаление дел
-  deleteMultipleCases: async (ids: string[], permanent: boolean = false) => {
-    if (permanent) {
-      const { data, error } = await supabase
+  // Получить дела пользователя
+  getByUser: async (userId: string) => {
+    return withRetry<any>(() =>
+      supabase
         .from('cases')
-        .delete()
-        .in('id', ids);
-      return { data, error };
-    }
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'deleted', updated_at: new Date().toISOString() })
-      .in('id', ids)
-      .select();
-    return { data, error };
+        .select('*')
+        .eq('user_id', userId)
+        .neq('status', 'deleted')
+        .order('created_at', { ascending: false })
+    );
   },
 
-  // Восстановить удалённое дело
-  restoreCase: async (id: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
+  // Получить дело по ID
+  getById: async (caseId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .select('*')
+        .eq('id', caseId)
+        .single()
+    );
   },
 
-  // Массовое восстановление дел
-  restoreMultipleCases: async (ids: string[]) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
-      .in('id', ids)
-      .select();
-    return { data, error };
+  // Создать дело
+  create: async (caseData: {
+    user_id: string;
+    number: string;
+    court: string;
+    status: string;
+    date: string;
+    category: string;
+    link: string;
+    plaintiff?: string;
+    defendant?: string;
+    judge?: string;
+  }) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .insert([{
+          ...caseData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }])
+        .select()
+        .single()
+    );
   },
 
-  // Восстановить дело из архива
-  unarchiveCase: async (id: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
+  // Алиас для обратной совместимости (pages вызывают createCase)
+  createCase: async (caseData: Record<string, any>) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .insert([{
+          ...caseData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }])
+        .select()
+        .single()
+    );
   },
 
-  // Массовое восстановление из архива
-  unarchiveMultipleCases: async (ids: string[]) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
-      .in('id', ids)
-      .select();
-    return { data, error };
+  // Обновить дело
+  update: async (caseId: string, updates: any) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+        .select()
+        .single()
+    );
   },
 
-  // Получить архивированные дела
-  getArchivedCases: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('cases')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'archived')
-      .order('updated_at', { ascending: false });
-    return { data, error };
+  updateCase: async (caseId: string, updates: any) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+        .select()
+        .single()
+    );
+  },
+
+  // Удалить дело (мягкое) — sets status to 'deleted'
+  archive: async (caseId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: 'deleted', updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+    );
+  },
+
+  // Алиас для обратной совместимости
+  archiveCase: async (caseId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: 'archived', updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+    );
+  },
+
+  deleteCase: async (caseId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: 'deleted', updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+    );
+  },
+
+  unarchiveCase: async (caseId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: '', updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+    );
+  },
+
+  restoreCase: async (caseId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+    );
+  },
+
+  restoreMultipleCases: async (caseIds: string[]) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .in('id', caseIds)
+    );
+  },
+
+  deleteMultipleCases: async (caseIds: string[]) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ status: 'deleted', updated_at: new Date().toISOString() })
+        .in('id', caseIds)
+    );
+  },
+
+  updateCaseComment: async (caseId: string, comment: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .update({ comment, updated_at: new Date().toISOString() })
+        .eq('id', caseId)
+    );
+  },
+
+  // Получить дела пользователя (алиас для обратной совместимости)
+  getCasesByUser: async (userId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .select('*')
+        .eq('user_id', userId)
+        .neq('status', 'deleted')
+        .order('created_at', { ascending: false })
+    );
   },
 };
 
-// =====================================================
-// CASE COMMENTS - История комментариев дела
-// =====================================================
+// Case Comments
 export const caseComments = {
-  // Получить все комментарии дела
+  // Получить комментарии дела
   getByCase: async (caseId: string) => {
-    const { data, error } = await supabase
-      .from('case_comments')
-      .select('*')
-      .eq('case_id', caseId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_comments')
+        .select('*')
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: true })
+    );
   },
 
   // Добавить комментарий
   create: async (caseId: string, userId: string, content: string) => {
-    const { data, error } = await supabase
-      .from('case_comments')
-      .insert([{
-        case_id: caseId,
-        author_id: userId,
-        content: content.trim(),
-      }])
-      .select()
-      .single();
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_comments')
+        .insert([{
+          case_id: caseId,
+          author_id: userId,
+          content: content.trim(),
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Обновить комментарий
   update: async (id: string, content: string) => {
-    const { data, error } = await supabase
-      .from('case_comments')
-      .update({ 
-        content: content.trim(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_comments')
+        .update({
+          content: content.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Удалить комментарий
   delete: async (id: string) => {
-    const { error } = await supabase
-      .from('case_comments')
-      .delete()
-      .eq('id', id);
-    return { error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_comments')
+        .delete()
+        .eq('id', id)
+    );
   },
 };
 
@@ -490,36 +453,26 @@ export const checkCourtSiteAvailability = async (url?: string): Promise<{ availa
 async function parseCaseServer(url: string): Promise<{ data: any; error: any }> {
   try {
     console.log('Server-side parsing:', url);
-    
-    // Используем Render.com сервер в production (без ограничений по таймауту)
-    const parseUrl = import.meta.env.DEV
-      ? 'http://localhost:3000/parse-case'
-      : (import.meta.env.VITE_PARSE_CASE_URL || 'https://sudbotwp-parser.onrender.com/parse-case');
+
+    // Используем свой сервер (без ограничений по таймауту)
+    const parseUrl = apiConfig.parseCaseUrl;
     console.log('Parsing from server URL:', parseUrl);
-    
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 180000); // 180 секунд для медленных судебных сайтов
-    
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    // Render.com сервер не требует авторизации, только Supabase Edge Function
-    const isSupabaseUrl = parseUrl.includes('supabase');
-    if (!import.meta.env.DEV && isSupabaseUrl) {
-      headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
-    }
-    
+
     const response = await fetch(parseUrl, {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ url }),
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
     console.log('Server response status:', response.status);
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return {
@@ -534,7 +487,7 @@ async function parseCaseServer(url: string): Promise<{ data: any; error: any }> 
     return { data, error: null };
   } catch (error: any) {
     console.error('Server parsing error:', error);
-    
+
     if (error.name === 'AbortError') {
       return {
         data: null,
@@ -543,7 +496,7 @@ async function parseCaseServer(url: string): Promise<{ data: any; error: any }> 
         }
       };
     }
-    
+
     return {
       data: null,
       error: {
@@ -650,11 +603,13 @@ export interface RefreshLimitInfo {
 export const checkRefreshLimits = async (userId: string): Promise<RefreshLimitInfo> => {
   try {
     // Получаем информацию о подписке пользователя
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', userId)
-      .single();
+    const { data: profileData, error: profileError } = await withRetry<any>(() =>
+      supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .single()
+    );
 
     if (profileError) {
       console.error('Error fetching profile:', profileError);
@@ -685,14 +640,16 @@ export const checkRefreshLimits = async (userId: string): Promise<RefreshLimitIn
     today.setHours(0, 0, 0, 0);
     const todayIso = today.toISOString();
 
-    const { data: lastRefreshData, error: lastRefreshError } = await supabase
-      .from('cases')
-      .select('last_manual_refresh_at')
-      .eq('user_id', userId)
-      .gte('last_manual_refresh_at', todayIso)
-      .order('last_manual_refresh_at', { ascending: false })
-      .limit(1)
-      .single();
+    const { data: lastRefreshData, error: lastRefreshError } = await withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .select('last_manual_refresh_at')
+        .eq('user_id', userId)
+        .gte('last_manual_refresh_at', todayIso)
+        .order('last_manual_refresh_at', { ascending: false })
+        .limit(1)
+        .single()
+    );
 
     if (lastRefreshData?.last_manual_refresh_at) {
       // Если сегодня уже было ручное обновление - запрещаем
@@ -818,8 +775,8 @@ export const refreshCase = async (
     plaintiff: parsedData.plaintiff || '',
     defendant: parsedData.defendant || '',
     link: link,
-    events: JSON.stringify(parsedData.events || []),
-    appeals: JSON.stringify(parsedData.appeals || []),
+    events: parsedData.events || [],
+    appeals: parsedData.appeals || [],
   };
 
   // Если это ручное обновление - записываем время
@@ -828,15 +785,17 @@ export const refreshCase = async (
   }
 
   // Обновляем дело в базе данных
-  const { data, error } = await supabase
-    .from('cases')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', caseId)
-    .select()
-    .single();
+  const { data, error } = await withRetry<any>(() =>
+    supabase
+      .from('cases')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', caseId)
+      .select()
+      .single()
+  );
 
   if (error) {
     console.error('Error updating case:', error);
@@ -849,11 +808,13 @@ export const refreshCase = async (
 // Функция для автоматического обновления (без ограничений)
 export const autoRefreshCase = async (caseId: string, link: string) => {
   // Получаем user_id из дела для передачи в refreshCase
-  const { data: caseData, error: caseError } = await supabase
-    .from('cases')
-    .select('user_id')
-    .eq('id', caseId)
-    .single();
+  const { data: caseData, error: caseError } = await withRetry<any>(() =>
+    supabase
+      .from('cases')
+      .select('user_id')
+      .eq('id', caseId)
+      .single()
+  );
 
   if (caseError || !caseData) {
     console.error('Error fetching case for auto refresh:', caseError);
@@ -874,30 +835,36 @@ export const getUserRefreshStats = async (userId: string) => {
     const todayIso = today.toISOString();
 
     // Количество дел пользователя
-    const { count: totalCases, error: countError } = await supabase
-      .from('cases')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .neq('status', 'deleted');
+    const { count: totalCases, error: countError } = await withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .neq('status', 'deleted')
+    );
 
     if (countError) throw countError;
 
     // Последнее ручное обновление сегодня
-    const { data: lastRefresh, error: lastRefreshError } = await supabase
-      .from('cases')
-      .select('last_manual_refresh_at')
-      .eq('user_id', userId)
-      .gte('last_manual_refresh_at', todayIso)
-      .order('last_manual_refresh_at', { ascending: false })
-      .limit(1)
-      .single();
+    const { data: lastRefresh, error: lastRefreshError } = await withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .select('last_manual_refresh_at')
+        .eq('user_id', userId)
+        .gte('last_manual_refresh_at', todayIso)
+        .order('last_manual_refresh_at', { ascending: false })
+        .limit(1)
+        .single()
+    );
 
     // Получаем подписку
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', userId)
-      .single();
+    const { data: profile, error: profileError } = await withRetry<any>(() =>
+      supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .single()
+    );
 
     return {
       data: {
@@ -1010,14 +977,15 @@ export interface LeadWithPurchase extends Lead {
 export const leads = {
   // Получить все доступные лиды
   getAvailable: async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('status', 'new')
-      .gt('expires_at', new Date().toISOString())
-      .order('price', { ascending: false })
-      .order('created_at', { ascending: false });
-    return { data: data as Lead[] | null, error };
+    return withRetry<Lead[]>(() =>
+      supabase
+        .from('leads')
+        .select('*')
+        .eq('status', 'new')
+        .gt('expires_at', new Date().toISOString())
+        .order('price', { ascending: false })
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить лиды по фильтрам
@@ -1040,340 +1008,361 @@ export const leads = {
     if (filters.minPrice) query = query.gte('price', filters.minPrice);
     if (filters.maxPrice) query = query.lte('price', filters.maxPrice);
 
-    const { data, error } = await query
-      .order('price', { ascending: false })
-      .order('created_at', { ascending: false });
-    
-    return { data: data as Lead[] | null, error };
+    return withRetry<Lead[]>(() =>
+      query
+        .order('price', { ascending: false })
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Создать новый лид
   create: async (leadData: Partial<Lead>) => {
-    const { data, error } = await supabase
-      .from('leads')
-      .insert([{
-        client_name: leadData.client_name,
-        client_phone: leadData.client_phone,
-        client_email: leadData.client_email,
-        region: leadData.region,
-        case_type: leadData.case_type,
-        case_description: leadData.case_description,
-        budget: leadData.budget,
-        urgency: leadData.urgency || 'medium',
-        status: 'new',
-        price: leadData.price || 0,
-        lawyer_id: leadData.lawyer_id || null, // Привязка к юристу (null = платный лид)
-      }])
-      .select()
-      .single();
-    return { data: data as Lead | null, error };
+    return withRetry<Lead>(() =>
+      supabase
+        .from('leads')
+        .insert([{
+          client_name: leadData.client_name,
+          client_phone: leadData.client_phone,
+          client_email: leadData.client_email,
+          region: leadData.region,
+          case_type: leadData.case_type,
+          case_description: leadData.case_description,
+          budget: leadData.budget,
+          urgency: leadData.urgency || 'medium',
+          status: 'new',
+          price: leadData.price || 0,
+          lawyer_id: leadData.lawyer_id || null,
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Получить заявки конкретного юриста (бесплатные)
   getByLawyer: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('lawyer_id', lawyerId)
-      .order('created_at', { ascending: false });
-    return { data: data as Lead[] | null, error };
+    return withRetry<Lead[]>(() =>
+      supabase
+        .from('leads')
+        .select('*')
+        .eq('lawyer_id', lawyerId)
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить платные лиды (без lawyer_id)
   getPaid: async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .is('lawyer_id', null)
-      .eq('status', 'new')
-      .gt('expires_at', new Date().toISOString())
-      .order('price', { ascending: false })
-      .order('created_at', { ascending: false });
-    return { data: data as Lead[] | null, error };
+    return withRetry<Lead[]>(() =>
+      supabase
+        .from('leads')
+        .select('*')
+        .is('lawyer_id', null)
+        .eq('status', 'new')
+        .gt('expires_at', new Date().toISOString())
+        .order('price', { ascending: false })
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить конкретный лид
   getById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('id', id)
-      .single();
-    return { data: data as Lead | null, error };
+    return withRetry<Lead>(() =>
+      supabase
+        .from('leads')
+        .select('*')
+        .eq('id', id)
+        .single()
+    );
   },
 
   // Обновить статус лида
   updateStatus: async (id: string, status: Lead['status']) => {
-    const { data, error } = await supabase
-      .from('leads')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as Lead | null, error };
+    return withRetry<Lead>(() =>
+      supabase
+        .from('leads')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Получить лиды пользователя
   getUserLeads: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('created_by', userId)
-      .order('created_at', { ascending: false });
-    return { data: data as Lead[] | null, error };
+    return withRetry<Lead[]>(() =>
+      supabase
+        .from('leads')
+        .select('*')
+        .eq('created_by', userId)
+        .order('created_at', { ascending: false })
+    );
   },
 };
 
 export const leadPurchases = {
   // Купить лида
   purchase: async (leadId: string, lawyerId: string, price: number) => {
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .insert([{
-        lead_id: leadId,
-        lawyer_id: lawyerId,
-        price,
-        payment_status: 'pending',
-        contact_revealed: false,
-        status: 'new',
-      }])
-      .select()
-      .single();
-    return { data: data as LeadPurchase | null, error };
+    return withRetry<LeadPurchase>(() =>
+      supabase
+        .from('lead_purchases')
+        .insert([{
+          lead_id: leadId,
+          lawyer_id: lawyerId,
+          price,
+          payment_status: 'pending',
+          contact_revealed: false,
+          status: 'new',
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Подтвердить оплату
   confirmPayment: async (purchaseId: string) => {
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .update({ 
-        payment_status: 'paid',
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', purchaseId)
-      .select()
-      .single();
-    return { data: data as LeadPurchase | null, error };
+    return withRetry<LeadPurchase>(() =>
+      supabase
+        .from('lead_purchases')
+        .update({
+          payment_status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId)
+        .select()
+        .single()
+    );
   },
 
   // Раскрыть контакты лида
   revealContact: async (purchaseId: string) => {
-    // Сначала получаем данные покупки
-    const { data: purchase, error: fetchError } = await supabase
-      .from('lead_purchases')
-      .select('lead_id, lawyer_id')
-      .eq('id', purchaseId)
-      .single();
+    return withRetry<any>(async () => {
+      const { data: purchase, error: fetchError } = await supabase
+        .from('lead_purchases')
+        .select('lead_id, lawyer_id')
+        .eq('id', purchaseId)
+        .single();
 
-    if (fetchError || !purchase) {
-      return { data: null, error: fetchError };
-    }
+      if (fetchError || !purchase) {
+        return { data: null as any, error: fetchError };
+      }
 
-    // Раскрываем контакты
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .update({ 
-        contact_revealed: true,
-        revealed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', purchaseId)
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('lead_purchases')
+        .update({
+          contact_revealed: true,
+          revealed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId)
+        .select()
+        .single();
 
-    if (error) return { data: null, error };
+      if (error) return { data: null as any, error };
 
-    // Получаем контакты лида
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .select('client_name, client_phone, client_email')
-      .eq('id', purchase.lead_id)
-      .single();
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .select('client_name, client_phone, client_email')
+        .eq('id', purchase.lead_id)
+        .single();
 
-    return { data: { purchase: data as LeadPurchase | null, contact: lead }, error: leadError };
+      return { data: { purchase, contact: lead } as any, error: leadError };
+    });
   },
 
   // Получить купленные лиды юриста
   getLawyerPurchases: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .select(`
-        *,
-        leads (
-          id,
-          client_name,
-          client_phone,
-          client_email,
-          region,
-          case_type,
-          case_description,
-          budget,
-          urgency,
-          created_at
-        )
-      `)
-      .eq('lawyer_id', lawyerId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('lead_purchases')
+        .select(`
+          *,
+          leads (
+            id,
+            client_name,
+            client_phone,
+            client_email,
+            region,
+            case_type,
+            case_description,
+            budget,
+            urgency,
+            created_at
+          )
+        `)
+        .eq('lawyer_id', lawyerId)
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Проверить, куплен ли лид
   checkIfPurchased: async (leadId: string, lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .select('id, contact_revealed, status')
-      .eq('lead_id', leadId)
-      .eq('lawyer_id', lawyerId)
-      .single();
-    return { data: data as Pick<LeadPurchase, 'id' | 'contact_revealed' | 'status'> | null, error };
+    return withRetry<Pick<LeadPurchase, 'id' | 'contact_revealed' | 'status'>>(() =>
+      supabase
+        .from('lead_purchases')
+        .select('id, contact_revealed, status')
+        .eq('lead_id', leadId)
+        .eq('lawyer_id', lawyerId)
+        .single()
+    );
   },
 
   // Обновить статус работы с лидом
   updateStatus: async (purchaseId: string, status: LeadPurchase['status']) => {
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', purchaseId)
-      .select()
-      .single();
-    return { data: data as LeadPurchase | null, error };
+    return withRetry<LeadPurchase>(() =>
+      supabase
+        .from('lead_purchases')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', purchaseId)
+        .select()
+        .single()
+    );
   },
 
   // Оставить обратную связь
   addFeedback: async (purchaseId: string, isUseful: boolean, feedback?: string) => {
-    const { data, error } = await supabase
-      .from('lead_purchases')
-      .update({ 
-        is_useful: isUseful,
-        client_feedback: feedback,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', purchaseId)
-      .select()
-      .single();
-    return { data: data as LeadPurchase | null, error };
+    return withRetry<LeadPurchase>(() =>
+      supabase
+        .from('lead_purchases')
+        .update({
+          is_useful: isUseful,
+          client_feedback: feedback,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId)
+        .select()
+        .single()
+    );
   },
 };
 
 export const leadBids = {
   // Сделать ставку на лида
   createBid: async (leadId: string, lawyerId: string, amount: number, message?: string) => {
-    const { data, error } = await supabase
-      .from('lead_bids')
-      .insert([{
-        lead_id: leadId,
-        lawyer_id: lawyerId,
-        bid_amount: amount,
-        message,
-        status: 'active',
-      }])
-      .select()
-      .single();
-    return { data: data as LeadBid | null, error };
+    return withRetry<LeadBid>(() =>
+      supabase
+        .from('lead_bids')
+        .insert([{
+          lead_id: leadId,
+          lawyer_id: lawyerId,
+          bid_amount: amount,
+          message,
+          status: 'active',
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Получить ставки на лид
   getLeadBids: async (leadId: string) => {
-    const { data, error } = await supabase
-      .from('lead_bids')
-      .select('*')
-      .eq('lead_id', leadId)
-      .eq('status', 'active')
-      .order('bid_amount', { ascending: false });
-    return { data: data as LeadBid[] | null, error };
+    return withRetry<LeadBid[]>(() =>
+      supabase
+        .from('lead_bids')
+        .select('*')
+        .eq('lead_id', leadId)
+        .eq('status', 'active')
+        .order('bid_amount', { ascending: false })
+    );
   },
 
   // Принять ставку
   acceptBid: async (bidId: string) => {
-    const { data: bid, error: fetchError } = await supabase
-      .from('lead_bids')
-      .select('lead_id, lawyer_id, bid_amount')
-      .eq('id', bidId)
-      .single();
+    return withRetry<any>(async () => {
+      const { data: bid, error: fetchError } = await supabase
+        .from('lead_bids')
+        .select('lead_id, lawyer_id, bid_amount')
+        .eq('id', bidId)
+        .single();
 
-    if (fetchError || !bid) return { data: null, error: fetchError };
+      if (fetchError || !bid) return { data: null as any, error: fetchError };
 
-    // Обновляем статус ставки
-    const { error: updateError } = await supabase
-      .from('lead_bids')
-      .update({ status: 'accepted' })
-      .eq('id', bidId);
+      const { error: updateError } = await supabase
+        .from('lead_bids')
+        .update({ status: 'accepted' })
+        .eq('id', bidId);
 
-    if (updateError) return { data: null, error: updateError };
+      if (updateError) return { data: null as any, error: updateError };
 
-    // Создаём покупку
-    return await leadPurchases.purchase(bid.lead_id, bid.lawyer_id, bid.bid_amount);
+      return await leadPurchases.purchase(bid.lead_id, bid.lawyer_id, bid.bid_amount);
+    });
   },
 
   // Отклонить ставку
   rejectBid: async (bidId: string) => {
-    const { data, error } = await supabase
-      .from('lead_bids')
-      .update({ status: 'rejected' })
-      .eq('id', bidId)
-      .select()
-      .single();
-    return { data: data as LeadBid | null, error };
+    return withRetry<LeadBid>(() =>
+      supabase
+        .from('lead_bids')
+        .update({ status: 'rejected' })
+        .eq('id', bidId)
+        .select()
+        .single()
+    );
   },
 };
 
 export const lawyers = {
   // Получить профиль юриста
   getProfile: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+    );
   },
 
   // Создать профиль юриста
   createProfile: async (userId: string, name: string, spec?: string, city?: string) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .insert([{
-        user_id: userId,
-        name,
-        spec,
-        city,
-        rating: 0,
-        reviews_count: 0,
-        verified: false,
-        can_buy_leads: true,
-        max_leads_per_month: 50,
-      }])
-      .select()
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .insert([{
+          user_id: userId,
+          name,
+          spec,
+          city,
+          rating: 0,
+          reviews_count: 0,
+          verified: false,
+          can_buy_leads: true,
+          max_leads_per_month: 50,
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Обновить профиль
   updateProfile: async (userId: string, updates: Partial<Lawyer>) => {
-    const { data: lawyer, error: findError } = await supabase
-      .from('lawyers')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    const { data: lawyer, error: findError } = await withRetry<any>(() =>
+      supabase
+        .from('lawyers')
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+    );
 
     if (findError || !lawyer) return { data: null, error: findError };
 
-    const { data, error } = await supabase
-      .from('lawyers')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', lawyer.id)
-      .select()
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', lawyer.id)
+        .select()
+        .single()
+    );
   },
 
   // Получить статистику юриста
   getStats: async (userId: string) => {
-    const { data: lawyer, error } = await supabase
-      .from('lawyers')
-      .select('leads_purchased, leads_converted, total_spent, rating')
-      .eq('user_id', userId)
-      .single();
+    const { data: lawyer, error } = await withRetry<any>(() =>
+      supabase
+        .from('lawyers')
+        .select('leads_purchased, leads_converted, total_spent, rating')
+        .eq('user_id', userId)
+        .single()
+    );
 
     if (error || !lawyer) return { data: null, error };
 
@@ -1392,11 +1381,12 @@ export const lawyers = {
 
   // Получить всех юристов (для демо)
   getAll: async () => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .select('*')
-      .order('rating', { ascending: false });
-    return { data: data as Lawyer[] | null, error };
+    return withRetry<Lawyer[]>(() =>
+      supabase
+        .from('lawyers')
+        .select('*')
+        .order('rating', { ascending: false })
+    );
   },
 
   // Получить всех юристов для админ-панели с пагинацией и фильтрами
@@ -1424,102 +1414,109 @@ export const lawyers = {
       query = query.eq('is_active', isActive);
     }
 
-    const { data, error, count } = await query;
+    const result = await withRetry<any>(() => query);
     return { 
-      data: data as Lawyer[] | null, 
-      error, 
-      count: count || 0,
-      totalPages: Math.ceil((count || 0) / pageSize)
+      data: result.data as Lawyer[] | null, 
+      error: result.error, 
+      count: result.data?.length || 0,
+      totalPages: Math.ceil((result.data?.length || 0) / pageSize)
     };
   },
 
   // Переключить активность юриста (админ)
   toggleLawyerActive: async (lawyerId: string, isActive: boolean) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .update({ 
-        is_active: isActive,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', lawyerId)
-      .select()
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .update({ 
+          is_active: isActive,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lawyerId)
+        .select()
+        .single()
+    );
   },
 
   // Обновить статус юриста (админ)
   updateLawyerStatus: async (lawyerId: string, status: 'pending' | 'approved' | 'rejected' | 'blocked') => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .update({ 
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', lawyerId)
-      .select()
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lawyerId)
+        .select()
+        .single()
+    );
   },
 
   // Удалить юриста (мягкое удаление)
   deleteLawyer: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .update({ 
-        is_active: false,
-        status: 'blocked',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', lawyerId)
-      .select()
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .update({ 
+          is_active: false,
+          status: 'blocked',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lawyerId)
+        .select()
+        .single()
+    );
   },
 
   // Создать/обновить юриста (админ)
   upsertLawyer: async (lawyerData: Partial<Lawyer>) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .upsert(lawyerData, { onConflict: 'id' })
-      .select()
-      .single();
-    return { data: data as Lawyer | null, error };
+    return withRetry<Lawyer>(() =>
+      supabase
+        .from('lawyers')
+        .upsert(lawyerData, { onConflict: 'id' })
+        .select()
+        .single()
+    );
   },
 
 
   // Получить отзывы о юристе
   getReviews: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_reviews')
-      .select('*')
-      .eq('lawyer_id', lawyerId)
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_reviews')
+        .select('*')
+        .eq('lawyer_id', lawyerId)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить активных юристов (публичный endpoint)
   getActive: async () => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .select('*')
-      .eq('is_active', true)
-      .eq('status', 'approved')
-      .order('rating', { ascending: false });
-    return { data: data as Lawyer[] | null, error };
+    return withRetry<Lawyer[]>(() =>
+      supabase
+        .from('lawyers')
+        .select('*')
+        .eq('is_active', true)
+        .eq('status', 'approved')
+        .order('rating', { ascending: false })
+    );
   },
 
   // Получить избранных юристов для главной страницы
   getFeatured: async (limit: number = 4) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .select('*')
-      .eq('is_featured', true)
-      .eq('is_active', true)
-      .eq('status', 'approved')
-      .order('rating', { ascending: false })
-      .limit(limit);
-    return { data: data as Lawyer[] | null, error };
+    return withRetry<Lawyer[]>(() =>
+      supabase
+        .from('lawyers')
+        .select('*')
+        .eq('is_featured', true)
+        .eq('is_active', true)
+        .eq('status', 'approved')
+        .order('rating', { ascending: false })
+        .limit(limit)
+    );
   },
 
   // Поиск юристов по параметрам
@@ -1568,21 +1565,21 @@ export const lawyers = {
       query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
     }
 
-    const { data, error, count } = await query;
-    return { data: data as Lawyer[] | null, error, count };
+    return withRetry<any>(() => query);
   },
 
   // Получить юристов по городу
   getByCity: async (city: string, limit: number = 10) => {
-    const { data, error } = await supabase
-      .from('lawyers')
-      .select('*')
-      .eq('city', city)
-      .eq('is_active', true)
-      .eq('status', 'approved')
-      .order('rating', { ascending: false })
-      .limit(limit);
-    return { data: data as Lawyer[] | null, error };
+    return withRetry<Lawyer[]>(() =>
+      supabase
+        .from('lawyers')
+        .select('*')
+        .eq('city', city)
+        .eq('is_active', true)
+        .eq('status', 'approved')
+        .order('rating', { ascending: false })
+        .limit(limit)
+    );
   },
 };
 
@@ -1601,24 +1598,25 @@ export const lawyerApplications = {
     description: string;
     certificate_number?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('lawyer_applications')
-      .insert([{
-        user_id: applicationData.user_id,
-        name: applicationData.name,
-        specialization: applicationData.specialization,
-        city: applicationData.city,
-        region: applicationData.region,
-        phone: applicationData.phone,
-        email: applicationData.email,
-        experience_years: applicationData.experience_years,
-        description: applicationData.description,
-        certificate_number: applicationData.certificate_number || null,
-        status: 'pending',
-      }])
-      .select()
-      .single();
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_applications')
+        .insert([{
+          user_id: applicationData.user_id,
+          name: applicationData.name,
+          specialization: applicationData.specialization,
+          city: applicationData.city,
+          region: applicationData.region,
+          phone: applicationData.phone,
+          email: applicationData.email,
+          experience_years: applicationData.experience_years,
+          description: applicationData.description,
+          certificate_number: applicationData.certificate_number || null,
+          status: 'pending',
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Получить заявку пользователя
@@ -1626,14 +1624,15 @@ export const lawyerApplications = {
     if (!userId) {
       return { data: null, error: null };
     }
-    const { data, error } = await supabase
-      .from('lawyer_applications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_applications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    );
   },
 
   // Получить все заявки (для админа)
@@ -1647,63 +1646,68 @@ export const lawyerApplications = {
       query = query.eq('status', status);
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    return withRetry<any>(() => query);
   },
 
   // Одобрить заявку
   approve: async (applicationId: string, adminNotes?: string) => {
     // Сначала получаем заявку
-    const { data: application, error: fetchError } = await supabase
-      .from('lawyer_applications')
-      .select('*')
-      .eq('id', applicationId)
-      .single();
+    const { data: application, error: fetchError } = await withRetry<any>(() =>
+      supabase
+        .from('lawyer_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single()
+    );
 
     if (fetchError || !application) {
       return { data: null, error: fetchError };
     }
 
     // Обновляем статус заявки
-    const { data: updatedApp, error: updateError } = await supabase
-      .from('lawyer_applications')
-      .update({
-        status: 'approved',
-        admin_notes: adminNotes || null,
-        processed_at: new Date().toISOString(),
-      })
-      .eq('id', applicationId)
-      .select()
-      .single();
+    const { data: updatedApp, error: updateError } = await withRetry<any>(() =>
+      supabase
+        .from('lawyer_applications')
+        .update({
+          status: 'approved',
+          admin_notes: adminNotes || null,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', applicationId)
+        .select()
+        .single()
+    );
 
     if (updateError) {
       return { data: null, error: updateError };
     }
 
     // Создаём профиль юриста
-    const { data: lawyer, error: lawyerError } = await supabase
-      .from('lawyers')
-      .insert([{
-        user_id: application.user_id,
-        name: application.name,
-        spec: application.specialization,
-        specialization: application.specialization,
-        city: application.city,
-        region: application.region,
-        phone: application.phone,
-        email: application.email,
-        experience_years: application.experience_years,
-        description: application.description,
-        rating: 0,
-        reviews_count: 0,
-        verified: false,
-        is_active: true,
-        is_featured: false,
-        status: 'approved',
-        subscription_tier: 'free',
-      }])
-      .select()
-      .single();
+    const { data: lawyer, error: lawyerError } = await withRetry<any>(() =>
+      supabase
+        .from('lawyers')
+        .insert([{
+          user_id: application.user_id,
+          name: application.name,
+          spec: application.specialization,
+          specialization: application.specialization,
+          city: application.city,
+          region: application.region,
+          phone: application.phone,
+          email: application.email,
+          experience_years: application.experience_years,
+          description: application.description,
+          rating: 0,
+          reviews_count: 0,
+          verified: false,
+          is_active: true,
+          is_featured: false,
+          status: 'approved',
+          subscription_tier: 'free',
+        }])
+        .select()
+        .single()
+    );
 
     if (lawyerError) {
       // Откатываем изменение заявки
@@ -1725,17 +1729,18 @@ export const lawyerApplications = {
 
   // Отклонить заявку
   reject: async (applicationId: string, adminNotes?: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_applications')
-      .update({
-        status: 'rejected',
-        admin_notes: adminNotes || null,
-        processed_at: new Date().toISOString(),
-      })
-      .eq('id', applicationId)
-      .select()
-      .single();
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_applications')
+        .update({
+          status: 'rejected',
+          admin_notes: adminNotes || null,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', applicationId)
+        .select()
+        .single()
+    );
   },
 };
 
@@ -1812,34 +1817,37 @@ export interface UserReward {
 export const reviews = {
   // Проверить, может ли пользователь оставить отзыв
   canReview: async (userId: string, lawyerId: string) => {
-    // Проверяем через case_lawyer_links
-    const { data: link, error: linkError } = await supabase
-      .from('case_lawyer_links')
-      .select('id, case_id')
-      .eq('user_id', userId)
-      .eq('lawyer_id', lawyerId)
-      .eq('status', 'confirmed')
-      .single();
+    const { data: link } = await withRetry<any>(() =>
+      supabase
+        .from('case_lawyer_links')
+        .select('id, case_id')
+        .eq('user_id', userId)
+        .eq('lawyer_id', lawyerId)
+        .eq('status', 'confirmed')
+        .single()
+    );
 
     if (link) {
       return { canReview: true, caseId: link.case_id, reason: 'Связь с юристом подтверждена' };
     }
 
-    // Проверяем через lead_purchases
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('lead_purchases')
-      .select('id')
-      .eq('lawyer_id', lawyerId)
-      .single();
+    const { data: purchase } = await withRetry<any>(() =>
+      supabase
+        .from('lead_purchases')
+        .select('id')
+        .eq('lawyer_id', lawyerId)
+        .single()
+    );
 
-    // Проверяем, есть ли у пользователя дело
-    const { data: userCase } = await supabase
-      .from('cases')
-      .select('id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    const { data: userCase } = await withRetry<any>(() =>
+      supabase
+        .from('cases')
+        .select('id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+    );
 
     if (purchase && userCase) {
       return { canReview: true, caseId: userCase.id, reason: 'Вы приобретали контакты этого юриста' };
@@ -1857,42 +1865,45 @@ export const reviews = {
     review_text?: string;
     captcha_token?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('lawyer_reviews')
-      .insert([{
-        lawyer_id: reviewData.lawyer_id,
-        user_id: reviewData.user_id,
-        case_id: reviewData.case_id || null,
-        rating: reviewData.rating,
-        review_text: reviewData.review_text || null,
-        captcha_token: reviewData.captcha_token || null,
-        captcha_verified_at: reviewData.captcha_token ? new Date().toISOString() : null,
-        status: 'pending',
-      }])
-      .select()
-      .single();
-    return { data: data as LawyerReview | null, error };
+    return withRetry<LawyerReview>(() =>
+      supabase
+        .from('lawyer_reviews')
+        .insert([{
+          lawyer_id: reviewData.lawyer_id,
+          user_id: reviewData.user_id,
+          case_id: reviewData.case_id || null,
+          rating: reviewData.rating,
+          review_text: reviewData.review_text || null,
+          captcha_token: reviewData.captcha_token || null,
+          captcha_verified_at: reviewData.captcha_token ? new Date().toISOString() : null,
+          status: 'pending',
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Получить одобренные отзывы о юристе
   getApproved: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_reviews')
-      .select('*')
-      .eq('lawyer_id', lawyerId)
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
-    return { data: data as LawyerReview[] | null, error };
+    return withRetry<LawyerReview[]>(() =>
+      supabase
+        .from('lawyer_reviews')
+        .select('*')
+        .eq('lawyer_id', lawyerId)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить все отзывы пользователя
   getUserReviews: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_reviews')
-      .select('*, lawyers(name, spec)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_reviews')
+        .select('*, lawyers(name, spec)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+    );
   },
 };
 
@@ -1904,66 +1915,71 @@ export const caseLinks = {
     user_id: string;
     description?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('case_lawyer_links')
-      .insert([{
-        case_id: linkData.case_id,
-        lawyer_id: linkData.lawyer_id,
-        user_id: linkData.user_id,
-        description: linkData.description || null,
-        status: 'pending',
-      }])
-      .select()
-      .single();
-    return { data: data as CaseLawyerLink | null, error };
+    return withRetry<CaseLawyerLink>(() =>
+      supabase
+        .from('case_lawyer_links')
+        .insert([{
+          case_id: linkData.case_id,
+          lawyer_id: linkData.lawyer_id,
+          user_id: linkData.user_id,
+          description: linkData.description || null,
+          status: 'pending',
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Подтвердить связь (юрист подтверждает)
   confirm: async (linkId: string, isLawyer: boolean) => {
     const updateField = isLawyer ? 'confirmed_by_lawyer' : 'confirmed_by_user';
-    const { data, error } = await supabase
-      .from('case_lawyer_links')
-      .update({
-        [updateField]: true,
-        status: 'confirmed',
-        confirmed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', linkId)
-      .select()
-      .single();
-    return { data: data as CaseLawyerLink | null, error };
+    return withRetry<CaseLawyerLink>(() =>
+      supabase
+        .from('case_lawyer_links')
+        .update({
+          [updateField]: true,
+          status: 'confirmed',
+          confirmed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', linkId)
+        .select()
+        .single()
+    );
   },
 
   // Отклонить связь
   reject: async (linkId: string) => {
-    const { data, error } = await supabase
-      .from('case_lawyer_links')
-      .update({ status: 'denied', updated_at: new Date().toISOString() })
-      .eq('id', linkId)
-      .select()
-      .single();
-    return { data: data as CaseLawyerLink | null, error };
+    return withRetry<CaseLawyerLink>(() =>
+      supabase
+        .from('case_lawyer_links')
+        .update({ status: 'denied', updated_at: new Date().toISOString() })
+        .eq('id', linkId)
+        .select()
+        .single()
+    );
   },
 
   // Получить связи пользователя
   getUserLinks: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('case_lawyer_links')
-      .select('*, lawyers(name, spec, city), cases(number, court)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_lawyer_links')
+        .select('*, lawyers(name, spec, city), cases(number, court)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить связи юриста
   getLawyerLinks: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('case_lawyer_links')
-      .select('*, cases(number, court), profiles(full_name)')
-      .eq('lawyer_id', lawyerId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_lawyer_links')
+        .select('*, cases(number, court), profiles(full_name)')
+        .eq('lawyer_id', lawyerId)
+        .order('created_at', { ascending: false })
+    );
   },
 };
 
@@ -1976,63 +1992,67 @@ export const caseOutcomes = {
     outcome: CaseOutcome['outcome'];
     outcome_description?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('case_outcomes')
-      .insert([{
-        case_id: outcomeData.case_id,
-        lawyer_id: outcomeData.lawyer_id,
-        user_id: outcomeData.user_id,
-        outcome: outcomeData.outcome,
-        outcome_description: outcomeData.outcome_description || null,
-      }])
-      .select()
-      .single();
-    return { data: data as CaseOutcome | null, error };
+    return withRetry<CaseOutcome>(() =>
+      supabase
+        .from('case_outcomes')
+        .insert([{
+          case_id: outcomeData.case_id,
+          lawyer_id: outcomeData.lawyer_id,
+          user_id: outcomeData.user_id,
+          outcome: outcomeData.outcome,
+          outcome_description: outcomeData.outcome_description || null,
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Подтвердить исход (юрист подтверждает успех)
   confirmByLawyer: async (outcomeId: string, outcome: CaseOutcome['outcome']) => {
-    const { data, error } = await supabase
-      .from('case_outcomes')
-      .update({
-        confirmed_by_lawyer: true,
-        confirmed_by_lawyer_at: new Date().toISOString(),
-        outcome,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', outcomeId)
-      .select()
-      .single();
-    return { data: data as CaseOutcome | null, error };
+    return withRetry<CaseOutcome>(() =>
+      supabase
+        .from('case_outcomes')
+        .update({
+          confirmed_by_lawyer: true,
+          confirmed_by_lawyer_at: new Date().toISOString(),
+          outcome,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', outcomeId)
+        .select()
+        .single()
+    );
   },
 
   // Подтвердить исход (пользователь подтверждает)
   confirmByUser: async (outcomeId: string) => {
-    // Сначала получаем текущий исход
-    const { data: current, error: fetchError } = await supabase
-      .from('case_outcomes')
-      .select('*')
-      .eq('id', outcomeId)
-      .single();
+    const { data: current } = await withRetry<any>(() =>
+      supabase
+        .from('case_outcomes')
+        .select('*')
+        .eq('id', outcomeId)
+        .single()
+    );
 
-    if (fetchError) return { data: null, error: fetchError };
+    if (!current) return { data: null, error: 'Outcome not found' };
 
     const bothConfirmed = current.confirmed_by_lawyer && current.outcome === 'won';
 
-    const { data, error } = await supabase
-      .from('case_outcomes')
-      .update({
-        confirmed_by_user: true,
-        confirmed_by_user_at: new Date().toISOString(),
-        both_confirmed: bothConfirmed,
-        confirmed_at: bothConfirmed ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', outcomeId)
-      .select()
-      .single();
+    const { data, error } = await withRetry<CaseOutcome>(() =>
+      supabase
+        .from('case_outcomes')
+        .update({
+          confirmed_by_user: true,
+          confirmed_by_user_at: new Date().toISOString(),
+          both_confirmed: bothConfirmed,
+          confirmed_at: bothConfirmed ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', outcomeId)
+        .select()
+        .single()
+    );
 
-    // Если обе стороны подтвердили успех - начисляем награду юристу
     if (bothConfirmed && !current.both_confirmed) {
       await lawyerRewards.create({
         lawyer_id: current.lawyer_id,
@@ -2042,27 +2062,29 @@ export const caseOutcomes = {
       });
     }
 
-    return { data: data as CaseOutcome | null, error };
+    return { data, error };
   },
 
   // Получить исходы пользователя
   getUserOutcomes: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('case_outcomes')
-      .select('*, lawyers(name, spec), cases(number, court)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_outcomes')
+        .select('*, lawyers(name, spec), cases(number, court)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить исходы юриста
   getLawyerOutcomes: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('case_outcomes')
-      .select('*, cases(number, court), profiles(full_name)')
-      .eq('lawyer_id', lawyerId)
-      .order('created_at', { ascending: false });
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('case_outcomes')
+        .select('*, cases(number, court), profiles(full_name)')
+        .eq('lawyer_id', lawyerId)
+        .order('created_at', { ascending: false })
+    );
   },
 };
 
@@ -2074,98 +2096,106 @@ export const lawyerRewards = {
     reward_value: number;
     case_id?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('lawyer_rewards')
-      .insert([{
-        lawyer_id: rewardData.lawyer_id,
-        reward_type: rewardData.reward_type,
-        reward_value: rewardData.reward_value,
-        case_id: rewardData.case_id || null,
-        status: 'available',
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 дней
-      }])
-      .select()
-      .single();
-    return { data: data as LawyerReward | null, error };
+    return withRetry<LawyerReward>(() =>
+      supabase
+        .from('lawyer_rewards')
+        .insert([{
+          lawyer_id: rewardData.lawyer_id,
+          reward_type: rewardData.reward_type,
+          reward_value: rewardData.reward_value,
+          case_id: rewardData.case_id || null,
+          status: 'available',
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Получить доступные награды юриста
   getAvailable: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_rewards')
-      .select('*')
-      .eq('lawyer_id', lawyerId)
-      .eq('status', 'available')
-      .gt('expires_at', new Date().toISOString())
-      .order('earned_at', { ascending: true });
-    return { data: data as LawyerReward[] | null, error };
+    return withRetry<LawyerReward[]>(() =>
+      supabase
+        .from('lawyer_rewards')
+        .select('*')
+        .eq('lawyer_id', lawyerId)
+        .eq('status', 'available')
+        .gt('expires_at', new Date().toISOString())
+        .order('earned_at', { ascending: true })
+    );
   },
 
   // Использовать награду (получить бесплатный лид)
   useReward: async (rewardId: string, leadId: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_rewards')
-      .update({
-        status: 'used',
-        used_at: new Date().toISOString(),
-        used_for_lead_id: leadId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', rewardId)
-      .select()
-      .single();
-    return { data: data as LawyerReward | null, error };
+    return withRetry<LawyerReward>(() =>
+      supabase
+        .from('lawyer_rewards')
+        .update({
+          status: 'used',
+          used_at: new Date().toISOString(),
+          used_for_lead_id: leadId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', rewardId)
+        .select()
+        .single()
+    );
   },
 
   // Получить историю наград юриста
   getHistory: async (lawyerId: string) => {
-    const { data, error } = await supabase
-      .from('lawyer_rewards')
-      .select('*')
-      .eq('lawyer_id', lawyerId)
-      .order('earned_at', { ascending: false });
-    return { data: data as LawyerReward[] | null, error };
+    return withRetry<LawyerReward[]>(() =>
+      supabase
+        .from('lawyer_rewards')
+        .select('*')
+        .eq('lawyer_id', lawyerId)
+        .order('earned_at', { ascending: false })
+    );
   },
 };
 
 export const courts = {
   // Получить все суды
   getAll: async () => {
-    const { data, error } = await supabase
-      .from('courts')
-      .select('*')
-      .order('name');
-    return { data: data as Court[] | null, error };
+    return withRetry<Court[]>(() =>
+      supabase
+        .from('courts')
+        .select('*')
+        .order('name')
+    );
   },
 
   // Получить суд по ID
   getById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('courts')
-      .select('*')
-      .eq('id', id)
-      .single();
-    return { data: data as Court | null, error };
+    return withRetry<Court>(() =>
+      supabase
+        .from('courts')
+        .select('*')
+        .eq('id', id)
+        .single()
+    );
   },
 
   // Получить суды по региону
   getByRegion: async (regionId: string) => {
-    const { data, error } = await supabase
-      .from('courts')
-      .select('*')
-      .eq('region_id', regionId)
-      .order('name');
-    return { data: data as Court[] | null, error };
+    return withRetry<Court[]>(() =>
+      supabase
+        .from('courts')
+        .select('*')
+        .eq('region_id', regionId)
+        .order('name')
+    );
   },
 
   // Поиск судов по названию
   searchByName: async (query: string) => {
-    const { data, error } = await supabase
-      .from('courts')
-      .select('*')
-      .ilike('name', `%${query}%`)
-      .order('name');
-    return { data: data as Court[] | null, error };
+    return withRetry<Court[]>(() =>
+      supabase
+        .from('courts')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .order('name')
+    );
   },
 
   // Найти суд по названию (для привязки к делу)
@@ -2173,41 +2203,43 @@ export const courts = {
     if (!courtName || courtName.trim() === '') {
       return { data: null, error: null };
     }
-    
+
     try {
-      // Сначала пробуем нечёткое совпадение с помощью ilike
-      let { data, error } = await supabase
-        .from('courts')
-        .select('*')
-        .ilike('name', `%${courtName}%`)
-        .limit(1);
-      
-      if (data && data.length > 0) {
-        return { data: data[0] as Court | null, error: null };
-      }
-      
-      // Если не найдено, пробуем поиск по всем судам и ищем наиболее подходящий
-      const searchTerms = courtName.toLowerCase().split(' ').filter(t => t.length > 2);
-      
-      if (searchTerms.length > 0) {
-        const { data: allCourts } = await supabase
+      const result = await withRetry<Court>(() =>
+        supabase
           .from('courts')
           .select('*')
-          .order('name');
-        
-        if (allCourts && allCourts.length > 0) {
-          // Ищем суд, в названии которого есть все слова из искомого
-          const matched = allCourts.find(court => {
+          .ilike('name', `%${courtName}%`)
+          .limit(1)
+      );
+
+      if (result.data) {
+        return { data: result.data as Court | null, error: null };
+      }
+
+      // Если не найдено, пробуем поиск по всем судам и ищем наиболее подходящий
+      const searchTerms = courtName.toLowerCase().split(' ').filter(t => t.length > 2);
+
+      if (searchTerms.length > 0) {
+        const allResult = await withRetry<Court[]>(() =>
+          supabase
+            .from('courts')
+            .select('*')
+            .order('name')
+        );
+
+        if (allResult.data && allResult.data.length > 0) {
+          const matched = allResult.data.find(court => {
             const courtLower = court.name.toLowerCase();
             return searchTerms.every(term => courtLower.includes(term));
           });
-          
+
           if (matched) {
             return { data: matched as Court, error: null };
           }
         }
       }
-      
+
       return { data: null, error: null };
     } catch (err) {
       console.error('Error finding court:', err);
@@ -2219,31 +2251,34 @@ export const courts = {
 export const courtRegions = {
   // Получить все регионы
   getAll: async () => {
-    const { data, error } = await supabase
-      .from('court_regions')
-      .select('*')
-      .order('name');
-    return { data: data as CourtRegion[] | null, error };
+    return withRetry<CourtRegion[]>(() =>
+      supabase
+        .from('court_regions')
+        .select('*')
+        .order('name')
+    );
   },
 
   // Получить регион по ID
   getById: async (id: string) => {
-    const { data, error } = await supabase
-      .from('court_regions')
-      .select('*')
-      .eq('id', id)
-      .single();
-    return { data: data as CourtRegion | null, error };
+    return withRetry<CourtRegion>(() =>
+      supabase
+        .from('court_regions')
+        .select('*')
+        .eq('id', id)
+        .single()
+    );
   },
 
   // Поиск регионов по названию
   searchByName: async (query: string) => {
-    const { data, error } = await supabase
-      .from('court_regions')
-      .select('*')
-      .ilike('name', `%${query}%`)
-      .order('name');
-    return { data: data as CourtRegion[] | null, error };
+    return withRetry<CourtRegion[]>(() =>
+      supabase
+        .from('court_regions')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .order('name')
+    );
   },
 };
 
@@ -2254,37 +2289,40 @@ export const courtRegions = {
 export const calendarEvents = {
   // Получить все события пользователя
   getByUser: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('user_id', userId)
-      .order('event_date', { ascending: true })
-      .order('event_time', { ascending: true });
-    return { data: data as CaseCalendarEvent[] | null, error };
+    return withRetry<CaseCalendarEvent[]>(() =>
+      supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .order('event_date', { ascending: true })
+        .order('event_time', { ascending: true })
+    );
   },
 
   // Получить события на конкретную дату
   getByDate: async (userId: string, date: string) => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('event_date', date)
-      .order('event_time', { ascending: true });
-    return { data: data as CaseCalendarEvent[] | null, error };
+    return withRetry<CaseCalendarEvent[]>(() =>
+      supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('event_date', date)
+        .order('event_time', { ascending: true })
+    );
   },
 
   // Получить события за период
   getByDateRange: async (userId: string, startDate: string, endDate: string) => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('event_date', startDate)
-      .lte('event_date', endDate)
-      .order('event_date', { ascending: true })
-      .order('event_time', { ascending: true });
-    return { data: data as CaseCalendarEvent[] | null, error };
+    return withRetry<CaseCalendarEvent[]>(() =>
+      supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('event_date', startDate)
+        .lte('event_date', endDate)
+        .order('event_date', { ascending: true })
+        .order('event_time', { ascending: true })
+    );
   },
 
   // Создать событие
@@ -2299,22 +2337,23 @@ export const calendarEvents = {
     is_recurring?: boolean;
     recurrence_rule?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .insert([{
-        user_id: eventData.user_id,
-        title: eventData.title,
-        event_date: eventData.event_date,
-        event_time: eventData.event_time || null,
-        event_type: eventData.event_type || 'custom',
-        description: eventData.description || null,
-        case_id: eventData.case_id || null,
-        is_recurring: eventData.is_recurring || false,
-        recurrence_rule: eventData.recurrence_rule || null,
-      }])
-      .select()
-      .single();
-    return { data: data as CaseCalendarEvent | null, error };
+    return withRetry<CaseCalendarEvent>(() =>
+      supabase
+        .from('calendar_events')
+        .insert([{
+          user_id: eventData.user_id,
+          title: eventData.title,
+          event_date: eventData.event_date,
+          event_time: eventData.event_time || null,
+          event_type: eventData.event_type || 'custom',
+          description: eventData.description || null,
+          case_id: eventData.case_id || null,
+          is_recurring: eventData.is_recurring || false,
+          recurrence_rule: eventData.recurrence_rule || null,
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Обновить событие
@@ -2328,31 +2367,34 @@ export const calendarEvents = {
     is_recurring: boolean;
     recurrence_rule: string;
   }>) => {
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as CaseCalendarEvent | null, error };
+    return withRetry<CaseCalendarEvent>(() =>
+      supabase
+        .from('calendar_events')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Удалить событие
   delete: async (id: string) => {
-    const { error } = await supabase
-      .from('calendar_events')
-      .delete()
-      .eq('id', id);
-    return { error };
+    return withRetry<any>(() =>
+      supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', id)
+    );
   },
 
   // Удалить несколько событий
   deleteMultiple: async (ids: string[]) => {
-    const { error } = await supabase
-      .from('calendar_events')
-      .delete()
-      .in('id', ids);
-    return { error };
+    return withRetry<any>(() =>
+      supabase
+        .from('calendar_events')
+        .delete()
+        .in('id', ids)
+    );
   },
 };
 
@@ -2367,81 +2409,86 @@ export const userRewards = {
     lawyer_id?: string;
     promo_code?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('user_rewards')
-      .insert([{
-        user_id: rewardData.user_id,
-        reward_type: rewardData.reward_type,
-        reward_value: rewardData.reward_value,
-        description: rewardData.description || null,
-        review_id: rewardData.review_id || null,
-        lawyer_id: rewardData.lawyer_id || null,
-        promo_code: rewardData.promo_code || null,
-        status: 'available',
-        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 дней
-      }])
-      .select()
-      .single();
-    return { data: data as UserReward | null, error };
+    return withRetry<UserReward>(() =>
+      supabase
+        .from('user_rewards')
+        .insert([{
+          user_id: rewardData.user_id,
+          reward_type: rewardData.reward_type,
+          reward_value: rewardData.reward_value,
+          description: rewardData.description || null,
+          review_id: rewardData.review_id || null,
+          lawyer_id: rewardData.lawyer_id || null,
+          promo_code: rewardData.promo_code || null,
+          status: 'available',
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 дней
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Получить доступные награды пользователя
   getAvailable: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('user_rewards')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'available')
-      .gt('expires_at', new Date().toISOString())
-      .order('earned_at', { ascending: false });
-    return { data: data as UserReward[] | null, error };
+    return withRetry<UserReward[]>(() =>
+      supabase
+        .from('user_rewards')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'available')
+        .gt('expires_at', new Date().toISOString())
+        .order('earned_at', { ascending: false })
+    );
   },
 
   // Использовать награду
   useReward: async (rewardId: string) => {
-    const { data, error } = await supabase
-      .from('user_rewards')
-      .update({
-        status: 'used',
-        used_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', rewardId)
-      .select()
-      .single();
-    return { data: data as UserReward | null, error };
+    return withRetry<UserReward>(() =>
+      supabase
+        .from('user_rewards')
+        .update({
+          status: 'used',
+          used_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', rewardId)
+        .select()
+        .single()
+    );
   },
 
   // Получить историю наград пользователя
   getHistory: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('user_rewards')
-      .select('*')
-      .eq('user_id', userId)
-      .order('earned_at', { ascending: false });
-    return { data: data as UserReward[] | null, error };
+    return withRetry<UserReward[]>(() =>
+      supabase
+        .from('user_rewards')
+        .select('*')
+        .eq('user_id', userId)
+        .order('earned_at', { ascending: false })
+    );
   },
 
   // Применить промокод
   applyPromoCode: async (userId: string, promoCode: string) => {
-    const { data: reward, error: fetchError } = await supabase
-      .from('user_rewards')
-      .select('*')
-      .eq('promo_code', promoCode.toUpperCase())
-      .eq('status', 'available')
-      .gt('expires_at', new Date().toISOString())
-      .single();
+    const result = await withRetry<any>(() =>
+      supabase
+        .from('user_rewards')
+        .select('*')
+        .eq('promo_code', promoCode.toUpperCase())
+        .eq('status', 'available')
+        .gt('expires_at', new Date().toISOString())
+        .single()
+    );
 
-    if (fetchError || !reward) {
+    if (result.error || !result.data) {
       return { data: null, error: { message: 'Промокод недействителен или истёк' } };
     }
 
-    // Проверяем, что пользователь не использовал этот промокод
-    if (reward.user_id !== userId) {
+    if (result.data.user_id !== userId) {
       return { data: null, error: { message: 'Промокод недействителен для этого пользователя' } };
     }
 
-    return { data: reward as UserReward, error: null };
+    return { data: result.data as UserReward, error: null };
   },
 };
 
@@ -2511,99 +2558,111 @@ export interface BlockedUser {
 export const blogPosts = {
   // Получить все опубликованные статьи
   getPublished: async () => {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .eq('published', true)
-      .order('created_at', { ascending: false });
-    return { data: data as BlogPost[] | null, error };
+    return withRetry<BlogPost[]>(() =>
+      supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('published', true)
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Получить статью по ID
   getById: async (id: number) => {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .eq('id', id)
-      .single();
-    return { data: data as BlogPost | null, error };
+    return withRetry<BlogPost>(() =>
+      supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('id', id)
+        .single()
+    );
   },
 
   // Получить все статьи (для админа)
   getAll: async () => {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    return { data: data as BlogPost[] | null, error };
+    return withRetry<BlogPost[]>(() =>
+      supabase
+        .from('blog_posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Создать статью
   create: async (postData: Partial<BlogPost>) => {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .insert([{
-        ...postData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }])
-      .select()
-      .single();
-    return { data: data as BlogPost | null, error };
+    return withRetry<BlogPost>(() =>
+      supabase
+        .from('blog_posts')
+        .insert([{
+          ...postData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Обновить статью
   update: async (id: number, updates: Partial<BlogPost>) => {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogPost | null, error };
+    return withRetry<BlogPost>(() =>
+      supabase
+        .from('blog_posts')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Увеличить счетчик просмотров
   incrementViews: async (id: number) => {
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .update({ views: (await supabase.from('blog_posts').select('views').eq('id', id).single()).data?.views + 1 || 1 })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogPost | null, error };
+    return withRetry<any>(() =>
+      (async () => {
+        const { data: current } = await supabase.from('blog_posts').select('views').eq('id', id).single();
+        return supabase
+          .from('blog_posts')
+          .update({ views: (current?.views || 0) + 1 })
+          .eq('id', id)
+          .select()
+          .single();
+      })()
+    );
   },
 
   // Удалить статью
   delete: async (id: number) => {
-    const { error } = await supabase
-      .from('blog_posts')
-      .delete()
-      .eq('id', id);
-    return { error };
+    return withRetry<any>(() =>
+      supabase
+        .from('blog_posts')
+        .delete()
+        .eq('id', id)
+    );
   },
 };
 
 export const blogComments = {
   // Получить одобренные комментарии для статьи
   getByPostId: async (postId: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments_with_users')
-      .select('*')
-      .eq('post_id', postId)
-      .eq('status', 'approved')
-      .eq('is_deleted', false)
-      .is('parent_id', null)
-      .order('created_at', { ascending: false });
+    const result = await withRetry<any>(() =>
+      supabase
+        .from('blog_comments_with_users')
+        .select('*')
+        .eq('post_id', postId)
+        .eq('status', 'approved')
+        .eq('is_deleted', false)
+        .is('parent_id', null)
+        .order('created_at', { ascending: false })
+    );
 
-    if (error) return { data: null, error };
+    if (result.error) return { data: null, error: result.error };
 
     // Получаем ответы для каждого комментария
     const commentsWithReplies = await Promise.all(
-      (data || []).map(async (comment: BlogComment) => {
+      (result.data || []).map(async (comment: BlogComment) => {
         const { data: replies } = await supabase
           .from('blog_comments_with_users')
           .select('*')
@@ -2620,140 +2679,155 @@ export const blogComments = {
 
   // Получить все комментарии для модерации
   getAllForModeration: async (status?: string) => {
-    let query = supabase
-      .from('blog_comments_with_users')
-      .select('*, blog_posts(title, slug)')
-      .eq('is_deleted', false);
-    
-    if (status) {
-      query = query.eq('status', status);
-    }
+    return withRetry<any>(() => {
+      let query = supabase
+        .from('blog_comments_with_users')
+        .select('*, blog_posts(title, slug)')
+        .eq('is_deleted', false);
+      
+      if (status) {
+        query = query.eq('status', status);
+      }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-    return { data: data as (BlogComment & { blog_posts: { title: string; slug: string } })[] | null, error };
+      return query.order('created_at', { ascending: false });
+    });
   },
 
   // Получить комментарии пользователя
   getByUserId: async (userId: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments_with_users')
-      .select('*, blog_posts(title, slug)')
-      .eq('user_id', userId)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false });
-    return { data: data as (BlogComment & { blog_posts: { title: string; slug: string } })[] | null, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('blog_comments_with_users')
+        .select('*, blog_posts(title, slug)')
+        .eq('user_id', userId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+    );
   },
 
   // Создать комментарий
   create: async (postId: string, content: string, parentId?: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments')
-      .insert([{
-        post_id: postId,
-        content: content.trim(),
-        parent_id: parentId || null,
-        status: 'pending', // По умолчанию на модерации
-      }])
-      .select()
-      .single();
-    return { data: data as BlogComment | null, error };
+    return withRetry<BlogComment>(() =>
+      supabase
+        .from('blog_comments')
+        .insert([{
+          post_id: postId,
+          content: content.trim(),
+          parent_id: parentId || null,
+          status: 'pending', // По умолчанию на модерации
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Обновить комментарий (в течение 15 минут)
   update: async (id: string, content: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments')
-      .update({ content: content.trim() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogComment | null, error };
+    return withRetry<BlogComment>(() =>
+      supabase
+        .from('blog_comments')
+        .update({ content: content.trim() })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Удалить комментарий (мягкое удаление)
   delete: async (id: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments')
-      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogComment | null, error };
+    return withRetry<BlogComment>(() =>
+      supabase
+        .from('blog_comments')
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Модерация: одобрить
   approve: async (id: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments')
-      .update({
-        status: 'approved',
-        moderated_at: new Date().toISOString(),
-        moderated_by: (await supabase.auth.getUser()).data.user?.id,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogComment | null, error };
+    const { data: { user } } = await supabase.auth.getUser();
+    return withRetry<BlogComment>(() =>
+      supabase
+        .from('blog_comments')
+        .update({
+          status: 'approved',
+          moderated_at: new Date().toISOString(),
+          moderated_by: user?.id || null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Модерация: отклонить
   reject: async (id: string, reason?: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments')
-      .update({
-        status: 'rejected',
-        rejection_reason: reason || null,
-        moderated_at: new Date().toISOString(),
-        moderated_by: (await supabase.auth.getUser()).data.user?.id,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogComment | null, error };
+    const { data: { user } } = await supabase.auth.getUser();
+    return withRetry<BlogComment>(() =>
+      supabase
+        .from('blog_comments')
+        .update({
+          status: 'rejected',
+          rejection_reason: reason || null,
+          moderated_at: new Date().toISOString(),
+          moderated_by: user?.id || null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Модерация: пометить как спам
   markAsSpam: async (id: string) => {
-    const { data, error } = await supabase
-      .from('blog_comments')
-      .update({
-        status: 'spam',
-        moderated_at: new Date().toISOString(),
-        moderated_by: (await supabase.auth.getUser()).data.user?.id,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlogComment | null, error };
+    const { data: { user } } = await supabase.auth.getUser();
+    return withRetry<BlogComment>(() =>
+      supabase
+        .from('blog_comments')
+        .update({
+          status: 'spam',
+          moderated_at: new Date().toISOString(),
+          moderated_by: user?.id || null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Проверить, лайкнул ли пользователь комментарий
   isLikedByUser: async (commentId: string) => {
-    const { data, error } = await supabase
-      .from('blog_comment_likes')
-      .select('id')
-      .eq('comment_id', commentId)
-      .maybeSingle();
-    return { isLiked: !!data, error };
+    const result = await withRetry<any>(() =>
+      supabase
+        .from('blog_comment_likes')
+        .select('id')
+        .eq('comment_id', commentId)
+        .maybeSingle()
+    );
+    return { isLiked: !!result.data, error: result.error };
   },
 
   // Лайкнуть комментарий
   like: async (commentId: string) => {
-    const { data, error } = await supabase
-      .from('blog_comment_likes')
-      .insert([{ comment_id: commentId }])
-      .select()
-      .single();
-    return { data, error };
+    return withRetry<any>(() =>
+      supabase
+        .from('blog_comment_likes')
+        .insert([{ comment_id: commentId }])
+        .select()
+        .single()
+    );
   },
 
   // Убрать лайк
   unlike: async (commentId: string) => {
-    const { error } = await supabase
-      .from('blog_comment_likes')
-      .delete()
-      .eq('comment_id', commentId);
-    return { error };
+    return withRetry<any>(() =>
+      supabase
+        .from('blog_comment_likes')
+        .delete()
+        .eq('comment_id', commentId)
+    );
   },
 };
 
@@ -2865,12 +2939,13 @@ export const documents = {
 export const blockedUsers = {
   // Получить всех заблокированных пользователей
   getAll: async () => {
-    const { data, error } = await supabase
-      .from('blocked_users')
-      .select('*')
-      .eq('is_active', true)
-      .order('blocked_at', { ascending: false });
-    return { data: data as BlockedUser[] | null, error };
+    return withRetry<BlockedUser[]>(() =>
+      supabase
+        .from('blocked_users')
+        .select('*')
+        .eq('is_active', true)
+        .order('blocked_at', { ascending: false })
+    );
   },
 
   // Заблокировать пользователя
@@ -2882,43 +2957,48 @@ export const blockedUsers = {
     reason: string;
     expiresAt?: string;
   }) => {
-    const { data, error } = await supabase
-      .from('blocked_users')
-      .insert([{
-        user_id: params.userId || null,
-        email: params.email || null,
-        ip_address: params.ipAddress || null,
-        fingerprint: params.fingerprint || null,
-        reason: params.reason,
-        expires_at: params.expiresAt || null,
-        blocked_by: (await supabase.auth.getUser()).data.user?.id,
-      }])
-      .select()
-      .single();
-    return { data: data as BlockedUser | null, error };
+    const { data: { user } } = await supabase.auth.getUser();
+    return withRetry<BlockedUser>(() =>
+      supabase
+        .from('blocked_users')
+        .insert([{
+          user_id: params.userId || null,
+          email: params.email || null,
+          ip_address: params.ipAddress || null,
+          fingerprint: params.fingerprint || null,
+          reason: params.reason,
+          expires_at: params.expiresAt || null,
+          blocked_by: user?.id || null,
+        }])
+        .select()
+        .single()
+    );
   },
 
   // Разблокировать пользователя
   unblock: async (id: string) => {
-    const { data, error } = await supabase
-      .from('blocked_users')
-      .update({
-        is_active: false,
-        unblocked_at: new Date().toISOString(),
-        unblocked_by: (await supabase.auth.getUser()).data.user?.id,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    return { data: data as BlockedUser | null, error };
+    const { data: { user } } = await supabase.auth.getUser();
+    return withRetry<BlockedUser>(() =>
+      supabase
+        .from('blocked_users')
+        .update({
+          is_active: false,
+          unblocked_at: new Date().toISOString(),
+          unblocked_by: user?.id || null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
   },
 
   // Проверить, заблокирован ли пользователь
   isBlocked: async (userId?: string) => {
     if (!userId) return { isBlocked: false };
-    const { data, error } = await supabase
-      .rpc('is_user_blocked', { check_user_id: userId });
-    return { isBlocked: data === true, error };
+    const result = await withRetry<any>(() =>
+      supabase.rpc('is_user_blocked', { check_user_id: userId })
+    );
+    return { isBlocked: result.data === true, error: result.error };
   },
 };
 
@@ -2950,12 +3030,14 @@ export const lawyerViewLimits = {
   checkLimit: async (userId: string, lawyerId: string) => {
     const currentMonth = new Date().toISOString().slice(0, 7);
     
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', userId)
-      .limit(1);
-    const profileData = profile?.[0];
+    const profileResult = await withRetry<any>(() =>
+      supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .limit(1)
+    );
+    const profileData = profileResult.data?.[0];
     
     const subscriptionTier = profileData?.subscription_tier || 'free';
     
@@ -2967,16 +3049,18 @@ export const lawyerViewLimits = {
     // Бесплатные - 5 показов в месяц
     const limit = 5;
     
-    const { data: existing, error } = await supabase
-      .from('lawyer_view_limits')
-      .select('view_count, current_month')
-      .eq('user_id', userId)
-      .eq('lawyer_id', lawyerId)
-      .eq('current_month', currentMonth)
-      .limit(1);
-    const existingData = existing?.[0];
+    const existingResult = await withRetry<any>(() =>
+      supabase
+        .from('lawyer_view_limits')
+        .select('view_count, current_month')
+        .eq('user_id', userId)
+        .eq('lawyer_id', lawyerId)
+        .eq('current_month', currentMonth)
+        .limit(1)
+    );
+    const existingData = existingResult.data?.[0];
     
-    if (error) {
+    if (existingResult.error) {
       return { hasLimit: false, remaining: limit };
     }
     
@@ -2993,12 +3077,14 @@ export const lawyerViewLimits = {
   
   // Посчитать просмотр (если лимит не истощён)
   trackView: async (userId: string, lawyerId: string) => {
-    const { data: profileList } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', userId)
-      .limit(1);
-    const profile = profileList?.[0];
+    const profileResult = await withRetry<any>(() =>
+      supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', userId)
+        .limit(1)
+    );
+    const profile = profileResult.data?.[0];
     
     const subscriptionTier = profile?.subscription_tier || 'free';
     
@@ -3010,28 +3096,32 @@ export const lawyerViewLimits = {
     const limit = 5;
     const currentMonth = new Date().toISOString().slice(0, 7);
     
-    const { data: existingList } = await supabase
-      .from('lawyer_view_limits')
-      .select('view_count, current_month')
-      .eq('user_id', userId)
-      .eq('lawyer_id', lawyerId)
-      .eq('current_month', currentMonth)
-      .limit(1);
-    const existing = existingList?.[0];
+    const existingResult = await withRetry<any>(() =>
+      supabase
+        .from('lawyer_view_limits')
+        .select('view_count, current_month')
+        .eq('user_id', userId)
+        .eq('lawyer_id', lawyerId)
+        .eq('current_month', currentMonth)
+        .limit(1)
+    );
+    const existing = existingResult.data?.[0];
     
     // Если нет записи - создаём
     if (!existing || existing.current_month !== currentMonth) {
-      const { error } = await supabase
-        .from('lawyer_view_limits')
-        .insert([{
-          user_id: userId,
-          lawyer_id: lawyerId,
-          view_count: 1,
-          current_month: currentMonth,
-        }]);
+      const insertResult = await withRetry<any>(() =>
+        supabase
+          .from('lawyer_view_limits')
+          .insert([{
+            user_id: userId,
+            lawyer_id: lawyerId,
+            view_count: 1,
+            current_month: currentMonth,
+          }])
+      );
       
-      if (error) {
-        console.error('Error tracking lawyer view:', error);
+      if (insertResult.error) {
+        console.error('Error tracking lawyer view:', insertResult.error);
         return { success: false, remaining: limit };
       }
       
@@ -3039,15 +3129,17 @@ export const lawyerViewLimits = {
     }
     
     // Увеличиваем счётчик
-    const { error: updateError } = await supabase
-      .from('lawyer_view_limits')
-      .update({ view_count: existing.view_count + 1, updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('lawyer_id', lawyerId)
-      .eq('current_month', currentMonth);
+    const updateResult = await withRetry<any>(() =>
+      supabase
+        .from('lawyer_view_limits')
+        .update({ view_count: existing.view_count + 1, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('lawyer_id', lawyerId)
+        .eq('current_month', currentMonth)
+    );
     
-    if (updateError) {
-      console.error('Error updating lawyer view:', updateError);
+    if (updateResult.error) {
+      console.error('Error updating lawyer view:', updateResult.error);
       return { success: false, remaining: limit - existing.view_count };
     }
     
@@ -3055,5 +3147,53 @@ export const lawyerViewLimits = {
     const success = remaining >= 0;
     
     return { success, remaining };
+  },
+};
+
+// =====================================================
+// LAWYER FAVORITES - Избранные юристы пользователя
+// =====================================================
+export const lawyerFavorites = {
+  getByUser: async (userId: string) => {
+    return withRetry<any[]>(() =>
+      supabase
+        .from('lawyer_favorites')
+        .select('*, lawyers(*)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+    );
+  },
+
+  getIds: async (userId: string) => {
+    const { data, error } = await withRetry<any[]>(() =>
+      supabase
+        .from('lawyer_favorites')
+        .select('lawyer_id')
+        .eq('user_id', userId)
+    );
+    return {
+      data: data ? data.map((f: any) => f.lawyer_id) : [],
+      error,
+    };
+  },
+
+  add: async (userId: string, lawyerId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_favorites')
+        .insert({ user_id: userId, lawyer_id: lawyerId })
+        .select()
+        .single()
+    );
+  },
+
+  remove: async (userId: string, lawyerId: string) => {
+    return withRetry<any>(() =>
+      supabase
+        .from('lawyer_favorites')
+        .delete()
+        .eq('user_id', userId)
+        .eq('lawyer_id', lawyerId)
+    );
   },
 };

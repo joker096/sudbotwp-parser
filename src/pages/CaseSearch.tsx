@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Filter, Scale, ChevronRight, Loader2, Link as LinkIcon, Building, User, Calendar, FileText, CheckCircle2, Clock, MapPin, AlertCircle, Gavel, Download, Pencil, X, Trash2, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
-import { parseCase, cases, refreshCase, supabase } from '../lib/supabase';
+import { parseCase, cases } from '../lib/supabase';
 import { useToast } from '../hooks/useToast';
 import ManualCaseEntryForm from '../components/ManualCaseEntryForm';
 import { ParsedCase } from '../types';
@@ -12,6 +11,10 @@ import CaseCard from '../components/CaseCard';
 import PaymentModal from '../components/PaymentModal';
 import { useSeo } from '../hooks/useSeo';
 import { ConfirmModal, useConfirmModal } from '../components/ConfirmModal';
+import { normalizeParsedCase } from '../lib/caseNormalization';
+import { useUserCases } from '../hooks/useUserCases';
+import { useCaseActions } from '../hooks/useCaseActions';
+import { apiConfig } from '../lib/apiConfig';
 
 export default function CaseSearch() {
   const { setSeo } = useSeo('/search');
@@ -39,42 +42,22 @@ export default function CaseSearch() {
   const { user, profileData } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [userCases, setUserCases] = useState<ParsedCase[]>([]);
-  const [isLoadingCases, setIsLoadingCases] = useState(false);
   const { confirm, confirmModalProps } = useConfirmModal();
+  const { data: userCases = [], isLoading: isLoadingCases } = useUserCases(user?.id);
+  const { addCase, archiveCase, deleteCase, refreshUserCase, updateComment } = useCaseActions(user?.id);
 
-  // Кеширование списка дел с помощью React Query
-  const { data: cachedCases, isLoading: isCasesLoading, refetch: refetchCases } = useQuery({
-    queryKey: ['userCases', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await cases.getCasesByUser(user.id);
-      if (error) throw error;
-      return (data || []).map((c: ParsedCase) => ({
-        ...c,
-        status: c.status || 'active',
-        events: c.events?.map((e: any, index: number) => ({ ...e, id: e.id || `${c.id}-evt-${index}` }))
-      }));
-    },
-    staleTime: 1000 * 60 * 5, // 5 минут
-    gcTime: 1000 * 60 * 10, // 10 минут
-    enabled: !!user,
-  });
-
-  // Синхронизация кешированных данных с локальным состоянием
   useEffect(() => {
-    if (cachedCases) {
-      const activeCases = (cachedCases as ParsedCase[]).filter(c => c.status !== 'deleted');
-      setUserCases(activeCases);
+    if (!selectedCase?.id) return;
+    const freshSelectedCase = userCases.find((caseItem) => caseItem.id === selectedCase.id);
+    if (!freshSelectedCase) {
+      setSelectedCase(null);
+      return;
     }
-  }, [cachedCases]);
-
-  // Обновляем isLoading на основе isCasesLoading
-  useEffect(() => {
-    setIsLoadingCases(isCasesLoading);
-  }, [isCasesLoading]);
+    if (freshSelectedCase !== selectedCase) {
+      setSelectedCase(freshSelectedCase);
+    }
+  }, [selectedCase, userCases]);
 
   // Обработчик двойного клика на дату - переход в календарь
   const handleDateDoubleClick = (dateStr: string, timeStr?: string) => {
@@ -121,24 +104,6 @@ export default function CaseSearch() {
     }
   }, []);
 
-  // Fetch user's cases on mount if no search query
-  useEffect(() => {
-    const fetchUserCases = async () => {
-      if (user) {
-        setIsLoadingCases(true);
-        const { data, error } = await cases.getCasesByUser(user.id);
-        if (data && !error) {
-          const activeCases = (data as ParsedCase[]).filter(c => c.status !== 'deleted');
-          setUserCases(activeCases);
-        }
-        setIsLoadingCases(false);
-      } else {
-        setIsLoadingCases(false);
-      }
-    };
-    if (!query) fetchUserCases();
-  }, [user, query]);
-
   const handleSearch = useCallback((searchQuery: string) => {
     if (!searchQuery) return;
     
@@ -169,7 +134,7 @@ export default function CaseSearch() {
             setError(`Ошибка при парсинге дела: ${error.message}`);
           }
         } else if (data) {
-          setParsedCase({ data: data as ParsedCase, comment: (data as any).comment || '' });
+          setParsedCase({ data: normalizeParsedCase(data as ParsedCase), comment: (data as any).comment || '' });
         } else {
           setError('Не удалось распознать данные о деле');
         }
@@ -199,9 +164,9 @@ export default function CaseSearch() {
             return;
           }
           
-          const { data, error } = await cases.createCase({
-            user_id: user.id,
-            ...parsedCase.data,
+          const { data, error } = await addCase({
+            userId: user.id,
+            caseData: parsedCase.data,
             comment: parsedCase.comment || '',
           });
           
@@ -236,7 +201,7 @@ export default function CaseSearch() {
     // Если это существующее дело (selectedCase), сохраняем в базу
     if (selectedCase && updatedData.comment !== undefined) {
       try {
-        const { error } = await cases.updateCaseComment(selectedCase.id, updatedData.comment);
+        const { error } = await updateComment(selectedCase.id, updatedData.comment);
         
         if (error) {
           console.error('Error saving comment:', error);
@@ -246,10 +211,6 @@ export default function CaseSearch() {
         
         // Обновляем selectedCase
         setSelectedCase({ ...selectedCase, comment: updatedData.comment });
-        // Обновляем в списке дел
-        setUserCases(userCases.map(c => 
-          c.id === selectedCase.id ? { ...c, comment: updatedData.comment } : c
-        ));
         showToast('Комментарий сохранён');
       } catch (err) {
         console.error('Error saving comment:', err);
@@ -269,13 +230,11 @@ export default function CaseSearch() {
       variant: 'danger',
       onConfirm: async () => {
         try {
-          const { error } = await cases.deleteCase(caseId);
-          if (!error) {
-            setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'deleted' } : c).filter(c => c.status !== 'deleted'));
-            setSelectedCase(null);
-            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
-            showToast('Дело перемещено в корзину');
-          }
+            const { error } = await deleteCase(caseId);
+            if (!error) {
+              setSelectedCase(null);
+              showToast('Дело перемещено в корзину');
+            }
         } catch (err) {
           console.error('Error deleting case:', err);
           showToast('Ошибка при удалении дела');
@@ -292,13 +251,11 @@ export default function CaseSearch() {
       cancelText: 'Отмена',
       onConfirm: async () => {
         try {
-          const { error } = await cases.archiveCase(caseId);
-          if (!error) {
-            setUserCases(userCases.map(c => c.id === caseId ? { ...c, status: 'archived' } : c).filter(c => c.status !== 'archived'));
-            setSelectedCase(null);
-            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
-            showToast('Дело архивировано');
-          }
+            const { error } = await archiveCase(caseId);
+            if (!error) {
+              setSelectedCase(null);
+              showToast('Дело архивировано');
+            }
         } catch (err) {
           console.error('Error archiving case:', err);
           showToast('Ошибка при архивировании');
@@ -315,14 +272,13 @@ export default function CaseSearch() {
     }
     
     showToast('Обновление данных дела...');
-    const { data, error } = await refreshCase(caseId, caseToRefresh.link);
+    const { data, error, normalizedCase } = await refreshUserCase(caseId, caseToRefresh);
     
     if (error) {
       showToast('Ошибка при обновлении: ' + error.message);
-    } else if (data) {
-      setUserCases(userCases.map(c => c.id === caseId ? { ...c, ...data } : c));
+    } else if (data && normalizedCase) {
       if (selectedCase?.id === caseId) {
-        setSelectedCase({ ...selectedCase, ...data });
+        setSelectedCase(normalizedCase);
       }
       showToast('Дело обновлено');
     }
@@ -344,7 +300,7 @@ export default function CaseSearch() {
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:3000/add-case-manual', {
+      const response = await fetch(apiConfig.manualCaseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(manualData)

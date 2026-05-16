@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Scale, Copy, RotateCcw } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
@@ -10,6 +11,7 @@ interface CaseCardHeaderProps {
   subscriptionTier?: string;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  actions?: ReactNode;
 }
 
 export default function CaseCardHeader({ 
@@ -20,7 +22,8 @@ export default function CaseCardHeader({
   refreshLimitReason, 
   subscriptionTier,
   onRefresh,
-  isRefreshing 
+  isRefreshing,
+  actions,
 }: CaseCardHeaderProps) {
   const { showToast } = useToast();
 
@@ -87,6 +90,7 @@ export default function CaseCardHeader({
               )}
             </button>
           )}
+          {actions}
         </div>
 
         {updatedAt && (

@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Scale, Star, MapPin, MessageCircle, ShieldCheck, Shield, Settings, LogOut, ChevronRight, User, Phone, X, Building, FileText, Calendar, Link as LinkIcon, Check, Loader2, Trash2, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight as ChevronRightIcon, Clock, Bell, BellOff, Send, Eye, EyeOff, Info, Gavel, Hourglass, Pencil, Download, Globe, BookOpen, Plus, AlertCircle, Users, MessageSquare, Archive, Archive as ArchiveIcon, Bookmark } from 'lucide-react';
 import EncryptedFileUpload from '../components/EncryptedFileUpload';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { ParsedCase } from '../types';
 import { useToast } from '../hooks/useToast';
-import { cases, supabase, calendarEvents, refreshCase, parseCase, leads } from '../lib/supabase';
+import { cases, lawyerFavorites, supabase, calendarEvents, refreshCase, parseCase, leads } from '../lib/supabase';
 import CaseCard from '../components/CaseCard';
 import PaymentModal from '../components/PaymentModal';
 import { ConfirmModal, useConfirmModal } from '../components/ConfirmModal';
@@ -18,6 +18,11 @@ import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileTabs } from '../components/ProfileTabs';
 import CalendarSyncSettings from '../components/CalendarSyncSettings';
 import { useSeo } from '../hooks/useSeo';
+import { normalizeParsedCase } from '../lib/caseNormalization';
+import { useUserCases } from '../hooks/useUserCases';
+import { useCaseActions } from '../hooks/useCaseActions';
+import { useProfileCalendar } from '../hooks/useProfileCalendar';
+import { expandCalendarEvents, generateCalendarIcsContent, getStartOfWeek } from '../lib/profileCalendar';
 
 const LazyAdminSettings = lazy(() => import('../components/AdminSettings'));
 const LazySeoSettings = lazy(() => import('../components/SeoSettings'));
@@ -26,12 +31,6 @@ const LazyLawyerApplicationsAdmin = lazy(() => import('../components/LawyerAppli
 export default function Profile() {
   const [searchParams, setSearchParams] = useSearchParams();
   const hasProcessedParams = useRef(false);
-  const eventTypesForFilter = [
-    { id: 'hearing', label: 'Заседания', color: 'bg-blue-500', icon: Gavel },
-    { id: 'deadline', label: 'Сроки', color: 'bg-red-500', icon: Hourglass },
-    { id: 'reminder', label: 'Напоминания', color: 'bg-yellow-500', icon: Bell },
-    { id: 'custom', label: 'Личные', color: 'bg-purple-500', icon: Pencil },
-  ];
 
   const { setSeo } = useSeo('/profile');
   const [activeTab, setActiveTab] = useState('cases');
@@ -45,74 +44,62 @@ export default function Profile() {
   const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  // Состояние для календаря
-  const [calendarViewDate, setCalendarViewDate] = useState(new Date());
-  const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
-  const [editingEvent, setEditingEvent] = useState<any | null>(null);
-  const [showAddEventModal, setShowAddEventModal] = useState(false);
-  const [newEventInitialDate, setNewEventInitialDate] = useState('');
-  const [newEventInitialTime, setNewEventInitialTime] = useState('');
-  // Состояние для пользовательских событий календаря (из Supabase)
-  const [customEvents, setCustomEvents] = useState<any[]>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [calendarFilters, setCalendarFilters] = useState<Set<string>>(new Set(eventTypesForFilter.map(t => t.id)));
-
-  // Состояние для перетаскивания событий
-  const [draggedEvent, setDraggedEvent] = useState<{ caseId: string; eventId: string; } | null>(null);
-  const [dropTargetDate, setDropTargetDate] = useState<string | null>(null);
-
-  // Состояние для всплывающего окна с подробностями события
-  const [selectedEventDetails, setSelectedEventDetails] = useState<{
-    caseNumber: string;
-    court: string;
-    eventName: string;
-    date: string;
-    time: string;
-    location: string;
-    result: string;
-  } | null>(null);
-
-  // Состояние для подсказки в календаре
-  const [hoveredEventDetails, setHoveredEventDetails] = useState<{
-    details: {
-        caseNumber: string;
-        eventName: string;
-        time: string;
-    };
-    x: number;
-    y: number;
-  } | null>(null);
+  const {
+    eventTypesForFilter,
+    calendarViewDate,
+    setCalendarViewDate,
+    calendarViewMode,
+    setCalendarViewMode,
+    selectedCalendarDate,
+    setSelectedCalendarDate,
+    editingEvent,
+    setEditingEvent,
+    showAddEventModal,
+    customEvents,
+    setCustomEvents,
+    isLoadingEvents,
+    setIsLoadingEvents,
+    calendarFilters,
+    setCalendarFilters,
+    draggedEvent,
+    setDraggedEvent,
+    dropTargetDate,
+    setDropTargetDate,
+    selectedEventDetails,
+    setSelectedEventDetails,
+    hoveredEventDetails,
+    setHoveredEventDetails,
+    newEventInitialDate,
+    newEventInitialTime,
+    openEventModal,
+    prepareNewEvent,
+    closeEventModal,
+  } = useProfileCalendar();
 
   // Хуки - должны быть определены перед использованием
   const { user, profileData, logout, updateProfile } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { addCase, archiveCase, deleteCase, refreshUserCase } = useCaseActions(user?.id);
 
-  // Кеширование списка дел с помощью React Query
-  const { data: cachedCases, isLoading: isCasesLoading, refetch: refetchCases } = useQuery({
-    queryKey: ['userCases', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await cases.getCasesByUser(user.id);
-      if (error) throw error;
-      return (data || []).map((c: ParsedCase) => ({
-        ...c,
-        status: c.status || 'active',
-        events: c.events?.map((e: any, index: number) => ({ ...e, id: e.id || `${c.id}-evt-${index}` }))
-      }));
-    },
-    staleTime: 1000 * 60 * 5, // 5 минут
-    gcTime: 1000 * 60 * 10, // 10 минут
-    enabled: !!user,
-  });
+  const { data: cachedCases = [], isLoading: isCasesLoading } = useUserCases(user?.id);
 
   // Синхронизация кешированных данных с локальным состоянием
   useEffect(() => {
-    if (cachedCases) {
-      setUserCases(cachedCases);
-    }
+    setUserCases(cachedCases);
   }, [cachedCases]);
+
+  useEffect(() => {
+    if (!selectedCase?.id) return;
+    const freshSelectedCase = cachedCases.find((caseItem) => caseItem.id === selectedCase.id);
+    if (!freshSelectedCase) {
+      setSelectedCase(null);
+      return;
+    }
+    if (freshSelectedCase !== selectedCase) {
+      setSelectedCase(freshSelectedCase);
+    }
+  }, [cachedCases, selectedCase]);
 
   // Обновляем isLoading на основе isCasesLoading
   useEffect(() => {
@@ -136,8 +123,7 @@ export default function Profile() {
   const [addCaseError, setAddCaseError] = useState<string | null>(null);
 
   const handleEditEvent = (eventToEdit: any, caseId?: string) => {
-    setEditingEvent({ ...eventToEdit, caseId }); // Store event and its parent caseId if it exists
-    setShowAddEventModal(true);
+    openEventModal(eventToEdit, caseId);
   };
 
   // Обработчик двойного клика на дату в движении дела
@@ -187,10 +173,7 @@ export default function Profile() {
 
       if (!hasEvents) {
         // Если событий нет - открываем модальное окно для создания
-        setNewEventInitialDate(dateIsoStr);
-        setNewEventInitialTime(timeStr || '');
-        setEditingEvent(null);
-        setShowAddEventModal(true);
+        prepareNewEvent(dateIsoStr, timeStr || '');
         showToast('На эту дату нет событий. Создайте новое событие.');
       } else {
         showToast(`На эту дату ${caseEvents.length + customEventsOnDate.length} событий`);
@@ -278,10 +261,7 @@ export default function Profile() {
 
         if (!hasEvents) {
           // Если событий нет - открываем модальное окно для создания
-          setNewEventInitialDate(dateIsoStr);
-          setNewEventInitialTime(time || '');
-          setEditingEvent(null);
-          setShowAddEventModal(true);
+          prepareNewEvent(dateIsoStr, time || '');
           showToast('На эту дату нет событий. Создайте новое событие.');
         } else {
           showToast(`На эту дату ${caseEvents.length + customEventsOnDate.length} событий`);
@@ -360,32 +340,40 @@ export default function Profile() {
     }
   }, [profileData]);
 
-  const [favoriteLawyers, setFavoriteLawyers] = useState(() => {
-    const defaultLawyers = [
-      { id: 1, name: 'Александр Смирнов', spec: 'Гражданские', city: 'Москва', rating: 4.9, reviews: 124, verified: true, img: 'https://picsum.photos/seed/lawyer1/200/200' },
-      { id: 2, name: 'Елена Волкова', spec: 'Семейные', city: 'Санкт-Петербург', rating: 5.0, reviews: 89, verified: true, img: 'https://picsum.photos/seed/lawyer2/200/200' },
-    ];
-
-    if (typeof window === 'undefined') {
-      return defaultLawyers;
-    }
-
-    try {
-      const raw = window.localStorage.getItem('profile-favorite-lawyers');
-      return raw ? JSON.parse(raw) : defaultLawyers;
-    } catch (error) {
-      console.error('Failed to parse favorite lawyers from localStorage:', error);
-      return defaultLawyers;
-    }
-  });
+  const [favoriteLawyers, setFavoriteLawyers] = useState<any[]>([]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('profile-favorite-lawyers', JSON.stringify(favoriteLawyers));
-  }, [favoriteLawyers]);
+    if (!user) return;
+    lawyerFavorites.getByUser(user.id).then(({ data }) => {
+      if (data) {
+        setFavoriteLawyers(
+          data.map((f: any) => {
+            const l = f.lawyers;
+            return l ? {
+              id: l.id,
+              name: l.name,
+              spec: l.spec || '',
+              city: l.city || '',
+              rating: l.rating || 0,
+              reviews: l.reviews_count || 0,
+              verified: l.verified || false,
+              img: l.avatar_url?.includes('/storage/')
+                ? l.avatar_url
+                : l.avatar_url
+                  ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${l.avatar_url}`
+                  : l.img || '',
+            } : null;
+          }).filter(Boolean)
+        );
+      }
+    });
+  }, [user]);
 
-  const handleRemoveFavoriteLawyer = (lawyerId: number) => {
-    setFavoriteLawyers((prev) => prev.filter((lawyer) => lawyer.id !== lawyerId));
+  const handleRemoveFavoriteLawyer = async (lawyerId: string) => {
+    if (user) {
+      await lawyerFavorites.remove(user.id, lawyerId);
+    }
+    setFavoriteLawyers((prev) => prev.filter((lawyer: any) => lawyer.id !== lawyerId));
     showToast('Юрист удалён из избранного');
   };
 
@@ -459,9 +447,9 @@ export default function Profile() {
       }
       
       // Сохраняем дело
-      const { data: newCase, error: createError } = await cases.createCase({
-        user_id: user.id,
-        ...data,
+      const { data: newCase, error: createError } = await addCase({
+        userId: user.id,
+        caseData: normalizeParsedCase(data as ParsedCase),
       });
       
       if (createError) {
@@ -472,20 +460,6 @@ export default function Profile() {
       }
       
       showToast('Дело успешно добавлено!');
-      
-      // Инвалидируем кеш
-      queryClient.invalidateQueries({ queryKey: ['userCases', user.id] });
-      
-      // Обновляем локальное состояние
-      if (newCase) {
-        setUserCases(prev => [{
-          ...data,
-          id: newCase.id,
-          status: 'active',
-          events: data.events || [],
-          appeals: data.appeals || [],
-        }, ...prev]);
-      }
       
       // Очищаем поле ввода
       setCaseUrl('');
@@ -548,13 +522,9 @@ export default function Profile() {
       cancelText: 'Отмена',
       onConfirm: async () => {
         try {
-          const { error } = await cases.archiveCase(caseId);
+          const { error } = await archiveCase(caseId);
           if (!error) {
-            setUserCases(prevCases =>
-              prevCases.map(c => c.id === caseId ? { ...c, status: 'archived' } : c).filter(c => c.status !== 'archived')
-            );
             setSelectedCase(null);
-            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
             showToast('Дело архивировано');
           }
         } catch (err) {
@@ -574,14 +544,9 @@ export default function Profile() {
       variant: 'danger',
       onConfirm: async () => {
         try {
-          const { error } = await cases.deleteCase(caseId);
+          const { error } = await deleteCase(caseId);
           if (!error) {
-            setUserCases(prevCases =>
-              prevCases.map(c => c.id === caseId ? { ...c, status: 'deleted' } : c)
-            );
             setSelectedCase(null);
-            // Инвалидируем кеш для обновления данных
-            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
             showToast('Дело перемещено в корзину');
           }
         } catch (err) {
@@ -596,9 +561,6 @@ export default function Profile() {
     try {
       const { error } = await cases.restoreCase(caseId);
       if (!error) {
-        setUserCases(prevCases =>
-          prevCases.map(c => c.id === caseId ? { ...c, status: 'active' } : c)
-        );
         // Инвалидируем кеш для обновления данных
         queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
         showToast('Дело восстановлено');
@@ -613,9 +575,6 @@ export default function Profile() {
     try {
       const { error } = await cases.unarchiveCase(caseId);
       if (!error) {
-        setUserCases(prevCases =>
-          prevCases.map(c => c.id === caseId ? { ...c, status: 'active' } : c)
-        );
         queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
         showToast('Дело восстановлено из архива');
       }
@@ -657,7 +616,7 @@ export default function Profile() {
       showToast('Обновление данных дела...');
       console.log('Calling refreshCase with userId...');
       // Передаем userId для проверки ограничений
-      const { data, error, limitInfo } = await refreshCase(caseId, caseToRefresh.link, {
+      const { data, error, limitInfo, normalizedCase } = await refreshUserCase(caseId, caseToRefresh, {
         userId: user.id,
       });
       console.log('refreshCase result:', { data, error, limitInfo });
@@ -673,27 +632,10 @@ export default function Profile() {
         return;
       }
       
-      if (data) {
-        // Обновляем локальное состояние
-        const updatedCase = {
-          ...caseToRefresh,
-          ...data,
-          events: typeof data.events === 'string' ? JSON.parse(data.events) : data.events || [],
-          appeals: typeof data.appeals === 'string' ? JSON.parse(data.appeals) : data.appeals || [],
-          last_manual_refresh_at: data.last_manual_refresh_at,
-        };
-        
-        setUserCases(prevCases =>
-          prevCases.map(c => c.id === caseId ? updatedCase : c)
-        );
-        
+      if (data && normalizedCase) {
         if (selectedCase && selectedCase.id === caseId) {
-          setSelectedCase(updatedCase);
+          setSelectedCase(normalizedCase);
         }
-        
-        // Инвалидируем кеш для обновления данных
-        queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
-        
         showToast('Дело успешно обновлено!');
       } else {
         console.warn('No data returned from refreshCase');
@@ -714,11 +656,6 @@ export default function Profile() {
       // Assuming cases.restoreMultipleCases exists
       const { error } = await cases.restoreMultipleCases(idsToRestore);
       if (!error) {
-        setUserCases(prevCases =>
-          prevCases.map(c =>
-            idsToRestore.includes(c.id) ? { ...c, status: 'active' } : c
-          )
-        );
         setSelectedCaseIds(new Set());
         setIsSelectionMode(false);
         // Инвалидируем кеш для обновления данных
@@ -763,7 +700,6 @@ export default function Profile() {
       const idsToDelete = Array.from(selectedCaseIds);
       const { error } = await cases.deleteMultipleCases(idsToDelete);
       if (!error) {
-        setUserCases(prevCases => prevCases.filter(c => !selectedCaseIds.has(c.id)));
         setSelectedCaseIds(new Set());
         setIsSelectionMode(false);
         // Инвалидируем кеш для обновления данных
@@ -950,8 +886,7 @@ export default function Profile() {
       }
     }
     
-    setShowAddEventModal(false);
-    setEditingEvent(null);
+    closeEventModal();
   };
 
   const handleExportToIcs = () => {
@@ -969,66 +904,10 @@ export default function Profile() {
 
     // Expand all events including recurring ones
     const allOccurrences = allBaseEvents.flatMap(event => 
-        expandEvents([event], { caseNumber: event.caseNumber, court: event.court })
+        expandCalendarEvents([event], { caseNumber: event.caseNumber, court: event.court })
     );
 
-    // Helper function to generate ICS content
-    const generateIcsContent = (eventsToExport: any[], userName: string): string => {
-        let icsString = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Sud.app//Calendar Export//RU
-CALSCALE:GREGORIAN
-NAME:Календарь дел (${userName})
-X-WR-CALNAME:Календарь дел (${userName})
-DESCRIPTION:События по судебным делам из Sud.app
-`;
-
-        const toIcsUtcString = (d: Date) => {
-            return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-        };
-
-        for (const event of eventsToExport) {
-            if (!event.date) continue;
-
-            const eventDate = new Date(event.date); // event.date is YYYY-MM-DD from expandEvents
-            if (isNaN(eventDate.getTime())) continue;
-
-            const time = event.time || '09:00';
-            const [hours, minutes] = time.split(':');
-
-            const startDateTimeUTC = new Date(Date.UTC(
-                eventDate.getUTCFullYear(),
-                eventDate.getUTCMonth(),
-                eventDate.getUTCDate(),
-                Number(hours),
-                Number(minutes)
-            ));
-            
-            const endDateTimeUTC = new Date(startDateTimeUTC.getTime() + (60 * 60 * 1000)); // 1 hour duration
-
-            const uid = `${event.id}-${event.date}@sud.app`;
-            const created = new Date().toISOString().replace(/[-:.]/g, '') + 'Z';
-            const summary = `${event.name}: ${event.caseNumber || 'Личное'}`;
-            const description = `Дело: ${event.caseNumber || 'Личное событие'}\\nСуд: ${event.court || ''}\\nСобытие: ${event.name}${event.time ? `\\nВремя: ${event.time}` : ''}`;
-            const location = event.location || event.court || '';
-
-            icsString += `BEGIN:VEVENT
-UID:${uid}
-DTSTAMP:${created}
-DTSTART:${toIcsUtcString(startDateTimeUTC)}
-DTEND:${toIcsUtcString(endDateTimeUTC)}
-SUMMARY:${summary}
-DESCRIPTION:${description}
-LOCATION:${location}
-END:VEVENT
-`;
-        }
-
-        icsString += `END:VCALENDAR`;
-        return icsString;
-    };
-
-    const icsContent = generateIcsContent(allOccurrences, profileData?.full_name || user?.email || 'Пользователь');
+    const icsContent = generateCalendarIcsContent(allOccurrences, profileData?.full_name || user?.email || 'Пользователь');
 
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8;' });
     const link = document.createElement("a");
@@ -1041,59 +920,6 @@ END:VEVENT
     document.body.removeChild(link);
 
     showToast('Экспорт календаря начат...');
-  };
-
-  const expandEvents = (events: any[], caseInfo?: { caseNumber: string; court: string; }) => {
-    return events.flatMap((event: any) => {
-      if (!event.date) return [];
-      const baseEvent = { ...event, ...caseInfo };
-      const occurrences = [];
-      const startDateParts = baseEvent.date.split('.');
-      
-      if (startDateParts.length !== 3) return [];
-
-      const startDate = new Date(`${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]}`);
-      if (isNaN(startDate.getTime())) return [];
-
-      occurrences.push({
-        ...baseEvent,
-        date: `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`
-      });
-
-      if (baseEvent.recurrence && baseEvent.recurrence.until) {
-        const endDate = new Date(baseEvent.recurrence.until);
-        let currentDate = new Date(startDate);
-
-        while (true) {
-          if (baseEvent.recurrence.frequency === 'daily') {
-            currentDate.setDate(currentDate.getDate() + 1);
-          } else if (baseEvent.recurrence.frequency === 'weekly') {
-            currentDate.setDate(currentDate.getDate() + 7);
-          } else if (baseEvent.recurrence.frequency === 'monthly') {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-          } else {
-            break;
-          }
-
-          if (currentDate > endDate) break;
-
-          occurrences.push({
-            ...baseEvent,
-            date: `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`,
-            isOccurrence: true,
-          });
-        }
-      }
-      
-      return occurrences;
-    });
-  };
-
-  const getStartOfWeek = (date: Date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-    return new Date(d.setDate(diff));
   };
 
   return (
@@ -1324,8 +1150,8 @@ END:VEVENT
               <div className="col-span-full flex items-center justify-center py-12">
                 <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : userCases.filter(c => c.status !== 'deleted').length > 0 ? (
-               userCases.filter(c => c.status !== 'deleted').map(caseItem => (
+            ) : userCases.filter(c => c.status !== 'deleted' && c.status !== 'archived').length > 0 ? (
+               userCases.filter(c => c.status !== 'deleted' && c.status !== 'archived').map(caseItem => (
                 <div 
                   key={caseItem.id} 
                   className={`relative bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-xl hover:border-accent/30 dark:hover:border-accent/50 transition-all border border-transparent dark:border-slate-800 cursor-pointer group ${isSelectionMode ? 'cursor-default' : ''}`}
@@ -1359,8 +1185,9 @@ END:VEVENT
                           <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md font-medium">{caseItem.category}</span>
                         )}
                         {String(caseItem.status || '').trim().toLowerCase() === 'archived' ? (
-                          <span className="inline-flex items-center justify-center text-[10px] px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" title="В архиве" aria-label="В архиве">
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" title="В архиве">
                             <ArchiveIcon className="w-3.5 h-3.5" />
+                            Архив
                           </span>
                         ) : (
                           <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium ${caseItem.status?.includes('удовлетвор') ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : caseItem.status?.includes('отказ') ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : caseItem.status?.includes('рассмотр') ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
@@ -1465,7 +1292,7 @@ END:VEVENT
                   <span className="sm:hidden">Экспорт</span>
                 </button>
                 <button
-                  onClick={() => setShowAddEventModal(true)}
+                  onClick={() => openEventModal()}
                   className="bg-accent hover:bg-accent-light text-white px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
                 >
                   <Calendar className="w-4 h-4" />
@@ -1529,9 +1356,9 @@ END:VEVENT
             {(() => {
               const caseEvents = userCases
                 .filter(c => c.status !== 'deleted' && c.events && c.events.length > 0)
-                .flatMap(c => expandEvents(c.events || [], { caseNumber: c.number, court: c.court }));
+                .flatMap(c => expandCalendarEvents(c.events || [], { caseNumber: c.number, court: c.court }));
 
-              const allCustomEvents = expandEvents(customEvents);
+              const allCustomEvents = expandCalendarEvents(customEvents);
 
               const allEvents = [...caseEvents, ...allCustomEvents];
               const allHearingData = allEvents.filter(event => calendarFilters.has(event.type || 'custom'));
@@ -1580,10 +1407,7 @@ END:VEVENT
                                   handleEditEvent(eventsOnThisDay[0], eventsOnThisDay[0].caseId);
                                 } else {
                                   // Otherwise, open a new event modal with pre-filled date and time (if any).
-                                  setNewEventInitialDate(dateString);
-                                  setNewEventInitialTime(eventsOnThisDay[0]?.time || '');
-                                  setEditingEvent(null);
-                                  setShowAddEventModal(true);
+                                  prepareNewEvent(dateString, eventsOnThisDay[0]?.time || '');
                                 }
                               }}
                             onDragOver={(e) => { e.preventDefault(); setDropTargetDate(dateStr); }}
@@ -1721,7 +1545,7 @@ END:VEVENT
                             .map(e => ({ ...e, caseId: c.id, caseNumber: c.number, court: c.court, custom: false }))
                     );
 
-                  const customEventsOnDate = expandEvents(customEvents)
+                  const customEventsOnDate = expandCalendarEvents(customEvents)
                     .filter(e => e.date === selectedDateStr)
                     .map(e => ({ ...e, custom: true }));
 
@@ -1839,7 +1663,7 @@ END:VEVENT
                           const idsToDelete = deletedCases.map(c => c.id);
                           const { error } = await cases.deleteMultipleCases(idsToDelete, true);
                           if (!error) {
-                            setUserCases(prevCases => prevCases.filter(c => c.status !== 'deleted'));
+                            queryClient.invalidateQueries({ queryKey: ['userCases', user?.id] });
                             showToast('Корзина очищена');
                           }
                         } catch (err) {
@@ -2248,12 +2072,7 @@ END:VEVENT
 
       <EventModal
         isOpen={showAddEventModal}
-        onClose={() => {
-          setShowAddEventModal(false);
-          setEditingEvent(null);
-          setNewEventInitialDate('');
-          setNewEventInitialTime('');
-        }}
+        onClose={closeEventModal}
         onSave={handleSaveEvent}
         eventToEdit={editingEvent}
         initialDate={newEventInitialDate}

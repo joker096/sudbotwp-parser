@@ -7,6 +7,7 @@
 
 import type { ParsedCaseData } from './clientParser';
 import { parseCaseHtml, parseCaseClient } from './clientParser';
+import { apiConfig } from './apiConfig';
 
 const SCRAPINGBEE_API_KEY = import.meta.env.VITE_SCRAPINGBEE_API_KEY;
 
@@ -63,20 +64,18 @@ function isCourtSite(url: string): boolean {
  *
  * Priority:
  * 1. Клиентский парсинг (только для НЕ-судебных сайтов)
- * 2. ScrapingBee клиент-side (если настроен)
- * 3. Серверный парсинг (Render.com с ScrapingBee fallback)
- * 4. Ошибка с инструкцией
+ * 2. Серверный парсинг (свой сервер sud.cvr.name)
+ * 3. Ошибка с инструкцией
  */
 export async function parseWithFullFallback(url: string): Promise<{
   data: ParsedCaseData | null;
   error: { message: string } | null;
-  source?: 'client' | 'scrapingbee' | 'server';
+  source?: 'client' | 'server';
 }> {
   // Check what's configured
-  const scrapingbeeConfigured = isScrapingBeeConfigured();
   const isCourt = isCourtSite(url);
 
-  console.log('[Parse] Configuration check:', { scrapingbeeConfigured, isCourtSite: isCourt });
+  console.log('[Parse] Configuration check:', { isCourtSite: isCourt });
 
   // 1. Client-side parsing (только для не-судебных сайтов)
   // Судебные сайты (sudrf.ru) не поддерживают CORS, поэтому пропускаем клиентский парсинг
@@ -93,42 +92,14 @@ export async function parseWithFullFallback(url: string): Promise<{
     console.log('[Parse] Skipping client-side parsing for court site (CORS restriction)');
   }
 
-  // 2. Try ScrapingBee client-side (if configured)
-  // Для судебных сайтов ScrapingBee тоже может не сработать из-за CORS на их стороне,
-  // но попробуем на всякий случай
-  if (scrapingbeeConfigured && !isCourt) {
-    try {
-      console.log('[Parse] Trying ScrapingBee client-side...');
-      const data = await parseWithScrapingBee(url);
-      console.log('[Parse] ScrapingBee client-side success');
-      return { data, error: null, source: 'scrapingbee' };
-    } catch (scrapingbeeError: any) {
-      console.log('[Parse] ScrapingBee client-side failed:', scrapingbeeError.message);
-    }
-  }
-
-  // 3. Server-side parsing (Render.com server with ScrapingBee support)
+  // 2. Server-side parsing (свой сервер)
   try {
-    console.log('[Parse] Trying server-side (with ScrapingBee)...');
-    // Use Render.com server in production (no timeout limits like Supabase Edge Functions)
-    const parseUrl = import.meta.env.DEV
-      ? 'http://localhost:3000/parse-case'
-      : (import.meta.env.VITE_PARSE_CASE_URL || 'https://sudbotwp-parser.onrender.com/parse-case');
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    // Render.com server doesn't need Authorization header
-    // Only add auth for Supabase Edge Functions (if still using them)
-    const isSupabaseUrl = parseUrl.includes('supabase');
-    if (!import.meta.env.DEV && isSupabaseUrl) {
-      headers['Authorization'] = `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`;
-    }
+    console.log('[Parse] Trying server-side...');
+    const parseUrl = apiConfig.parseCaseUrl;
 
     // Use AbortController with longer timeout for court sites
     const controller = new AbortController();
-    const timeoutMs = 180000; // 180 seconds (3 minutes) for slow court sites with full fallback chain
+    const timeoutMs = 180000; // 180 секунд (3 минуты) для медленных судебных сайтов
     const timeoutId = setTimeout(() => {
       console.log('[Parse] Server-side timeout, aborting...');
       controller.abort();
@@ -137,7 +108,9 @@ export async function parseWithFullFallback(url: string): Promise<{
     try {
       const response = await fetch(parseUrl, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ url }),
         signal: controller.signal,
       });
@@ -166,11 +139,11 @@ export async function parseWithFullFallback(url: string): Promise<{
     console.log('[Parse] Server-side failed:', serverError.message);
   }
 
-  // 4. Everything failed - provide detailed error message
+  // 3. Everything failed - provide detailed error message
   return {
     data: null,
     error: {
       message: 'Не удалось загрузить данные дела. Проверьте ссылку и попробуйте снова.\n\nВозможно, сайт суда временно недоступен. Попробуйте позже.'
     }
-  };
+};
 }
