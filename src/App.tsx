@@ -27,7 +27,9 @@ const DocumentsLibrary = lazy(() => import('./pages/DocumentsLibrary'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const TestEditor = lazy(() => import('./pages/TestEditor'));
-const LegalActs = lazy(() => import('./pages/LegalActs'));export default function App() {
+const LegalActs = lazy(() => import('./pages/LegalActs'));
+const ColorPicker = lazy(() => import('./pages/ColorPicker'));
+export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
@@ -65,8 +67,10 @@ const LegalActs = lazy(() => import('./pages/LegalActs'));export default functio
                   <Route path="privacy" element={<Privacy />} />
                   <Route path="legal-acts" element={<LegalActs />} />
                   {/* apply-lawyer route removed */}
-                  <Route path="test-editor" element={<TestEditor />} />
-                  
+                   <Route path="test-editor" element={<TestEditor />} />
+                  <Route path="color-picker" element={<ColorPicker />} />
+                   
+
                   {/* Protected routes */}
                   <Route 
                     path="profile" 
