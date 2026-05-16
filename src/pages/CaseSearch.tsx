@@ -452,10 +452,24 @@ export default function CaseSearch() {
                       <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-accent to-accent-light rounded-xl flex items-center justify-center shrink-0 text-white shadow-lg shadow-accent/30">
                         <Scale className="w-4 h-4 md:w-5 md:h-5" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-colors">{caseItem.number}</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{caseItem.court}</p>
-                        {caseItem.updated_at && (
+                       <div className="flex-1 min-w-0">
+                         <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-colors">{caseItem.number}</h4>
+                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{caseItem.court}</p>
+                         <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                           {String(caseItem.status || '').trim().toLowerCase() === 'archived' ? (
+                             <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-md font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" title="В архиве">
+                               <Archive className="w-3 h-3" />
+                               Архив
+                             </span>
+                           ) : (
+                             caseItem.status && (
+                               <span className="text-[9px] px-1.5 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 max-w-[150px] truncate">
+                                 {caseItem.status}
+                               </span>
+                             )
+                           )}
+                         </div>
+                         {caseItem.updated_at && (
                           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5" title="Дата обновления">
                             Обновл: {new Date(caseItem.updated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                           </p>
