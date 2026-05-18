@@ -8,7 +8,6 @@ import { useNofollowLinks } from '../hooks/useNofollowLinks';
 import GoogleAnalytics from './GoogleAnalytics';
 import LeadModal from './LeadModal';
 import OfflineBanner from './OfflineBanner';
-import InstallPWA from './InstallPWA';
 
 export default memo(function Layout() {
   const location = useLocation();
@@ -135,7 +134,6 @@ export default memo(function Layout() {
             </motion.nav>
 
             <div className="flex items-center gap-4">
-              <InstallPWA />
               <Link to="/messages" className="relative p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Messages">
                 <MessageCircle className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
