@@ -15,9 +15,6 @@ interface AdBannerProps {
 }
 
 const TRUSTED_SCRIPT_HOSTS = [
-  'an.yandex.ru',
-  'mc.yandex.ru',
-  'yandex.ru',
   'googleads.g.doubleclick.net',
   'pagead2.googlesyndication.com',
   'googlesyndication.com',

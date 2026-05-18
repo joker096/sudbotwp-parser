@@ -1,9 +1,10 @@
 import { useState, memo } from 'react';
-import { X, CheckCircle2, Loader2, Send, Phone, MessageSquare, Calendar, FileText } from 'lucide-react';
+import { X, CheckCircle2, Loader2, Send, Phone, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Lawyer } from '../types';
 import { leads } from '../lib/supabase';
 import { useToast } from '../hooks/useToast';
+import CityAutocomplete from './CityAutocomplete';
 
 interface LeadModalProps {
   isOpen: boolean;
@@ -174,12 +175,10 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
                       Город
                     </label>
-                    <input
-                      type="text"
+                    <CityAutocomplete
                       value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="Например: Москва"
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                      onChange={(city) => setFormData({ ...formData, city })}
+                      placeholder="Начните вводить город..."
                     />
                   </div>
 

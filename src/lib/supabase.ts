@@ -906,41 +906,44 @@ export interface Lead {
 }
 
 export interface Lawyer {
-  id: string;
-  user_id: string | null;
-  name: string;
-  spec: string | null;
-  specialization: string | null;
-  city: string | null;
-  region: string | null;
-  rating: number;
-  reviews: number;
-  reviews_count: number;
-  verified: boolean;
-  avatar_url: string | null;
-  img: string | null;
-  yandex_rating: number | null;
-  website: string | null;
-  phone: string | null;
-  email: string | null;
-  experience: string | null;
-  experience_years: number | null;
-  description: string | null;
-  is_active: boolean;
-  is_featured: boolean;
-  status: 'pending' | 'approved' | 'rejected' | 'blocked';
-  subscription_tier: 'free' | 'basic' | 'premium' | 'featured';
-  subscription_expires_at: string | null;
-  subscription_expires: string | null;
-  leads_purchased: number;
-  leads_converted: number;
-  total_spent: number;
-  can_buy_leads: boolean;
-  max_leads_per_month: number;
-  notify_new_leads: boolean;
-  notify_telegram: string | null;
-  created_at: string;
-  updated_at: string;
+   id: string;
+   user_id: string | null;
+   name: string;
+   spec: string | null;
+   specialization: string | null;
+   city: string | null;
+   region: string | null;
+   rating: number;
+   reviews: number;
+   reviews_count: number;
+   verified: boolean;
+   avatar_url: string | null;
+   img: string | null;
+   website: string | null;
+   phone: string | null;
+   email: string | null;
+   experience: string | null;
+   experience_years: number | null;
+   description: string | null;
+   is_active: boolean;
+   is_featured: boolean;
+   status: 'pending' | 'approved' | 'rejected' | 'blocked';
+   subscription_tier: 'free' | 'basic' | 'premium' | 'featured';
+   subscription_expires_at: string | null;
+   subscription_expires: string | null;
+   leads_purchased: number;
+   leads_converted: number;
+   total_spent: number;
+   can_buy_leads: boolean;
+   max_leads_per_month: number;
+   notify_new_leads: boolean;
+   notify_telegram: string | null;
+    created_at: string;
+    updated_at: string;
+    telegram: string | null;
+    license_number: string | null;
+    practice_areas: string[] | null;
+    languages: string[] | null;
 }
 
 export interface LeadPurchase {
@@ -2993,34 +2996,12 @@ export const blockedUsers = {
   },
 
   // Проверить, заблокирован ли пользователь
-  isBlocked: async (userId?: string) => {
+isBlocked: async (userId?: string) => {
     if (!userId) return { isBlocked: false };
     const result = await withRetry<any>(() =>
       supabase.rpc('is_user_blocked', { check_user_id: userId })
     );
     return { isBlocked: result.data === true, error: result.error };
-  },
-};
-
-// Yandex Maps API
-export const yandexMaps = {
-  // Поиск организации по названию или городу
-  searchOrganization: async (query: string) => {
-    const apiKey = import.meta.env.VITE_YANDEXMAP_API_KEY;
-    if (!apiKey) {
-      return { data: null, error: 'Yandex Maps API key is not configured' };
-    }
-    const url = `https://search-maps.yandex.ru/search/v1?query=${encodeURIComponent(query)}&apikey=${apiKey}`;
-    
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log('Yandex Maps search result:', query, data);
-      return { data, error: null };
-    } catch (error) {
-      console.error('Yandex Maps search error:', error);
-      return { data: null, error: 'Ошибка при поиске' };
-    }
   },
 };
 

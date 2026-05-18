@@ -352,59 +352,25 @@ const handleEditSave = async () => {
                 <Building className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
                 <div className="flex-1">
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Суд</p>
-                  {courtData?.website ? (
-                    <div className="flex flex-col gap-2">
-                      <SafeLink 
-                        href={courtData.website}
-                        className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-colors group"
-                      >
-                        <span>{localCaseData.court}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-colors" />
-                      </SafeLink>
-                      <div className="flex items-center gap-2 mt-1">
-                        <SafeLink 
-                          href={`https://yandex.ru/maps/?text=${encodeURIComponent(courtData.full_address || courtData.name)}`}
-                          className="text-[10px] font-medium px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-sm transition-all"
-                          title="Яндекс.Карты"
-                        >
-                          Яндекс
-                        </SafeLink>
-                        <SafeLink 
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(courtData.full_address || courtData.name)}`}
-                          className="text-[10px] font-medium px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-sm transition-all"
-                          title="Google Maps"
-                        >
-                          Google
-                        </SafeLink>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <SafeLink 
-                        href={`https://yandex.ru/maps/?text=${encodeURIComponent(localCaseData.court)}`}
-                        className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-colors group"
-                      >
-                        <span>{localCaseData.court}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-colors" />
-                      </SafeLink>
-                      <div className="flex items-center gap-2 mt-1">
-                        <SafeLink 
-                          href={`https://yandex.ru/maps/?text=${encodeURIComponent(localCaseData.court)}`}
-                          className="text-[10px] font-medium px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow-sm transition-all"
-                          title="Яндекс.Карты"
-                        >
-                          Яндекс
-                        </SafeLink>
-                        <SafeLink 
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localCaseData.court)}`}
-                          className="text-[10px] font-medium px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow-sm transition-all"
-                          title="Google Maps"
-                        >
-                          Google
-                        </SafeLink>
-                      </div>
-                    </div>
-                  )}
+{courtData?.website ? (
+                     <div className="flex flex-col gap-2">
+                       <SafeLink 
+                         href={courtData.website}
+                         className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-colors group"
+                       >
+                         <span>{localCaseData.court}</span>
+                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-colors" />
+                       </SafeLink>
+                     </div>
+                   ) : (
+                     <SafeLink 
+                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localCaseData.court)}`}
+                       className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-colors group"
+                     >
+                       <span>{localCaseData.court}</span>
+                       <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-colors" />
+                     </SafeLink>
+                   )}
                 </div>
               </div>
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3">

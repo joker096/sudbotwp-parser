@@ -10,15 +10,18 @@ CREATE TABLE IF NOT EXISTS lawyer_favorites (
 -- Enable RLS
 ALTER TABLE lawyer_favorites ENABLE ROW LEVEL SECURITY;
 
--- Policies
+-- Policies (idempotent: drop first if exists)
+DROP POLICY IF EXISTS "Users can view their own favorites" ON lawyer_favorites;
 CREATE POLICY "Users can view their own favorites"
   ON lawyer_favorites FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can add their own favorites" ON lawyer_favorites;
 CREATE POLICY "Users can add their own favorites"
   ON lawyer_favorites FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can remove their own favorites" ON lawyer_favorites;
 CREATE POLICY "Users can remove their own favorites"
   ON lawyer_favorites FOR DELETE
   USING (auth.uid() = user_id);

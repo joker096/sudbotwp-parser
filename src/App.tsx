@@ -29,6 +29,9 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const TestEditor = lazy(() => import('./pages/TestEditor'));
 const LegalActs = lazy(() => import('./pages/LegalActs'));
 const ColorPicker = lazy(() => import('./pages/ColorPicker'));
+const Counterparty = lazy(() => import('./pages/Counterparty'));
+const Arbitration = lazy(() => import('./pages/Arbitration'));
+const CivilCases = lazy(() => import('./pages/CivilCases'));
 export default function App() {
   return (
     <AuthProvider>
@@ -68,7 +71,10 @@ export default function App() {
                   <Route path="legal-acts" element={<LegalActs />} />
                   {/* apply-lawyer route removed */}
                    <Route path="test-editor" element={<TestEditor />} />
-                  <Route path="color-picker" element={<ColorPicker />} />
+                   <Route path="color-picker" element={<ColorPicker />} />
+                   <Route path="counterparty/:inn?" element={<Counterparty />} />
+                   <Route path="arbitration" element={<Arbitration />} />
+                   <Route path="civil-cases" element={<CivilCases />} />
                    
 
                   {/* Protected routes */}

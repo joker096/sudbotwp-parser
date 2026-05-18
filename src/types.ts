@@ -118,38 +118,37 @@ export interface Profile {
 
 // Lawyer types
 export interface Lawyer {
-  id: string;
-  user_id?: string;
-  name: string;
-  spec?: string;
-  specialization?: string;
-  city?: string;
-  region?: string;
-  rating?: number;
-  reviews?: number;
-  reviews_count?: number;
-  verified?: boolean;
-  img?: string;
-  avatar_url?: string | null;
-  photo_url?: string | null;
-  yandex_rating?: number;
-  website?: string;
-  phone?: string;
-  email?: string;
-  experience?: string;
-  experience_years?: number;
-  description?: string;
-  is_active?: boolean;
-   is_featured?: boolean;
-   status?: 'pending' | 'approved' | 'rejected' | 'blocked';
-   subscription_tier?: 'free' | 'basic' | 'premium' | 'featured';
-  subscription_expires_at?: string;
-  created_at?: string;
-  telegram?: string;
-  license_number?: string;
-  practice_areas?: string[];
-  languages?: string[];
-  updated_at?: string;
+   id: string;
+   user_id?: string;
+   name: string;
+   spec?: string;
+   specialization?: string;
+   city?: string;
+   region?: string;
+   rating?: number;
+   reviews?: number;
+   reviews_count?: number;
+   verified?: boolean;
+   img?: string;
+   avatar_url?: string | null;
+   photo_url?: string | null;
+   website?: string;
+   phone?: string;
+   email?: string;
+   experience?: string;
+   experience_years?: number;
+   description?: string;
+   is_active?: boolean;
+    is_featured?: boolean;
+    status?: 'pending' | 'approved' | 'rejected' | 'blocked';
+    subscription_tier?: 'free' | 'basic' | 'premium' | 'featured';
+   subscription_expires_at?: string;
+   created_at?: string;
+   telegram?: string;
+   license_number?: string;
+   practice_areas?: string[];
+   languages?: string[];
+   updated_at?: string;
 }
 
 export interface LawyerApplication {

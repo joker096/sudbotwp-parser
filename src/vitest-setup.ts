@@ -50,6 +50,10 @@ const mockIntersectionObserver = vi.fn(() => ({
 }));
 window.IntersectionObserver = mockIntersectionObserver;
 
+// ─── Mock framer-motion for tests ──────────────────────────────────────────────
+// Framer-motion animations don't work well in jsdom; mock to render children directly
+// We mock at module level in test files that need it, not globally here
+
 // ─── Mock environment variables ────────────────────────────────────────────────
 
 // Mock import.meta.env for Supabase client initialization in tests

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { MapPin, Star, ShieldCheck, MessageCircle, Filter, Search, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ExternalLink, Bookmark, BookmarkCheck } from 'lucide-react';
+import { MapPin, Star, ShieldCheck, MessageCircle, Filter, Search, Mail, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ExternalLink, Bookmark, BookmarkCheck, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import AdBanner from '../components/AdBanner';
 import LeadModal from '../components/LeadModal';
@@ -8,7 +8,7 @@ import StarRating from '../components/StarRating';
 import SafeLink from '../components/SafeLink';
 import { useSeo } from '../hooks/useSeo';
 import { useAuth } from '../hooks/useAuth';
-import { lawyers, lawyerFavorites, Lawyer, supabase, lawyerViewLimits, yandexMaps } from '../lib/supabase';
+import { lawyers, lawyerFavorites, Lawyer, supabase, lawyerViewLimits } from '../lib/supabase';
 
 const RUSSIAN_REGIONS = [
   'Москва и Московская область',
@@ -138,7 +138,7 @@ export default function Lawyers() {
   }, [setSeo]);
 
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, profileData } = useAuth();
   const [activeTab, setActiveTab] = useState('Все');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [showFilters, setShowFilters] = useState(false);
@@ -152,14 +152,14 @@ export default function Lawyers() {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const [showExtraData, setShowExtraData] = useState(false);
-  const [extraDataLoading, setExtraDataLoading] = useState(false);
-  const [extraDataFetched, setExtraDataFetched] = useState(false);
-  const [extraData, setExtraData] = useState<any>(null);
-  const [viewLimitReached, setViewLimitReached] = useState(false);
-  const [remainingViews, setRemainingViews] = useState<number | null>(null);
+const [showExtraData, setShowExtraData] = useState(false);
+   const [extraDataLoading, setExtraDataLoading] = useState(false);
+   const [extraDataFetched, setExtraDataFetched] = useState(false);
+   const [extraData, setExtraData] = useState<any>(null);
+   const [viewLimitReached, setViewLimitReached] = useState(false);
+   const [remainingViews, setRemainingViews] = useState<number | null>(null);
 
-  const syncFavorites = useCallback(async () => {
+   const syncFavorites = useCallback(async () => {
     if (user) {
       const { data } = await lawyerFavorites.getIds(user.id);
       if (data) setFavorites(data);
@@ -246,80 +246,48 @@ export default function Lawyers() {
     return 0;
   });
 
+const handleCloseModal = () => {
+    setSelectedLawyer(null);
+    setShowExtraData(false);
+    setViewLimitReached(false);
+    setRemainingViews(null);
+  };
+
   const handleShowExtraData = async () => {
     if (!selectedLawyer) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    // Admin sees everything without limits
+    if (profileData?.role === 'admin') {
       setShowExtraData(true);
-      setExtraDataFetched(true);
       setViewLimitReached(false);
-      setRemainingViews(5);
-      return;
-    }
-
-    const { hasLimit, remaining } = await lawyerViewLimits.checkLimit(session.user.id, selectedLawyer.id);
-    setRemainingViews(remaining);
-
-    if (hasLimit) {
-      setViewLimitReached(true);
       return;
     }
 
     setExtraDataLoading(true);
-    setShowExtraData(true);
-    setExtraDataFetched(false);
-    setExtraData(null);
-
     try {
-      let result: any = null;
-      let searchQuery: string;
-
-      searchQuery = selectedLawyer.name;
-      result = await yandexMaps.searchOrganization(searchQuery);
-
-      if (!result?.data?.places || result.data.places.length === 0) {
-        searchQuery = `${selectedLawyer.name} юрист`;
-        result = await yandexMaps.searchOrganization(searchQuery);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setViewLimitReached(true);
+        setRemainingViews(0);
+        return;
       }
-
-      if (!result?.data?.places || result.data.places.length === 0) {
-        searchQuery = `юрист ${selectedLawyer.city}`;
-        result = await yandexMaps.searchOrganization(searchQuery);
+      const { hasLimit, remaining } = await lawyerViewLimits.checkLimit(session.user.id, selectedLawyer.id);
+      setRemainingViews(remaining);
+      if (hasLimit) {
+        setViewLimitReached(true);
+        return;
       }
-
-      if (!result?.data?.places || result.data.places.length === 0) {
-        searchQuery = selectedLawyer.city;
-        result = await yandexMaps.searchOrganization(searchQuery);
-      }
-
-      if (result.data && result.data.places?.length > 0) {
-        await lawyerViewLimits.trackView(session.user.id, selectedLawyer.id);
-        setExtraData(result.data.places[0]);
-        setExtraDataFetched(true);
-
-        const yandexData = result.data.places[0];
-        const yandexRating = yandexData.meta?.organization?.rating || null;
-
-        if (yandexRating && (!selectedLawyer.yandex_rating || selectedLawyer.yandex_rating === 0)) {
-          const { error } = await supabase
-            .from('lawyers')
-            .update({ yandex_rating: yandexRating })
-            .eq('id', selectedLawyer.id);
-          if (error) console.error('Error saving yandex rating:', error);
-        }
-      } else {
-        setExtraDataFetched(true);
-      }
+      await lawyerViewLimits.trackView(session.user.id, selectedLawyer.id);
+      setShowExtraData(true);
     } catch (error) {
-      console.error('Error fetching extra data:', error);
-      setExtraDataFetched(true);
+      console.error('Error showing extra data:', error);
+      setViewLimitReached(true);
     } finally {
       setExtraDataLoading(false);
     }
   };
 
-  return (
+   return (
     <div className="space-y-6 transition-colors duration-300">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Юристы</h1>
@@ -514,7 +482,7 @@ export default function Lawyers() {
           const isFav = favorites.includes(lawyer.id);
           return (
             <div key={lawyer.id} className="contents">
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
+              <div className="group bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_2px_16px_rgb(0,0,0,0.04)] dark:shadow-[0_2px_16px_rgb(0,0,0,0.16)] border border-slate-100 dark:border-slate-800/60 hover:shadow-[0_12px_40px_rgb(0,0,0,0.10)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.35)] hover:border-accent/30 dark:hover:border-accent/40 hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex gap-4 cursor-pointer" onClick={() => setSelectedLawyer(lawyer)}>
                   <div className="relative shrink-0">
                     <img
@@ -522,63 +490,64 @@ export default function Lawyers() {
                       alt={lawyer.name}
                       referrerPolicy="no-referrer"
                       loading="lazy"
-                      className="w-20 h-20 rounded-2xl object-contain bg-slate-100 dark:bg-slate-800 shadow-sm"
+                      className="w-20 h-20 rounded-2xl object-contain bg-slate-100 dark:bg-slate-800 shadow-sm group-hover:shadow-md transition-shadow"
                     />
                     {lawyer.verified && (
-                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm">
-                        <ShieldCheck className="w-5 h-5 text-primary" />
+                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 p-0.5 rounded-full shadow-sm ring-2 ring-white dark:ring-slate-900">
+                        <ShieldCheck className="w-5 h-5 text-accent" />
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1 gap-1">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight hover:text-accent transition-colors truncate">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-accent transition-colors truncate">
                         {lawyer.name}
                       </h3>
                       <button
                         onClick={(e) => handleToggleFavorite(lawyer, e)}
-                        className={`p-1.5 shrink-0 rounded-lg transition-colors ${
+                        className={`p-1.5 shrink-0 rounded-lg transition-all duration-200 ${
                           isFav
-                            ? 'text-accent bg-accent/10 hover:bg-accent/20'
-                            : 'text-slate-400 hover:text-accent hover:bg-accent/10'
+                            ? 'text-accent bg-accent/10 hover:bg-accent/20 scale-110'
+                            : 'text-slate-400 hover:text-accent hover:bg-accent/10 hover:scale-110'
                         }`}
                         title={isFav ? 'Убрать из избранного' : 'В избранное'}
                       >
                         {isFav ? <BookmarkCheck className="w-4 h-4 fill-accent" /> : <Bookmark className="w-4 h-4" />}
                       </button>
                     </div>
-                    <p className="text-xs text-primary font-semibold mb-2">{lawyer.spec}</p>
-                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      <MapPin className="w-3 h-3 text-slate-400" /> {lawyer.city}
-                      <span className="text-slate-300 dark:text-slate-600 mx-1">•</span>
-                      <span>{lawyer.reviews} отз.</span>
+                    <p className="text-xs text-accent font-semibold mb-2 truncate">{lawyer.spec}</p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium mb-2">
+                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" /> <span className="truncate">{lawyer.city}</span>
+                      <span className="text-slate-300 dark:text-slate-600 shrink-0">·</span>
+                      <span className="shrink-0">{lawyer.reviews} отз.</span>
                     </div>
-                    <div className="mt-1.5">
-                      <StarRating
-                        targetType="lawyer"
-                        targetId={lawyer.id}
-                        initialRating={lawyer.rating}
-                        initialVotes={lawyer.reviews}
-                        size="sm"
-                        showCount={false}
-                        showVoting={true}
-                      />
-                    </div>
+                    <StarRating
+                      targetType="lawyer"
+                      targetId={lawyer.id}
+                      initialRating={lawyer.rating}
+                      initialVotes={lawyer.reviews}
+                      size="sm"
+                      showCount={false}
+                      showVoting={true}
+                    />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-3">
+                  {lawyer.description}
+                </p>
+                <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setSelectedLawyer(lawyer)}
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-colors"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-2xl text-xs font-bold transition-colors"
                   >
                     Профиль
                   </button>
                   <button
                     onClick={() => handleToggleFavorite(lawyer, new MouseEvent('click') as any)}
-                    className={`p-2.5 rounded-xl transition-colors ${
+                    className={`p-2.5 rounded-2xl transition-all duration-200 ${
                       isFav
                         ? 'bg-accent/10 text-accent hover:bg-accent/20'
-                        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-accent hover:bg-accent/20'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-accent hover:bg-accent/10'
                     }`}
                     title={isFav ? 'Убрать из избранного' : 'В избранное'}
                   >
@@ -586,14 +555,13 @@ export default function Lawyers() {
                   </button>
                   <button
                     onClick={() => { setSelectedLawyer(lawyer); setShowLeadModal(true); }}
-                    className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     Написать
                   </button>
                 </div>
               </div>
-
               {index === 2 && (
                 <div className="sm:col-span-2 lg:col-span-3">
                   <AdBanner />
@@ -617,7 +585,7 @@ export default function Lawyers() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedLawyer(null)}
+              onClick={handleCloseModal}
               className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm z-[100]"
             />
             <motion.div
@@ -627,54 +595,71 @@ export default function Lawyers() {
               transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
               className="fixed bottom-0 sm:bottom-auto sm:top-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:max-w-lg bg-white dark:bg-slate-900 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                <button
-                  onClick={() => setSelectedLawyer(null)}
-                  className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-colors z-10"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
+                  <button
+                    onClick={handleCloseModal}
+                    aria-label="Закрыть"
+                    className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-colors z-10"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
 
-                <div className="flex flex-col items-center text-center mt-4 mb-6">
-                  <div className="relative mb-4">
-                    <img
-                      src={getAvatarUrl(selectedLawyer)}
-                      alt={selectedLawyer.name}
-                      referrerPolicy="no-referrer"
-                      loading="lazy"
-                      className="w-28 h-28 rounded-2xl object-contain bg-slate-100 dark:bg-slate-800 shadow-lg border-4 border-white dark:border-slate-800"
-                    />
-                    {selectedLawyer.verified && (
-                      <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-900 p-1 rounded-full shadow-sm">
-                        <ShieldCheck className="w-7 h-7 text-primary" />
-                      </div>
-                    )}
+                  {/* ────── HERO ────── */}
+                  <div className="flex flex-col items-center text-center mt-6">
+                    <div className="relative mb-3">
+                      <img
+                        src={getAvatarUrl(selectedLawyer)}
+                        alt={selectedLawyer.name}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="w-28 h-28 rounded-[1.5rem] object-contain bg-slate-100 dark:bg-slate-800 shadow-xl shadow-black/10 dark:shadow-black/40 border-[3px] border-white dark:border-slate-700"
+                      />
+                      {selectedLawyer.verified && (
+                        <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-800 p-1 rounded-full shadow-md ring-2 ring-white dark:ring-slate-800">
+                          <ShieldCheck className="w-6 h-6 text-green-500" />
+                        </div>
+                      )}
+                    </div>
+                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight tracking-[0.01em]">{selectedLawyer.name}</h2>
+                    <p className="text-accent text-xs font-semibold uppercase tracking-widest mt-0.5">{selectedLawyer.spec}</p>
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{selectedLawyer.name}</h2>
-                  <p className="text-primary font-semibold mb-3">{selectedLawyer.spec}</p>
 
-                  <div className="flex items-center gap-4 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl">
-                    <StarRating
-                      targetType="lawyer"
-                      targetId={selectedLawyer.id}
-                      initialRating={selectedLawyer.rating}
-                      initialVotes={selectedLawyer.reviews}
-                      size="md"
-                      showCount={true}
-                      showVoting={true}
-                    />
-                    <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      <span>{selectedLawyer.city}</span>
+                  {/* ────── STATS GRID ────── */}
+                  <div className="grid grid-cols-3 gap-3 mt-5">
+                    {/* Рейтинг платформы */}
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex flex-col items-center text-center">
+                      <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 mb-1.5" />
+                      <p className="text-lg font-extrabold text-slate-900 dark:text-white">{selectedLawyer.rating?.toFixed(1) ?? '—'}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Рейтинг</p>
+                    </div>
+
+                    {/* Отзывы */}
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex flex-col items-center text-center">
+                      <MessageCircle className="w-5 h-5 text-blue-400 mb-1.5" />
+                      <p className="text-lg font-extrabold text-slate-900 dark:text-white">{selectedLawyer.reviews ?? 0}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Отзывов</p>
+                    </div>
+
+                    {/* Опыт */}
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex flex-col items-center text-center">
+                      <Briefcase className="w-5 h-5 text-emerald-500 mb-1.5" />
+                      <p className="text-lg font-extrabold text-slate-900 dark:text-white">{selectedLawyer.experience ?? '—'}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Лет опыта</p>
                     </div>
                   </div>
 
-                  {!viewLimitReached && (
+                  {/* ────── CITY TAG ────── */}
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 mt-3">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>{selectedLawyer.city}</span>
+                  </div>
+
+                  {/* ────── PRIMARY ACTION ────── */}
+                  {!showExtraData && !viewLimitReached && (
                     <button
                       onClick={handleShowExtraData}
                       disabled={extraDataLoading}
-                      className="w-full bg-gradient-to-r from-accent/10 to-accent/5 hover:from-accent/20 hover:to-accent/10 border border-accent/20 text-accent py-3 px-4 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-accent/10 disabled:opacity-50"
+                      className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-3.5 px-5 rounded-2xl text-sm font-extrabold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10 dark:shadow-accent/20 disabled:opacity-50 active:scale-[0.99] mt-4"
                     >
                       {extraDataLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -683,7 +668,7 @@ export default function Lawyers() {
                           <Eye className="w-4 h-4" />
                           <span>Показать данные</span>
                           {remainingViews !== null && remainingViews > 0 && remainingViews <= 3 && (
-                            <span className="text-xs opacity-70">({remainingViews} осталось)</span>
+                            <span className="opacity-70">({remainingViews} осталось)</span>
                           )}
                         </>
                       )}
@@ -691,154 +676,143 @@ export default function Lawyers() {
                   )}
 
                   {viewLimitReached && (
-                    <div className="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-xl text-center">
+                    <div className="mt-4 bg-slate-100 dark:bg-slate-800/50 p-4 rounded-xl text-center space-y-2">
                       <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Лимит просмотров исчерпан. Попробуйте через месяц.
+                        Полные данные доступны по подписке.
                       </p>
+                      <Link
+                        to="/profile?tab=subscription"
+                        className="inline-block bg-accent hover:bg-accent-light text-white text-xs font-bold py-2 px-4 rounded-xl transition-colors"
+                      >
+                        Приобрести подписку
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* ────── КОНТАКТЫ (всегда видны) ────── */}
+                  <div className="grid grid-cols-2 gap-3 mt-5 pt-2">
+                    {selectedLawyer.phone && (
+                      <a href={`tel:${selectedLawyer.phone}`} className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                        <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
+                          <Phone className="w-4 h-4 text-accent" />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Телефон</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.phone}</p>
+                        </div>
+                      </a>
+                    )}
+                    {selectedLawyer.website && (
+                      <SafeLink href={formatUrl(selectedLawyer.website)} className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                        <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
+                          <Globe className="w-4 h-4 text-accent" />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Сайт</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.website}</p>
+                        </div>
+                      </SafeLink>
+                    )}
+                  </div>
+
+                  {selectedLawyer.email && (
+                    <a href={`mailto:${selectedLawyer.email}`} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group mt-3">
+                      <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm">
+                        <Mail className="w-4 h-4 text-accent" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Email</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.email}</p>
+                      </div>
+                    </a>
+                  )}
+
+                  {/* ────── EXTRA DATA ────── */}
+                  {showExtraData && (
+                    <div className="mt-4 space-y-3">
+                      {selectedLawyer.description && (
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{selectedLawyer.description}</p>
+                        </div>
+                      )}
+
+                      {selectedLawyer.telegram && (
+                        <SafeLink href={`https://t.me/${selectedLawyer.telegram.replace(/^@/, '')}`} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                          <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm">
+                            <MessageCircle className="w-4 h-4 text-accent" />
+                          </div>
+                          <div className="overflow-hidden">
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Telegram</p>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.telegram}</p>
+                          </div>
+                        </SafeLink>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedLawyer.license_number && (
+                          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex flex-col items-center text-center">
+                            <ShieldCheck className="w-5 h-5 text-emerald-500 mb-1.5" />
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedLawyer.license_number}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Лицензия</p>
+                          </div>
+                        )}
+                        {selectedLawyer.experience_years !== undefined && selectedLawyer.experience_years !== null && (
+                          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex flex-col items-center text-center">
+                            <Briefcase className="w-5 h-5 text-emerald-500 mb-1.5" />
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedLawyer.experience_years}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">Лет опыта</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedLawyer.practice_areas && selectedLawyer.practice_areas.length > 0 && (
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-2">Сферы практики</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedLawyer.practice_areas.map((area) => (
+                              <span key={area} className="px-3 py-1 bg-white dark:bg-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm">
+                                {area}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedLawyer.languages && selectedLawyer.languages.length > 0 && (
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl">
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-2">Языки</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedLawyer.languages.map((lang) => (
+                              <span key={lang} className="px-3 py-1 bg-white dark:bg-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm">
+                                {lang}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setShowExtraData(false)}
+                        className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <EyeOff className="w-4 h-4" />
+                        Скрыть данные
+                      </button>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-4 mb-8">
-                  <h3 className="font-bold text-slate-900 dark:text-white text-lg">О специалисте</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {selectedLawyer.description}
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3">
-                      <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
-                        <Briefcase className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Опыт</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedLawyer.experience}</p>
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3">
-                      <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
-                        <Star className="w-4 h-4 text-red-500 fill-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Яндекс Карты</p>
-                        {selectedLawyer?.yandex_rating && selectedLawyer.yandex_rating > 0 ? (
-                          <SafeLink href={"https://yandex.ru/maps/?text=" + encodeURIComponent(selectedLawyer.name)} className="text-sm font-bold text-slate-900 dark:text-white">
-                            {selectedLawyer.yandex_rating} / 5.0
-                          </SafeLink>
-                        ) : (
-                          <p className="text-sm text-slate-400 dark:text-slate-500">—</p>
-                        )}
-                      </div>
-                    </div>
-                    <a href={`tel:${selectedLawyer.phone}`} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                      <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
-                        <Phone className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Телефон</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.phone}</p>
-                      </div>
-                    </a>
-                    <SafeLink href={formatUrl(selectedLawyer.website)} className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                      <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
-                        <Globe className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Сайт</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedLawyer.website}</p>
-                      </div>
-                    </SafeLink>
-                  </div>
-                </div>
-
-                {showExtraData && (
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-accent" />
-                      Данные организации
-                    </h3>
-
-                    {extraDataLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent" />
-                      </div>
-                    ) : extraData ? (
-                      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-start gap-3 mb-4">
-                          <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-sm">
-                            <MapPin className="w-5 h-5 text-red-500" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-slate-900 dark:text-white text-base">
-                              {extraData.name || selectedLawyer.name}
-                            </h4>
-                            {extraData.location && (
-                              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                {extraData.location.address || extraData.location.description || ''}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {extraData.meta?.organization?.rating && (
-                          <div className="flex items-center gap-2 mb-3">
-                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">
-                              {extraData.meta.organization.rating} / {extraData.meta.organization.rating_count}
-                            </span>
-                          </div>
-                        )}
-
-                        {extraData.meta?.organization?.categories && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {extraData.meta.organization.categories.slice(0, 3).map((cat: any, i: number) => (
-                              <span key={i} className="text-xs bg-white dark:bg-slate-700 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300">
-                                {cat.name || cat.text}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {extraData.meta?.organization?.phone && (
-                          <a
-                            href={`tel:${extraData.meta.organization.phone}`}
-                            className="flex items-center gap-2 mb-3 text-sm text-slate-600 dark:text-slate-300 hover:text-accent transition-colors"
-                          >
-                            <Phone className="w-4 h-4" />
-                            {extraData.meta.organization.phone}
-                          </a>
-                        )}
-
-                        <SafeLink
-                          href={`https://yandex.ru/maps/${extraData.location.x}:${extraData.location.y}`}
-                          className="flex items-center gap-2 w-full bg-white dark:bg-slate-700 p-3 rounded-xl text-sm font-bold text-accent hover:bg-accent/10 hover:text-accent-light transition-colors justify-center"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Открыть на Яндекс.Картах
-                        </SafeLink>
-                      </div>
-                    ) : extraDataFetched && !viewLimitReached ? (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Данные не найдены
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
                 <button
-                  onClick={() => { setSelectedLawyer(null); setShowLeadModal(true); }}
+                  onClick={() => { handleCloseModal(); setShowLeadModal(true); }}
                   className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-4 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 dark:shadow-accent/30"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Написать сообщение
                 </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
       <LeadModal
         isOpen={showLeadModal}

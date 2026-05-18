@@ -36,9 +36,11 @@
     "react-dom": "^19.0.0",
     "react-intersection-observer": "^10.0.3",
     "react-router-dom": "^7.13.0",
+    "recharts": "^3.8.1",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
-    "windows-1251": "^3.0.4"
+    "windows-1251": "^3.0.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -58,6 +60,9 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "vite-imagetools": "^9.0.3",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.6",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-window": "^7.4.1"
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check, MapPin, Archive } from 'lucide-react';
+import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check, MapPin, Archive, Building, Gavel } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import AdBanner from '../components/AdBanner';
 import { supabase, cases, refreshCase, parseCase, lawyers } from '../lib/supabase';
@@ -252,6 +252,8 @@ export default function Home() {
   const categories = [
     { id: 'cases', name: 'Дела', icon: Scale, active: true, link: '/search' },
     { id: 'lawyers', name: 'Юристы', icon: Users, active: false, link: '/lawyers' },
+    { id: 'counterparty', name: 'Контрагенты', icon: Building, active: false, link: '/counterparty' },
+    { id: 'arbitration', name: 'Арбитраж', icon: Gavel, active: false, link: '/arbitration' },
     { id: 'calc', name: 'Пошлины', icon: Calculator, active: false, link: '/calculator' },
     { id: 'blog', name: 'Блог', icon: BookOpen, active: false, link: '/blog' },
   ];

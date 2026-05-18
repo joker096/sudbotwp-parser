@@ -4,6 +4,7 @@
  * Использует cheerio для парсинга HTML (windows-1251 кодировка)
  */
 
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import * as cheerio from 'cheerio';

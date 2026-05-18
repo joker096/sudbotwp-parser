@@ -96,17 +96,12 @@ BEGIN
     ALTER TABLE lawyers ADD COLUMN practice_areas TEXT[] DEFAULT '{}';
   END IF;
 
-  -- Язы работы
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'lawyers' AND column_name = 'languages') THEN
-    ALTER TABLE lawyers ADD COLUMN languages TEXT[] DEFAULT '{}';
-  END IF;
+-- Язы работы
+   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'lawyers' AND column_name = 'languages') THEN
+     ALTER TABLE lawyers ADD COLUMN languages TEXT[] DEFAULT '{}';
+   END IF;
 
-  -- Рейтинг Яндекс (если есть)
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'lawyers' AND column_name = 'yandex_rating') THEN
-    ALTER TABLE lawyers ADD COLUMN yandex_rating NUMERIC(3,1) DEFAULT 0;
-  END IF;
-
-  -- Платформа подписки
+   -- Платформа подписки
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'lawyers' AND column_name = 'subscription_tier') THEN
     ALTER TABLE lawyers ADD COLUMN subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'basic', 'premium', 'featured'));
   END IF;

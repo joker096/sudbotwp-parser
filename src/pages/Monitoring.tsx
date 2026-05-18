@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Building, AlertTriangle, Scale, Shield, Bell, CheckCircle2, XCircle, TrendingUp, Clock, FileText, Loader2, Star, Zap, Crown, UserCheck } from 'lucide-react';
+import { Search, Building, AlertTriangle, Scale, Shield, Bell, CheckCircle2, XCircle, TrendingUp, Clock, FileText, Loader2, Star, Zap, Crown, UserCheck, ExternalLink, Gavel } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { checkTaxpayerStatus, isValidInn, TaxpayerStatusResponse } from '../lib/npd';
 import { useSeo } from '../hooks/useSeo';
 import { apiConfig } from '../lib/apiConfig';
+import MonitoredCompaniesSection from '../components/MonitoredCompaniesSection';
 
 interface CompanyData {
   inn: string;
@@ -165,6 +166,36 @@ export default function Monitoring() {
     <div className="space-y-6 transition-colors duration-300">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Мониторинг</h1>
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a
+          href="/counterparty"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
+        >
+          <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+            <Building className="w-5 h-5 text-accent" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-slate-900 dark:text-white text-sm">Проверка контрагента</p>
+            <p className="text-xs text-slate-500">ЕГРЮЛ, ФССП, ЕФРСБ, риск-скоринг</p>
+          </div>
+          <ExternalLink className="w-4 h-4 text-slate-400" />
+        </a>
+        <a
+          href="/arbitration"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
+        >
+          <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+            <Gavel className="w-5 h-5 text-accent" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-slate-900 dark:text-white text-sm">Арбитражные дела</p>
+            <p className="text-xs text-slate-500">Поиск по КАД, статистика судей</p>
+          </div>
+          <ExternalLink className="w-4 h-4 text-slate-400" />
+        </a>
       </div>
 
       {/* Search Section */}
@@ -443,6 +474,9 @@ export default function Monitoring() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Monitored Companies */}
+      <MonitoredCompaniesSection />
 
       {/* Pricing Section */}
       {!companyData && !taxpayerResult && (
