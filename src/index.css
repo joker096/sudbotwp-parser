@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -139,7 +139,7 @@
   text-decoration: none !important;
   font-weight: 700 !important;
   font-size: 1.2rem !important;
-  transition: all 0.3s ease !important;
+  transition:all 0. all 0.3s ease !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
   border: 3px solid transparent !important;
   margin: 10px auto !important;
@@ -151,7 +151,7 @@
   transform: translateY(-3px) scale(1.02) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
   background: #f0f9ff !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  border-top-color: rgba(59, 130, 246, 0.3) !important;
 }
 
 /* CTA Box - блок призыва к действию */
@@ -249,7 +249,7 @@
   text-decoration: none !important;
   font-weight: 600 !important;
   font-size: 0.95rem !important;
-  transition: all 0.3s ease !important;
+  transition:all 0. all 0.3s ease !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   border: 2px solid transparent !important;
   margin: 8px auto !important;
@@ -261,7 +261,7 @@
   transform: translateY(-2px) scale(1.02) !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
   background: #ecfdf5 !important;
-  border-color: rgba(5, 150, 105, 0.3) !important;
+  border-top-color: rgba(5, 150, 105, 0.3) !important;
 }
 
 /* Мобильные стили для cta-box-gosuslugi */
@@ -377,7 +377,7 @@
   text-decoration: none !important;
   font-weight: 700 !important;
   font-size: 1.2rem !important;
-  transition: all 0.3s ease !important;
+  transition:all 0. all 0.3s ease !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
   border: 3px solid transparent !important;
   margin: 10px auto !important;
@@ -398,7 +398,7 @@
 .cta-box.bg-accent .cta-button:hover,
 .cta-box.bg-accent a[href]:hover {
   background: #ecfdf5 !important;
-  border-color: rgba(5, 150, 105, 0.3) !important;
+  border-top-color: rgba(5, 150, 105, 0.3) !important;
 }
 
 /* Кнопка в фиолетовом CTA блоке */
@@ -411,7 +411,7 @@
 .cta-box-purple .cta-button:hover,
 .cta-box-purple a[href]:hover {
   background: #f5f3ff !important;
-  border-color: rgba(124, 58, 237, 0.3) !important;
+  border-top-color: rgba(124, 58, 237, 0.3) !important;
 }
 
 .cta-box .cta-button:hover,
@@ -419,7 +419,7 @@
   transform: translateY(-3px) scale(1.02) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
   background: #f0f9ff !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  border-top-color: rgba(59, 130, 246, 0.3) !important;
 }
 
 /* CTA Box - вторая версия (тёмная) */
@@ -618,7 +618,7 @@
   text-decoration: none;
   font-weight: 700;
   font-size: 1.2rem;
-  transition: all 0.2s ease;
+  transition:all 0. all 0.2s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border: 2px solid transparent;
 }
@@ -626,7 +626,7 @@
 .sc-cta-button:hover {
   background: #f0f9ff;
   transform: scale(1.02);
-  border-color: white;
+  border-top-color: white;
 }
 
 /* Альтернативная кнопка - темная */
@@ -637,7 +637,7 @@
 
 .sc-cta-button-dark:hover {
   background: #1e293b;
-  border-color: transparent;
+  border-top-color: transparent;
 }
 
 /* Альтернативная кнопка - акцентная */
@@ -720,7 +720,7 @@
 
 .dark .sc-info-box {
   background: #1e3a5f;
-  border-color: #1e40af;
+  border-top-color: #1e40af;
 }
 
 .dark .sc-info-box-title {
@@ -747,7 +747,7 @@
 
 .dark .sc-warning-box {
   background: #451a03;
-  border-color: #b45309;
+  border-top-color: #b45309;
 }
 
 .dark .sc-warning-box-title {
@@ -774,7 +774,7 @@
 
 .dark .sc-danger-box {
   background: #450a0a;
-  border-color: #b91c1c;
+  border-top-color: #b91c1c;
 }
 
 .dark .sc-danger-box-title {
@@ -801,7 +801,7 @@
 
 .dark .sc-success-box {
   background: #052e16;
-  border-color: #15803d;
+  border-top-color: #15803d;
 }
 
 .dark .sc-success-box-title {
@@ -841,12 +841,12 @@
 
 .dark .sc-duty-calculator {
   background: #1e293b;
-  border-color: #334155;
+  border-top-color: #334155;
 }
 
 .dark .sc-duty-calculator input {
   background: #0f172a;
-  border-color: #475569;
+  border-top-color: #475569;
   color: #f8fafc;
 }
 
@@ -872,7 +872,7 @@
 /* Styled Table - стилизованная таблица */
 .sc-table-wrapper {
   width: 100%;
-  overflow-x: auto;
+  overflow: auto;
   margin: 2rem 0;
 }
 
@@ -911,7 +911,7 @@
 }
 
 .dark .sc-table td {
-  border-color: #334155;
+  border-top-color: #334155;
 }
 
 .sc-table td {
@@ -944,7 +944,7 @@
   border-radius: 12px;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition:all 0. all 0.2s ease;
   cursor: pointer;
   border: none;
   font-size: 1rem;
@@ -1167,7 +1167,7 @@
   border-radius: 12px;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.9rem;
-  overflow-x: auto;
+  overflow: auto;
   margin: 20px 0;
 }
 
@@ -1209,7 +1209,7 @@
 }
 
 .dark .sc-timeline-item::before {
-  border-color: #0f172a;
+  border-top-color: #0f172a;
 }
 
 /* Two Column - две колонки */
@@ -1238,7 +1238,7 @@
 
 .dark .sc-card {
   background: #1e293b;
-  border-color: #334155;
+  border-top-color: #334155;
 }
 
 .sc-card-title {
@@ -1276,7 +1276,7 @@ body {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   background-attachment: fixed;
   color: #0f172a;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition:all 0. background 0.3s ease, color 0.3s ease;
   min-height: 100vh;
 }
 
@@ -1405,7 +1405,7 @@ body.dark {
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, background-color 0.2s;
+  transition:all 0. transform 0.2s, background-color 0.2s;
 }
 
 .youtube-lazy-container .youtube-play-btn:hover {
@@ -1523,14 +1523,14 @@ table,
 .prose table,
 .article-content table,
 .blog-content table {
-  overflow-x: auto;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 /* Основной контейнер для таблиц с горизонтальной прокруткой */
 .table-responsive {
   width: 100%;
-  overflow-x: auto;
+  overflow: auto;
   margin: 1.5rem 0;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1571,7 +1571,7 @@ table,
 }
 
 .dark .table-responsive td {
-  border-color: #334155;
+  border-top-color: #334155;
   color: #e2e8f0;
 }
 
@@ -1629,13 +1629,13 @@ table,
 .prose,
 .article-content,
 .blog-content {
-  overflow-x: visible;
+  overflow: visible;
 }
 
 .prose > div,
 .article-content > div,
 .blog-content > div {
-  overflow-x: auto;
+  overflow: auto;
   margin: 1.5rem 0;
   max-width: 100vw;
 }
@@ -1645,7 +1645,7 @@ table,
 .article-content pre,
 .blog-content pre {
   max-width: 100%;
-  overflow-x: auto;
+  overflow: auto;
 }
 
 /* ============================================
@@ -1729,7 +1729,7 @@ table,
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  transition: all 0.2s;
+  transition:all 0. all 0.2s;
 }
 
 .safe-deal-modal .close-button:hover {
@@ -1771,7 +1771,7 @@ table,
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s 0.2s, box-shadow 0.2s;
   background: white;
   color: #0f172a;
 }
@@ -1780,7 +1780,7 @@ table,
 .dark .safe-deal-modal .form-group select,
 .dark .safe-deal-modal .form-group textarea {
   background: #0f172a;
-  border-color: #334155;
+  border-top-color: #334155;
   color: #f8fafc;
 }
 
@@ -1788,7 +1788,7 @@ table,
 .safe-deal-modal .form-group select:focus,
 .safe-deal-modal .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-top-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -1811,7 +1811,7 @@ table,
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition:all 0. all 0.2s;
 }
 
 .safe-deal-modal .form-actions button:first-child {
@@ -1967,7 +1967,7 @@ table,
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition:all 0. all 0.2s;
   width: 100%;
   margin-bottom: 6px;
 }
@@ -2067,7 +2067,7 @@ table,
   background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition:all 0. opacity 0.3s ease;
 }
 
 .cta-box-compact:hover::before {
@@ -2104,7 +2104,7 @@ table,
   text-decoration: none !important;
   font-weight: 600 !important;
   font-size: 0.85rem !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition:all 0. all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-shadow: none !important;
   border: 1px solid transparent !important;
   margin: 4px auto !important;
@@ -2116,7 +2116,7 @@ table,
 .cta-box-compact a[href]:hover {
   transform: translateY(-1px) !important;
   background: #10b981 !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  border-top-color: rgba(255, 255, 255, 0.2) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
@@ -2144,7 +2144,7 @@ table,
   background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition:all 0. opacity 0.3s ease;
 }
 
 .cta-box-mini:hover::before {
@@ -2181,7 +2181,7 @@ table,
   text-decoration: none !important;
   font-weight: 600 !important;
   font-size: 0.7rem !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition:all 0. all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-shadow: none !important;
   border: 1px solid transparent !important;
   margin: 2px auto !important;
@@ -2219,7 +2219,7 @@ table,
   background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition:all 0. opacity 0.3s ease;
 }
 
 .cta-box-enhanced:hover::before {
@@ -2262,7 +2262,7 @@ table,
   text-decoration: none !important;
   font-weight: 600 !important;
   font-size: 1rem !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition:all 0. all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   border: 2px solid transparent !important;
   margin: 8px auto !important;
@@ -2274,7 +2274,7 @@ table,
   transform: translateY(-2px) scale(1.02) !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
   background: #ecfdf5 !important;
-  border-color: rgba(5, 150, 105, 0.3) !important;
+  border-top-color: rgba(5, 150, 105, 0.3) !important;
 }
 
 /* CTA Box Enhanced with Gosuslugi specific styles */
