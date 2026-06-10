@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Eye, Code, Bold, Italic, Underline, List, ListOrdered, Link, Image, Heading1, Heading2, Quote, Undo, Redo, Quote as QuoteIcon, Youtube, Images, X, Loader2, AlertCircle, Link2, Check, Puzzle, GripVertical, FileText, Upload, Download, Share2, File, Plus, Trash2, Move, Table, ChevronDown, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -1131,7 +1131,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
       name: 'Таблица (стильная)',
       icon: '📊',
       category: 'Таблицы',
-      html: '<div class="overflow-x-auto my-4">\n  <table class="w-full border-collapse bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-lg">\n    <thead>\n      <tr class="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">\n        <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-600">Заголовок 1</th>\n        <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-600">Заголовок 2</th>\n        <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-600">Заголовок 3</th>\n        <th class="w-10 px-2 py-3 border-b border-slate-200 dark:border-slate-600"></th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700">\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 1</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 2</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 3</td>\n        <td class="w-10 px-2 py-3 text-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">⋮⋮</td>\n      </tr>\n      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700">\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 4</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 5</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 6</td>\n        <td class="w-10 px-2 py-3 text-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">⋮⋮</td>\n      </tr>\n    </tbody>\n  </table>\n</div>'
+      html: '<div class="overflow-x-auto my-4">\n  <table class="w-full border-collapse bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-lg">\n    <thead>\n      <tr class="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600">\n        <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-600">Заголовок 1</th>\n        <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-600">Заголовок 2</th>\n        <th class="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-600">Заголовок 3</th>\n        <th class="w-10 px-2 py-3 border-b border-slate-200 dark:border-slate-600"></th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all border-b border-slate-100 dark:border-slate-700">\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 1</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 2</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 3</td>\n        <td class="w-10 px-2 py-3 text-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">⋮⋮</td>\n      </tr>\n      <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all border-b border-slate-100 dark:border-slate-700">\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 4</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 5</td>\n        <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">Ячейка 6</td>\n        <td class="w-10 px-2 py-3 text-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">⋮⋮</td>\n      </tr>\n    </tbody>\n  </table>\n</div>'
     },
     {
       id: 'table-striped',
@@ -1175,7 +1175,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
       name: 'Четыре колонки',
       icon: '🔢',
       category: 'Колонки',
-      html: '<div class="grid grid-cols-4 gap-3 my-6">\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 1</p>\n  </div>\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 2</p>\n  </div>\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 3</p>\n  </div>\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 4</p>\n  </div>\n</div>'
+      html: '<div class="grid grid-cols-4 gap-3 my-6">\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 1</p>\n  </div>\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 2</p>\n  </div>\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 3</p>\n  </div>\n  <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer">\n    <p class="font-semibold text-slate-900 dark:text-white text-sm">Колонка 4</p>\n  </div>\n</div>'
     },
   ];
 
@@ -1398,7 +1398,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                 onClick={btn.action}
                 title={btn.title}
                 disabled={btn.disabled}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`p-2 rounded-lg transition-all ${
                   btn.disabled 
                     ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1415,7 +1415,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
         <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
           <button
             onClick={() => setMode('visual')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               mode === 'visual'
                 ? 'bg-white dark:bg-slate-600 text-accent shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -1427,7 +1427,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
           </button>
           <button
             onClick={() => setMode('html')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               mode === 'html'
                 ? 'bg-white dark:bg-slate-600 text-accent shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -1484,7 +1484,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               <button
                 onClick={handleInsertLink}
                 disabled={!linkUrl || linkUrl === 'https://'}
-                className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors"
+                className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all"
               >
                 Вставить
               </button>
@@ -1513,7 +1513,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               <button
                 onClick={handleInsertImage}
                 disabled={!imageUrl || !imageUrl.startsWith('http')}
-                className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors"
+                className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all"
               >
                 Вставить
               </button>
@@ -1537,7 +1537,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               <button
                 onClick={handleInsertYouTube}
                 disabled={!youTubeUrl}
-                className="w-full py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors"
+                className="w-full py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all"
               >
                 Вставить
               </button>
@@ -1611,7 +1611,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               </h3>
               <button
                 onClick={closeGooglePhotosModal}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1623,7 +1623,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               <div className="flex gap-2">
                 <button
                   onClick={() => setGooglePhotosMode('single')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
                     googlePhotosMode === 'single'
                       ? 'bg-accent text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1633,7 +1633,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                 </button>
                 <button
                   onClick={() => setGooglePhotosMode('multiple')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
                     googlePhotosMode === 'multiple'
                       ? 'bg-accent text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1643,7 +1643,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                 </button>
                 <button
                   onClick={() => setGooglePhotosMode('album')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
                     googlePhotosMode === 'album'
                       ? 'bg-accent text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1764,7 +1764,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               <button
                 onClick={handleGooglePhotosSearch}
                 disabled={googlePhotosLoading || !googlePhotosUrl.trim()}
-                className="flex items-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-colors"
+                className="flex items-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-all"
               >
                 {googlePhotosLoading ? (
                   <>
@@ -1779,7 +1779,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
               {googlePhotosImages.length > 0 && (
                 <button
                   onClick={insertGooglePhotosImages}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-medium rounded-xl transition-colors"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-medium rounded-xl transition-all"
                 >
                   Вставить {googlePhotosSelected.size > 0 ? googlePhotosSelected.size : googlePhotosImages.length} {googlePhotosSelected.size === 1 || (googlePhotosSelected.size === 0 && googlePhotosImages.length === 1) ? 'фото' : 'фото'}
                 </button>
@@ -1814,7 +1814,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                   savedSelectionRef.current = null;
                   setShowLinkModal(false);
                 }}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1858,14 +1858,14 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
               <button
                 onClick={() => setShowLinkModal(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-all"
               >
                 Отмена
               </button>
               <button
                 onClick={handleInsertLink}
                 disabled={!linkUrl || linkUrl === 'https://'}
-                className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-all"
               >
                 <Link2 className="w-4 h-4" />
                 Вставить ссылку
@@ -1900,7 +1900,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                   savedSelectionRef.current = null;
                   setShowImageModal(false);
                 }}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1949,14 +1949,14 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
               <button
                 onClick={() => setShowImageModal(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-all"
               >
                 Отмена
               </button>
               <button
                 onClick={handleInsertImage}
                 disabled={!imageUrl || !imageUrl.startsWith('http')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-all"
               >
                 <Image className="w-4 h-4" />
                 Вставить изображение
@@ -1991,7 +1991,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                   savedSelectionRef.current = null;
                   setShowYouTubeModal(false);
                 }}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2034,14 +2034,14 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
               <button
                 onClick={() => setShowYouTubeModal(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-all"
               >
                 Отмена
               </button>
               <button
                 onClick={handleInsertYouTube}
                 disabled={!youTubeUrl}
-                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 font-medium rounded-xl transition-all"
               >
                 <Youtube className="w-4 h-4" />
                 Вставить видео
@@ -2072,7 +2072,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                   savedSelectionRef.current = null;
                   setShowShortcodeModal(false);
                 }}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2083,7 +2083,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                   <button
                     key={category}
                     onClick={() => setSelectedShortcodeCategory(category)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       selectedShortcodeCategory === category
                         ? 'bg-accent text-white'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -2100,7 +2100,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                     <button
                       key={shortcode.id}
                       onClick={() => insertShortcode(shortcode)}
-                      className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 hover:bg-accent/10 dark:hover:bg-accent/20 rounded-xl transition-colors text-left group"
+                      className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 hover:bg-accent/10 dark:hover:bg-accent/20 rounded-xl transition-all text-left group"
                     >
                       <span className="text-2xl">{shortcode.icon}</span>
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-accent">
@@ -2140,7 +2140,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                   savedSelectionRef.current = null;
                   setShowDocumentModal(false);
                 }}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2159,7 +2159,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                     className="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                   <div className="flex gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                       <Upload className="w-4 h-4 text-slate-500" />
                       <span className="text-sm text-slate-600 dark:text-slate-300">
                         {documentFile ? documentFile.name : 'Выбрать файл'}
@@ -2174,7 +2174,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                     <button
                       onClick={handleDocumentUpload}
                       disabled={!documentFile || !documentTitle.trim() || documentUploading}
-                      className="px-4 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                      className="px-4 py-2.5 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all flex items-center gap-2"
                     >
                       {documentUploading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -2262,7 +2262,7 @@ const HtmlEditorComponent = ({ value, onChange, onSave, placeholder = 'Введ�
                         insertAtCursor(templateHtml);
                         setShowDocumentModal(false);
                       }}
-                      className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors text-left"
+                      className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all text-left"
                     >
                       <span className="text-xl">{template.icon}</span>
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{template.name}</span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSeo } from '../hooks/useSeo';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -372,7 +372,7 @@ export default function Leads() {
       <div className="flex gap-2">
         <button
           onClick={() => setActiveTab('available')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'available'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -382,7 +382,7 @@ export default function Leads() {
         </button>
         <button
           onClick={() => setActiveTab('my')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'my'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -392,7 +392,7 @@ export default function Leads() {
         </button>
         <button
           onClick={() => setActiveTab('purchased')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'purchased'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -415,7 +415,7 @@ export default function Leads() {
           />
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`absolute right-2 p-2.5 rounded-xl transition-colors ${
+            className={`absolute right-2 p-2.5 rounded-xl transition-all ${
               showFilters
                 ? 'bg-accent text-white shadow-lg shadow-accent/30'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -588,7 +588,7 @@ export default function Leads() {
                               // Логика обработки заявки
                               console.log('Обработать заявку:', lead.id);
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
                           >
                             <Phone className="w-4 h-4" />
                             Связаться
@@ -609,7 +609,7 @@ export default function Leads() {
                           <button
                             onClick={() => handleRevealContact(lead)}
                             disabled={revealingContact}
-                            className="flex items-center gap-2 px-4 py-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-base font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                            className="flex items-center gap-2 px-4 py-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-base font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
                           >
                             {revealingContact ? (
                               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -624,7 +624,7 @@ export default function Leads() {
                               setSelectedLead(lead);
                               setShowPurchaseModal(true);
                             }}
-                            className="flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-accent text-white rounded-xl text-base font-bold hover:bg-slate-800 dark:hover:bg-accent-light transition-colors"
+                            className="flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-accent text-white rounded-xl text-base font-bold hover:bg-slate-800 dark:hover:bg-accent-light transition-all"
                           >
                             <CreditCard className="w-4 h-4" />
                             Купить
@@ -786,7 +786,7 @@ export default function Leads() {
                 
                 <a
                   href={`tel:${contactData.phone}`}
-                  className="bg-accent/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-accent/20 transition-colors"
+                  className="bg-accent/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-accent/20 transition-all"
                 >
                   <Phone className="w-6 h-6 text-accent" />
                   <div>
@@ -798,7 +798,7 @@ export default function Leads() {
                 {contactData.email && (
                   <a
                     href={`mailto:${contactData.email}`}
-                    className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 flex items-center gap-4 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 flex items-center gap-4 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
                   >
                     <Mail className="w-6 h-6 text-slate-400" />
                     <div>

@@ -961,7 +961,7 @@ is_active: template.is_active,
               </div>
               <button
                 onClick={() => { setEditingTemplate(null); setShowTemplateModal(true); }}
-                className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 Добавить
@@ -989,13 +989,13 @@ is_active: template.is_active,
                       </span>
                       <button
                         onClick={() => { setEditingTemplate(template); setShowTemplateModal(true); }}
-                        className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-all"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteTemplate(template.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1072,7 +1072,7 @@ is_active: template.is_active,
               {adminArchiveSubTab === 'lawyers' && (
                 <button
                   onClick={handleAddLawyer}
-                  className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                  className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
                 >
                   <Plus className="w-4 h-4" />
                   Добавить юриста
@@ -1083,7 +1083,7 @@ is_active: template.is_active,
             <div className="flex gap-1 p-1 bg-white dark:bg-slate-900 rounded-xl mb-4 w-fit">
               <button
                 onClick={() => setAdminArchiveSubTab('archived')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   adminArchiveSubTab === 'archived'
                     ? 'bg-slate-900 dark:bg-accent text-white'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1093,7 +1093,7 @@ is_active: template.is_active,
               </button>
               <button
                 onClick={() => setAdminArchiveSubTab('lawyers')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   adminArchiveSubTab === 'lawyers'
                     ? 'bg-slate-900 dark:bg-accent text-white'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1226,14 +1226,14 @@ is_active: template.is_active,
                           </button>
                           <button
                             onClick={() => handleEditLawyer(lawyer)}
-                            className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                            className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-all"
                             title="Редактировать"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteLawyer(lawyer.id)}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                             title="Удалить"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1281,7 +1281,7 @@ is_active: template.is_active,
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50"
+          className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Сохранить
@@ -1341,7 +1341,7 @@ is_active: template.is_active,
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-accent hover:bg-accent-light text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition-colors disabled:opacity-50"
+          className="bg-accent hover:bg-accent-light text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition-all disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
           Сохранить
@@ -1450,7 +1450,7 @@ function TemplateModal({
                   key={i}
                   type="button"
                   onClick={() => setIcon(i)}
-                  className={`text-2xl p-2 rounded-lg transition-colors ${icon === i ? 'bg-accent/20 ring-2 ring-accent' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                  className={`text-2xl p-2 rounded-lg transition-all ${icon === i ? 'bg-accent/20 ring-2 ring-accent' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                 >
                   {i}
                 </button>
@@ -1520,14 +1520,14 @@ function TemplateModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={isUploading}
-              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-accent-light transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-accent-light transition-all disabled:opacity-50"
             >
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (template ? 'Сохранить' : 'Добавить')}
             </button>

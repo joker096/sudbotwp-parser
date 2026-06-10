@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { X, Link, Image, Youtube } from 'lucide-react';
 
 interface FloatingToolbarProps {
@@ -50,7 +50,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
           </h4>
           <input type="text" value={linkText} onChange={(e) => setLinkText(e.target.value)} placeholder="Текст ссылки" className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20" />
           <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com" className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20" />
-          <button onClick={() => { onInsertLink?.(linkUrl, linkText); onClose(); }} disabled={!linkUrl || linkUrl === 'https://'} className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors">
+          <button onClick={() => { onInsertLink?.(linkUrl, linkText); onClose(); }} disabled={!linkUrl || linkUrl === 'https://'} className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all">
             Вставить
           </button>
         </div>
@@ -68,7 +68,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
               <img src={imageUrl} alt="Preview" className="w-full h-full object-contain" />
             </div>
           )}
-          <button onClick={() => { onInsertImage?.(imageUrl); onClose(); }} disabled={!imageUrl || !imageUrl.startsWith('http')} className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors">
+          <button onClick={() => { onInsertImage?.(imageUrl); onClose(); }} disabled={!imageUrl || !imageUrl.startsWith('http')} className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all">
             Вставить
           </button>
         </div>
@@ -81,7 +81,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
             Вставить YouTube
           </h4>
           <input type="url" value={youTubeUrl} onChange={(e) => setYouTubeUrl(e.target.value)} placeholder="https://youtu.be/..." className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20" />
-          <button onClick={() => { onInsertYouTube?.(youTubeUrl); onClose(); }} disabled={!youTubeUrl} className="w-full py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors">
+          <button onClick={() => { onInsertYouTube?.(youTubeUrl); onClose(); }} disabled={!youTubeUrl} className="w-full py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all">
             Вставить
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Scale, Star, MapPin, MessageCircle, ShieldCheck, Shield, Settings, LogOut, ChevronRight, User, Phone, X, Building, FileText, Calendar, Link as LinkIcon, Check, Loader2, Trash2, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight as ChevronRightIcon, Clock, Bell, BellOff, Send, Eye, EyeOff, Info, Gavel, Hourglass, Pencil, Download, Globe, BookOpen, Plus, AlertCircle, Users, MessageSquare, Archive, Archive as ArchiveIcon, Bookmark } from 'lucide-react';
 import EncryptedFileUpload from '../components/EncryptedFileUpload';
 import { useQueryClient } from '@tanstack/react-query';
@@ -923,11 +923,11 @@ export default function Profile() {
   };
 
   return (
-    <div className="space-y-6 transition-colors duration-300 max-w-4xl mx-auto">
+    <div className="space-y-6 transition-all duration-300 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Профиль</h1>
 
       {/* User Info Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-6 transition-colors">
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-6 transition-all">
         <div className="relative group shrink-0">
           {user?.user_metadata?.avatar_url ? (
             <img
@@ -945,7 +945,7 @@ export default function Profile() {
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="absolute bottom-0 right-0 bg-slate-900 dark:bg-accent text-white p-2 rounded-full shadow-sm hover:bg-slate-800 dark:hover:bg-accent-light transition-colors"
+              className="absolute bottom-0 right-0 bg-slate-900 dark:bg-accent text-white p-2 rounded-full shadow-sm hover:bg-slate-800 dark:hover:bg-accent-light transition-all"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -959,14 +959,14 @@ export default function Profile() {
                 value={editData.fullName}
                 onChange={(e) => setEditData({ ...editData, fullName: e.target.value })}
                 placeholder="Ваше ФИО"
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-lg font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-lg font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
               />
               <input 
                 type="tel"
                 value={editData.phone}
                 onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
                 placeholder="Ваш телефон"
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
               />
             </div>
           ) : (
@@ -992,7 +992,7 @@ export default function Profile() {
               </div>
             )}
             {profileData?.role !== 'lawyer' && profileData?.role !== 'admin' && (
-              <Link to="/apply-lawyer" className="bg-accent/10 hover:bg-accent/20 text-accent px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors">
+              <Link to="/apply-lawyer" className="bg-accent/10 hover:bg-accent/20 text-accent px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition-all">
                 <Shield className="w-4 h-4" />
                 Стать юристом
               </Link>
@@ -1001,13 +1001,13 @@ export default function Profile() {
         </div>
         {isEditing ? (
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-            <button onClick={handleSaveProfile} disabled={isSaving} className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+            <button onClick={handleSaveProfile} disabled={isSaving} className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Сохранить
             </button>
-            <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2 rounded-xl text-sm font-bold transition-colors">Отмена</button>
+            <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2 rounded-xl text-sm font-bold transition-all">Отмена</button>
           </div>
         ) : (
-          <button onClick={handleLogout} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 mt-4 sm:mt-0">
+          <button onClick={handleLogout} className="text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 mt-4 sm:mt-0">
             <LogOut className="w-4 h-4" />
             Выйти
           </button>
@@ -1036,7 +1036,7 @@ export default function Profile() {
           <button 
             key={tab.id} 
             onClick={() => { setActiveTab(tab.id); setIsSelectionMode(false); setSelectedCaseIds(new Set()); }}
-            className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 ${
+            className={`px-5 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
               activeTab === tab.id 
                 ? 'bg-slate-900 dark:bg-accent text-white' 
                 : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -1077,14 +1077,14 @@ export default function Profile() {
                 <button
                   onClick={handleBulkDelete}
                   disabled={selectedCaseIds.size === 0}
-                  className="bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                  className="bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                   Удалить выбранные
                 </button>
                 <button
                   onClick={() => { setIsSelectionMode(false); setSelectedCaseIds(new Set()); }}
-                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold transition-all"
                 >
                   Отмена
                 </button>
@@ -1093,7 +1093,7 @@ export default function Profile() {
           ) : (
             <button
               onClick={() => setIsSelectionMode(true)}
-              className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+              className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
             >
               <CheckSquare className="w-4 h-4" />
               Выбрать дела для удаления
@@ -1105,7 +1105,7 @@ export default function Profile() {
       {/* Tab Content */}
       <div className="pt-2">
         {/* Форма добавления дела в профиле */}
-        <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 mb-6 transition-colors">
+        <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 mb-6 transition-all">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent shrink-0">
               <Plus className="w-5 h-5" />
@@ -1124,13 +1124,13 @@ export default function Profile() {
                 onChange={(e) => setCaseUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddCaseFromProfile()}
                 placeholder="https://sudrf.ru/..." 
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
               />
             </div>
             <button 
               onClick={handleAddCaseFromProfile}
               disabled={isAddingCase || !caseUrl.trim()}
-              className="bg-accent hover:bg-accent-light disabled:opacity-50 text-white px-5 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm shrink-0 flex items-center justify-center gap-2"
+              className="bg-accent hover:bg-accent-light disabled:opacity-50 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-sm shrink-0 flex items-center justify-center gap-2"
             >
               {isAddingCase ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               {isAddingCase ? 'Добавление...' : 'Добавить'}
@@ -1178,7 +1178,7 @@ export default function Profile() {
                       <Scale className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-accent transition-colors">{caseItem.number}</h4>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-accent transition-all">{caseItem.number}</h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mb-2">{caseItem.court}</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         {caseItem.category && (
@@ -1213,7 +1213,7 @@ export default function Profile() {
                           }
                           handleRefreshCase(caseItem.id);
                         }}
-                        className={`mt-1 p-1 transition-colors ${
+                        className={`mt-1 p-1 transition-all ${
                           !canRefreshCase(caseItem) || profileData?.subscription_tier === 'free' 
                             ? 'text-slate-300 cursor-not-allowed' 
                             : 'text-slate-400 hover:text-accent'
@@ -1267,7 +1267,7 @@ export default function Profile() {
               <div className="col-span-full bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
                 <Scale className="w-12 h-12 text-slate-400" />
                 <p className="text-sm font-bold">У вас пока нет добавленных дел</p>
-                <Link to="/search" className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors">
+                <Link to="/search" className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
                   Найти и добавить дело
                 </Link>
               </div>
@@ -1285,7 +1285,7 @@ export default function Profile() {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleExportToIcs}
-                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Экспорт .ics</span>
@@ -1293,7 +1293,7 @@ export default function Profile() {
                 </button>
                 <button
                   onClick={() => openEventModal()}
-                  className="bg-accent hover:bg-accent-light text-white px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                  className="bg-accent hover:bg-accent-light text-white px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
                 >
                   <Calendar className="w-4 h-4" />
                   <span className="hidden sm:inline">Добавить событие</span>
@@ -1582,13 +1582,13 @@ export default function Profile() {
                             {event.custom && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeleteCustomEvent(event.id); }}
-                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-all"
                                 title="Удалить событие"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
-                            <button onClick={(e) => { e.stopPropagation(); handleEditEvent(event, event.caseId); }} className="p-1.5 text-slate-400 hover:text-accent rounded-lg transition-colors">
+                            <button onClick={(e) => { e.stopPropagation(); handleEditEvent(event, event.caseId); }} className="p-1.5 text-slate-400 hover:text-accent rounded-lg transition-all">
                                 <Pencil className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -1629,16 +1629,16 @@ export default function Profile() {
                     <button
                       onClick={handleBulkRestore}
                       disabled={selectedCaseIds.size === 0}
-                      className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                      className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
                     >
                       <RotateCcw className="w-4 h-4" />
                       Восстановить
                     </button>
-                    <button onClick={() => setIsSelectionMode(false)} className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors">Отмена</button>
+                    <button onClick={() => setIsSelectionMode(false)} className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold transition-all">Отмена</button>
                   </div>
                 </>
               ) : (
-                <button onClick={() => setIsSelectionMode(true)} className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+                <button onClick={() => setIsSelectionMode(true)} className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all">
                   <CheckSquare className="w-4 h-4" />
                   Выбрать дела для восстановления
                 </button>
@@ -1673,7 +1673,7 @@ export default function Profile() {
                       },
                     });
                   }}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                   Очистить корзину
@@ -1689,7 +1689,7 @@ export default function Profile() {
                 <div
                   key={caseItem.id}
                   onClick={() => isSelectionMode && toggleCaseSelection(caseItem.id)}
-                  className={`bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 transition-colors ${isSelectionMode ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50' : ''}`}
+                  className={`bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 transition-all ${isSelectionMode ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50' : ''}`}
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     {isSelectionMode ? (
@@ -1744,7 +1744,7 @@ export default function Profile() {
                 <div
                   key={caseItem.id}
                   onClick={() => setSelectedCase(caseItem)}
-                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 transition-colors"
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 transition-all"
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     <ArchiveIcon className="w-5 h-5 text-slate-400 shrink-0" />
@@ -1779,7 +1779,7 @@ export default function Profile() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {favoriteLawyers.map(lawyer => (
-                <div key={lawyer.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-colors">
+                <div key={lawyer.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col gap-4 border border-transparent dark:border-slate-800 transition-all">
                   <div className="flex gap-4">
                     <div className="relative shrink-0">
                       <img src={lawyer.img} alt={lawyer.name} referrerPolicy="no-referrer" loading="lazy" className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
@@ -1803,13 +1803,13 @@ export default function Profile() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => navigate(`/lawyers?search=${encodeURIComponent(lawyer.name)}`)}
-                      className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-xl text-xs font-bold transition-colors"
+                      className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-xl text-xs font-bold transition-all"
                     >
                       Профиль
                     </button>
                     <button
                       onClick={() => navigate(`/lawyers?search=${encodeURIComponent(lawyer.name)}`)}
-                      className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                      className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
                       Написать
@@ -1817,13 +1817,13 @@ export default function Profile() {
                   </div>
                   <button
                     onClick={() => handleRemoveFavoriteLawyer(lawyer.id)}
-                    className="w-full bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-300 py-2 rounded-xl text-xs font-bold transition-colors"
+                    className="w-full bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-300 py-2 rounded-xl text-xs font-bold transition-all"
                   >
                     Удалить из избранного
                   </button>
                 </div>
               ))}
-              <Link to="/lawyers" className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[150px]">
+              <Link to="/lawyers" className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all min-h-[150px]">
                 <Star className="w-6 h-6" />
                 <span className="text-sm font-bold">Найти юриста</span>
               </Link>
@@ -1844,7 +1844,7 @@ export default function Profile() {
         )}
 
         {activeTab === 'blog' && profileData?.role === 'admin' && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-colors space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-all space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">Управление блогом</h3>
@@ -1854,14 +1854,14 @@ export default function Profile() {
             <div className="flex gap-4">
               <Link
                 to="/admin/blog"
-                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 Список статей
               </Link>
               <Link
                 to="/admin/blog/new"
-                className="flex-1 bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
               >
                 <Pencil className="w-4 h-4" />
                 Создать статью
@@ -1882,7 +1882,7 @@ export default function Profile() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-colors space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-all space-y-6">
             <div>
               <NotificationSettings profileData={profileData} updateProfile={updateProfile} user={user} />
 
@@ -1918,7 +1918,7 @@ export default function Profile() {
             <div className="relative w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedCase(null)}
-                className="absolute -top-2 -right-2 sm:top-4 sm:right-4 z-[60] p-1.5 sm:p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="absolute -top-2 -right-2 sm:top-4 sm:right-4 z-[60] p-1.5 sm:p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />
               </button>
@@ -2060,13 +2060,13 @@ export default function Profile() {
                     setSelectedCase(userCases.find(c => c.number === selectedEventDetails.caseNumber) || null);
                     setSelectedEventDetails(null);
                   }}
-                  className="flex-1 bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-sm font-bold transition-colors"
+                  className="flex-1 bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-sm font-bold transition-all"
                 >
                   Открыть дело
                 </button>
                 <button
                   onClick={() => setSelectedEventDetails(null)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-3 rounded-xl text-sm font-bold transition-colors"
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-3 rounded-xl text-sm font-bold transition-all"
                 >
                   Закрыть
                 </button>
@@ -2184,7 +2184,7 @@ function LeadsSection() {
 
   if (myLeads.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-colors">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-all">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Мои заявки</h3>
         <div className="text-center py-12 text-slate-500 dark:text-slate-400">
           <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -2196,7 +2196,7 @@ function LeadsSection() {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-colors">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-transparent dark:border-slate-800 transition-all">
       <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
         Мои заявки ({myLeads.length})
       </h3>
@@ -2249,14 +2249,14 @@ function LeadsSection() {
                 <>
                   <button
                     onClick={() => handleContactLead(lead.id)}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all"
                   >
                     <Phone className="w-4 h-4" />
                     Связаться
                   </button>
                   <button
                     onClick={() => handleSpamLead(lead.id)}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
                     Спам
@@ -2265,14 +2265,14 @@ function LeadsSection() {
               )}
               <a
                 href={`tel:${lead.client_phone}`}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
               >
                 <Phone className="w-4 h-4" />
                 Позвонить
               </a>
               <button
                 onClick={() => handleDeleteLead(lead.id)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all"
               >
                 <Trash2 className="w-4 h-4" />
                 Удалить

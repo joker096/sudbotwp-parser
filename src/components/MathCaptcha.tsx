@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
 
 export default function MathCaptcha({ onVerify, answer }: { onVerify: (valid: boolean) => void; answer?: string }) {
@@ -48,7 +48,7 @@ export default function MathCaptcha({ onVerify, answer }: { onVerify: (valid: bo
         <button
           type="button"
           onClick={regenerate}
-          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
           aria-label="Новый вопрос"
         >
           <RefreshCw className="w-4 h-4 text-slate-500" />
@@ -67,7 +67,7 @@ export default function MathCaptcha({ onVerify, answer }: { onVerify: (valid: bo
           type="button"
           onClick={handleVerify}
           disabled={verified}
-          className={`px-4 py-3 rounded-xl font-bold text-sm transition-colors ${
+          className={`px-4 py-3 rounded-xl font-bold text-sm transition-all ${
             verified
               ? 'bg-green-500 text-white'
               : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'

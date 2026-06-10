@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Gift, Ticket, Clock, Check, Copy, ChevronRight, Star, Scale } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { userRewards, UserReward } from '../lib/supabase';
@@ -112,7 +112,7 @@ export default function UserRewardsPanel({ userId }: UserRewardsPanelProps) {
                         </code>
                         <button
                           onClick={() => copyPromoCode(reward.promo_code!)}
-                          className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-accent rounded-lg transition-colors"
+                          className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-accent rounded-lg transition-all"
                         >
                           {copiedCode === reward.promo_code ? (
                             <Check className="w-4 h-4 text-emerald-500" />

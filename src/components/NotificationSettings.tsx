@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Bell, BellOff, Send, Check, Loader2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
@@ -94,7 +94,7 @@ export default function NotificationSettings({ profileData, updateProfile, user 
           </div>
           <button
             onClick={requestBrowserNotifications}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
               settings.browserNotifications
                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                 : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
@@ -117,7 +117,7 @@ export default function NotificationSettings({ profileData, updateProfile, user 
           </div>
           <button
             onClick={() => setSettings(prev => ({ ...prev, telegramBot: !prev.telegramBot }))}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
               settings.telegramBot
                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                 : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -210,7 +210,7 @@ export default function NotificationSettings({ profileData, updateProfile, user 
       <button
         onClick={saveSettings}
         disabled={isLoading}
-        className="w-full bg-accent hover:bg-accent-light text-white py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+        className="w-full bg-accent hover:bg-accent-light text-white py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin" />

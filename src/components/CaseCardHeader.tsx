@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import { Scale, Copy, RotateCcw } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 
@@ -60,7 +60,7 @@ export default function CaseCardHeader({
           <h2 className="text-base font-bold text-slate-900 dark:text-white">{caseNumber}</h2>
           <button
             onClick={handleCopyNumber}
-            className="p-1.5 text-slate-400 hover:text-accent transition-colors"
+            className="p-1.5 text-slate-400 hover:text-accent transition-all"
             title="Копировать номер дела"
           >
             <Copy className="w-4 h-4" />
@@ -69,7 +69,7 @@ export default function CaseCardHeader({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="p-1.5 text-slate-400 hover:text-accent transition-colors disabled:opacity-50 relative"
+              className="p-1.5 text-slate-400 hover:text-accent transition-all disabled:opacity-50 relative"
               title={
                 subscriptionTier === 'free' 
                   ? 'Ручное обновление доступно только для подписчиков' 

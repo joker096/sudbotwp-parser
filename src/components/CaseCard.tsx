@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building, FileText, User, Calendar, Gavel, AlertCircle, Download, Link as LinkIcon, X, Trash2, ExternalLink, Share2, CalendarPlus, Archive, Copy, Scale, Pencil, Save } from 'lucide-react';
@@ -316,7 +316,7 @@ const handleEditSave = async () => {
         actions={isAdded && onArchiveCase ? (
           <button
             onClick={() => onArchiveCase()}
-            className="p-1.5 text-slate-400 hover:text-accent transition-colors"
+            className="p-1.5 text-slate-400 hover:text-accent transition-all"
             title="Архивировать дело"
           >
             <Archive className="w-4 h-4" />
@@ -330,7 +330,7 @@ const handleEditSave = async () => {
            <button
              key={tab}
              onClick={() => handleTabClick(tab)}
-             className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex-1 sm:flex-none min-w-[80px] ${
+             className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex-1 sm:flex-none min-w-[80px] ${
                activeTab === tab
                  ? 'bg-slate-900 dark:bg-accent text-white'
                  : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -357,19 +357,19 @@ const handleEditSave = async () => {
                      <div className="flex flex-col gap-2">
                        <SafeLink 
                          href={courtData.website}
-                         className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-colors group"
+                         className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-all group"
                        >
                          <span>{localCaseData.court}</span>
-                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-colors" />
+                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-all" />
                        </SafeLink>
                      </div>
                    ) : (
                      <SafeLink 
                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localCaseData.court)}`}
-                       className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-colors group"
+                       className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white hover:text-accent dark:hover:text-accent transition-all group"
                      >
                        <span>{localCaseData.court}</span>
-                       <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-colors" />
+                       <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-accent transition-all" />
                      </SafeLink>
                    )}
                 </div>
@@ -423,7 +423,7 @@ const handleEditSave = async () => {
                     ) : (
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-slate-900 dark:text-white flex-1">{localCaseData.plaintiff}</p>
-                        <button onClick={() => handleEditStart('plaintiff')} className="p-1 text-slate-400 hover:text-accent transition-colors">
+                        <button onClick={() => handleEditStart('plaintiff')} className="p-1 text-slate-400 hover:text-accent transition-all">
                           <Pencil className="w-3 h-3" />
                         </button>
                       </div>
@@ -461,7 +461,7 @@ const handleEditSave = async () => {
                     ) : (
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-slate-900 dark:text-white flex-1">{localCaseData.defendant}</p>
-                        <button onClick={() => handleEditStart('defendant')} className="p-1 text-slate-400 hover:text-accent transition-colors">
+                        <button onClick={() => handleEditStart('defendant')} className="p-1 text-slate-400 hover:text-accent transition-all">
                           <Pencil className="w-3 h-3" />
                         </button>
                       </div>
@@ -654,7 +654,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
            href={localCaseData.link}
            target="_blank"
            rel="noopener noreferrer"
-           className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white"
+           className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white"
            onClick={(e) => {
              e.preventDefault();
              setShowSourceWarning(true);
@@ -676,7 +676,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
          {isAdded && (
            <button
              onClick={handleAddToCalendar}
-             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400"
+             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400"
              title="Добавить дату заседания в Google Календарь"
            >
              <CalendarPlus className="w-3 h-3" />
@@ -687,7 +687,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
          {isAdded && (
            <button
              onClick={() => setShowShareModal(true)}
-             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-600 dark:text-purple-400"
+             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-600 dark:text-purple-400"
              title="Поделиться с юристом"
            >
              <Share2 className="w-3 h-3" />
@@ -698,7 +698,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
          {!isAdded && onDeleteCase && (
            <button
              onClick={() => setShowDeleteCaseConfirm(true)}
-             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
+             className="col-span-1 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400"
              title="Скрыть из результатов"
            >
              <Trash2 className="w-3 h-3" />
@@ -750,7 +750,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowSourceWarning(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-all"
                 >
                   Отмена
                 </button>
@@ -758,7 +758,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
                   href={localCaseData.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center gap-2"
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-bold transition-all text-center flex items-center justify-center gap-2"
                 >
                   Перейти
                   <ExternalLink className="w-4 h-4" />
@@ -821,7 +821,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowShareModal(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-all"
                 >
                   Отмена
                 </button>
@@ -839,7 +839,7 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
                       showToast('Не удалось скопировать. Попробуйте ещё раз.');
                     });
                   }}
-                  className="flex-1 bg-accent hover:bg-accent-light text-white py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-accent hover:bg-accent-light text-white py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
                 >
                   <Copy className="w-4 h-4" />
                   Копировать

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, MapPin, Phone, Mail, FileText, Clock, Check, Loader2, ArrowRight, ChevronDown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -233,10 +233,10 @@ export default function ApplyLawyer() {
           )}
 
           <div className="mt-8 flex gap-4">
-            <Link to="/" className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white py-3 px-6 rounded-xl font-bold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            <Link to="/" className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white py-3 px-6 rounded-xl font-bold text-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
               На главную
             </Link>
-            <Link to="/lawyers" className="flex-1 bg-accent text-white py-3 px-6 rounded-xl font-bold text-center hover:bg-accent/90 transition-colors">
+            <Link to="/lawyers" className="flex-1 bg-accent text-white py-3 px-6 rounded-xl font-bold text-center hover:bg-accent/90 transition-all">
               К юристам
             </Link>
           </div>
@@ -410,7 +410,7 @@ export default function ApplyLawyer() {
             !captchaVerified
               ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed'
               : 'bg-accent hover:bg-accent/90'
-          } text-white py-4 px-6 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+          } text-white py-4 px-6 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           {loading ? (
             <>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Building, AlertTriangle, Scale, Shield, Bell, CheckCircle2, XCircle, TrendingUp, Clock, FileText, Loader2, Star, Zap, Crown, UserCheck, ExternalLink, Gavel } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -154,7 +154,7 @@ export default function Monitoring() {
   ];
 
   return (
-    <div className="space-y-6 transition-colors duration-300">
+    <div className="space-y-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Мониторинг</h1>
       </div>
@@ -163,7 +163,7 @@ export default function Monitoring() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link
           to="/counterparty"
-          className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
             <Building className="w-5 h-5 text-accent" />
@@ -176,7 +176,7 @@ export default function Monitoring() {
         </Link>
         <Link
           to="/arbitration"
-          className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-all shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
             <Gavel className="w-5 h-5 text-accent" />
@@ -195,7 +195,7 @@ export default function Monitoring() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => { setSearchType('company'); setInn(''); setCompanyData(null); setTaxpayerResult(null); setError(null); }}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               searchType === 'company' 
                 ? 'bg-slate-900 dark:bg-accent text-white' 
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -206,7 +206,7 @@ export default function Monitoring() {
           </button>
           <button
             onClick={() => { setSearchType('selfemployed'); setInn(''); setCompanyData(null); setTaxpayerResult(null); setError(null); }}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               searchType === 'selfemployed' 
                 ? 'bg-slate-900 dark:bg-accent text-white' 
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -236,7 +236,7 @@ export default function Monitoring() {
           <button
             onClick={handleSearch}
             disabled={isLoading}
-            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 px-8 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 px-8 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
           >
             {isLoading ? (
               <>
@@ -343,7 +343,7 @@ export default function Monitoring() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
+                  className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                     activeTab === tab
                       ? 'bg-slate-900 dark:bg-accent text-white'
                       : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -501,7 +501,7 @@ export default function Monitoring() {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-3 rounded-xl text-sm font-bold transition-colors ${
+                <button className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
                   plan.popular
                     ? 'bg-accent hover:bg-accent-light text-white'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'

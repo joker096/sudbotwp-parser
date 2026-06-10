@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, ThumbsUp, Reply, Flag, Trash2, Edit2, Send, User, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -208,7 +208,7 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
               <button
                 type="submit"
                 disabled={isLoading || !newComment.trim()}
-                className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
               >
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -227,7 +227,7 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
           </p>
           <Link
             to="/login"
-            className="inline-block bg-accent hover:bg-accent-light text-white px-6 py-2 rounded-xl text-sm font-bold transition-colors"
+            className="inline-block bg-accent hover:bg-accent-light text-white px-6 py-2 rounded-xl text-sm font-bold transition-all"
           >
             Войти
           </Link>
@@ -320,7 +320,7 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => handleLike(comment.id)}
-                      className={`flex items-center gap-1 text-xs font-medium transition-colors ${
+                      className={`flex items-center gap-1 text-xs font-medium transition-all ${
                         likedComments.has(comment.id)
                           ? 'text-accent'
                           : 'text-slate-500 hover:text-accent'
@@ -335,7 +335,7 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
                         setReplyTo(replyTo === comment.id ? null : comment.id);
                         setReplyContent('');
                       }}
-                      className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-accent transition-colors"
+                      className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-accent transition-all"
                     >
                       <Reply className="w-4 h-4" />
                       Ответить
@@ -347,7 +347,7 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
                           setEditingId(comment.id);
                           setEditContent(comment.content);
                         }}
-                        className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-accent transition-colors"
+                        className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-accent transition-all"
                       >
                         <Edit2 className="w-4 h-4" />
                         Редактировать
@@ -357,7 +357,7 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
                     {canDelete(comment) && (
                       <button
                         onClick={() => handleDelete(comment.id)}
-                        className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-500 transition-colors"
+                        className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-500 transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
                         Удалить
@@ -388,14 +388,14 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
                           <button
                             type="button"
                             onClick={() => setReplyTo(null)}
-                            className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                            className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-all"
                           >
                             Отмена
                           </button>
                           <button
                             type="submit"
                             disabled={isLoading || !replyContent.trim()}
-                            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all"
                           >
                             {isLoading ? 'Отправка...' : 'Ответить'}
                           </button>

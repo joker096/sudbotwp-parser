@@ -1,4 +1,4 @@
-import { MessageSquare, Pencil, Send, Share2, Trash2 } from 'lucide-react';
+﻿import { MessageSquare, Pencil, Send, Share2, Trash2 } from 'lucide-react';
 
 interface CaseCardCommentItem {
   id: string;
@@ -67,7 +67,7 @@ export default function CaseCardComments({
           <button
             onClick={onAddComment}
             disabled={isSavingComment || !newCommentText.trim() || !caseId || !userId}
-            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
           >
             {isSavingComment ? (
               <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -106,14 +106,14 @@ export default function CaseCardComments({
                           setEditingCommentId(comment.id);
                           setEditingCommentText(comment.content);
                         }}
-                        className="p-1 text-slate-400 hover:text-accent transition-colors"
+                        className="p-1 text-slate-400 hover:text-accent transition-all"
                         title="Редактировать"
                       >
                         <Pencil className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => onRequestDeleteComment(comment.id)}
-                        className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                        className="p-1 text-slate-400 hover:text-red-500 transition-all"
                         title="Удалить"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -167,7 +167,7 @@ export default function CaseCardComments({
           </p>
           <button
             onClick={onOpenShareModal}
-            className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
           >
             <Send className="w-3 h-3" />
             Поделиться с юристом

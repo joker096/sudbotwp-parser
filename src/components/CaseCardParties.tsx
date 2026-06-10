@@ -1,4 +1,4 @@
-import { Loader2, Pencil, Save, User, X } from 'lucide-react';
+﻿import { Loader2, Pencil, Save, User, X } from 'lucide-react';
 
 interface CaseCardPartiesProps {
   plaintiff: string;
@@ -64,7 +64,7 @@ export default function CaseCardParties({
         ) : (
           <div className="flex items-center gap-2">
             <p className="text-sm font-bold text-slate-900 dark:text-white flex-1">{value}</p>
-            <button onClick={() => onEditStart(field)} className="p-1 text-slate-400 hover:text-accent transition-colors">
+            <button onClick={() => onEditStart(field)} className="p-1 text-slate-400 hover:text-accent transition-all">
               <Pencil className="w-3 h-3" />
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Clock, MapPin } from 'lucide-react';
+﻿import { AlertCircle, CheckCircle2, Clock, MapPin } from 'lucide-react';
 import type { CaseEvent } from '../types';
 
 interface CaseCardEventsProps {
@@ -32,7 +32,7 @@ export default function CaseCardEvents({
             const newIndex = selectedEventIndex === index ? null : index;
             onSelectEvent(newIndex, e.currentTarget);
           }}
-          className={`relative flex items-start gap-4 mb-4 p-4 rounded-xl border transition-colors duration-200 cursor-pointer ${
+          className={`relative flex items-start gap-4 mb-4 p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
             selectedEventIndex === index
               ? 'bg-accent/10 dark:bg-accent/20 border-accent/30'
               : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800'
@@ -49,7 +49,7 @@ export default function CaseCardEvents({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <span
-                className="font-bold text-slate-900 dark:text-white text-sm cursor-pointer hover:text-accent transition-colors select-none"
+                className="font-bold text-slate-900 dark:text-white text-sm cursor-pointer hover:text-accent transition-all select-none"
                 onDoubleClick={() => {
                   if (event.date && onDateDoubleClick) {
                     onDateDoubleClick(event.date, event.time);

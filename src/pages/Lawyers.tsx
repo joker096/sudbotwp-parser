@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { MapPin, Star, ShieldCheck, MessageCircle, Filter, Search, Mail, Globe, Phone, Briefcase, X, ChevronDown, Loader2, Eye, Building2, ExternalLink, Bookmark, BookmarkCheck, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -288,7 +288,7 @@ const handleCloseModal = () => {
   };
 
    return (
-    <div className="space-y-6 transition-colors duration-300">
+    <div className="space-y-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Юристы</h1>
       </div>
@@ -300,11 +300,11 @@ const handleCloseModal = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Поиск по ФИО или городу..."
-          className="w-full bg-white dark:bg-slate-900 py-4 pl-12 pr-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+          className="w-full bg-white dark:bg-slate-900 py-4 pl-12 pr-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
         />
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`absolute right-2 p-2.5 rounded-xl transition-colors ${
+          className={`absolute right-2 p-2.5 rounded-xl transition-all ${
             showFilters ? 'bg-accent text-white shadow-lg shadow-accent/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
           }`}
         >
@@ -326,7 +326,7 @@ const handleCloseModal = () => {
                 <select
                   value={filterCity}
                   onChange={(e) => setFilterCity(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                 >
                   <option value="">Все регионы</option>
                   {availableRegions.map(region => (
@@ -339,7 +339,7 @@ const handleCloseModal = () => {
                 <select
                   value={filterRating}
                   onChange={(e) => setFilterRating(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                 >
                   <option value={0}>Любой</option>
                   <option value={4.5}>От 4.5</option>
@@ -352,7 +352,7 @@ const handleCloseModal = () => {
                 <select
                   value={filterExperience}
                   onChange={(e) => setFilterExperience(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                 >
                   <option value="">Любой</option>
                   <option value="5">От 5 лет</option>
@@ -366,7 +366,7 @@ const handleCloseModal = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                 >
                   <option value="rating">По рейтингу</option>
                   <option value="reviews">По отзывам</option>
@@ -382,13 +382,13 @@ const handleCloseModal = () => {
                     setFilterVerified(false);
                     setSortBy('rating');
                   }}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-all"
                 >
                   Сбросить фильтры
                 </button>
                 <Link
                   to="/apply-lawyer"
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-accent hover:text-accent/80 transition-colors text-center"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold text-accent hover:text-accent/80 transition-all text-center"
                 >
                   Стать юристом
                 </Link>
@@ -403,7 +403,7 @@ const handleCloseModal = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
               activeTab === tab
                 ? 'bg-slate-900 dark:bg-accent text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -415,7 +415,7 @@ const handleCloseModal = () => {
         <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
         <button
           onClick={() => setFilterVerified(!filterVerified)}
-          className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 ${
+          className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
             filterVerified
               ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
               : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-[0_4px_20px_rgb(0,0,0,0.2)] hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
@@ -500,7 +500,7 @@ const handleCloseModal = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1 gap-1">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-accent transition-colors truncate">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-accent transition-all truncate">
                         {lawyer.name}
                       </h3>
                       <button
@@ -538,7 +538,7 @@ const handleCloseModal = () => {
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => setSelectedLawyer(lawyer)}
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-2xl text-xs font-bold transition-colors"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-2xl text-xs font-bold transition-all"
                   >
                     Профиль
                   </button>
@@ -555,7 +555,7 @@ const handleCloseModal = () => {
                   </button>
                   <button
                     onClick={() => { setSelectedLawyer(lawyer); setShowLeadModal(true); }}
-                    className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
+                    className="flex-1 bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     Написать
@@ -599,7 +599,7 @@ const handleCloseModal = () => {
                   <button
                     onClick={handleCloseModal}
                     aria-label="Закрыть"
-                    className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-colors z-10"
+                    className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-all z-10"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -659,7 +659,7 @@ const handleCloseModal = () => {
                     <button
                       onClick={handleShowExtraData}
                       disabled={extraDataLoading}
-                      className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-3.5 px-5 rounded-2xl text-sm font-extrabold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-black/10 dark:shadow-accent/20 disabled:opacity-50 active:scale-[0.99] mt-4"
+                      className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-3.5 px-5 rounded-2xl text-sm font-extrabold transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/10 dark:shadow-accent/20 disabled:opacity-50 active:scale-[0.99] mt-4"
                     >
                       {extraDataLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -682,7 +682,7 @@ const handleCloseModal = () => {
                       </p>
                       <Link
                         to="/profile?tab=subscription"
-                        className="inline-block bg-accent hover:bg-accent-light text-white text-xs font-bold py-2 px-4 rounded-xl transition-colors"
+                        className="inline-block bg-accent hover:bg-accent-light text-white text-xs font-bold py-2 px-4 rounded-xl transition-all"
                       >
                         Приобрести подписку
                       </Link>
@@ -692,7 +692,7 @@ const handleCloseModal = () => {
                   {/* ────── КОНТАКТЫ (всегда видны) ────── */}
                   <div className="grid grid-cols-2 gap-3 mt-5 pt-2">
                     {selectedLawyer.phone && (
-                      <a href={`tel:${selectedLawyer.phone}`} className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                      <a href={`tel:${selectedLawyer.phone}`} className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group">
                         <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
                           <Phone className="w-4 h-4 text-accent" />
                         </div>
@@ -703,7 +703,7 @@ const handleCloseModal = () => {
                       </a>
                     )}
                     {selectedLawyer.website && (
-                      <SafeLink href={formatUrl(selectedLawyer.website)} className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                      <SafeLink href={formatUrl(selectedLawyer.website)} className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group">
                         <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm group-hover:shadow-md transition-shadow">
                           <Globe className="w-4 h-4 text-accent" />
                         </div>
@@ -716,7 +716,7 @@ const handleCloseModal = () => {
                   </div>
 
                   {selectedLawyer.email && (
-                    <a href={`mailto:${selectedLawyer.email}`} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group mt-3">
+                    <a href={`mailto:${selectedLawyer.email}`} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group mt-3">
                       <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm">
                         <Mail className="w-4 h-4 text-accent" />
                       </div>
@@ -737,7 +737,7 @@ const handleCloseModal = () => {
                       )}
 
                       {selectedLawyer.telegram && (
-                        <SafeLink href={`https://t.me/${selectedLawyer.telegram.replace(/^@/, '')}`} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
+                        <SafeLink href={`https://t.me/${selectedLawyer.telegram.replace(/^@/, '')}`} className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group">
                           <div className="bg-white dark:bg-slate-700 p-2.5 rounded-xl shadow-sm">
                             <MessageCircle className="w-4 h-4 text-accent" />
                           </div>
@@ -793,7 +793,7 @@ const handleCloseModal = () => {
 
                       <button
                         onClick={() => setShowExtraData(false)}
-                        className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
                       >
                         <EyeOff className="w-4 h-4" />
                         Скрыть данные
@@ -804,7 +804,7 @@ const handleCloseModal = () => {
 
                 <button
                   onClick={() => { handleCloseModal(); setShowLeadModal(true); }}
-                  className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-4 rounded-2xl text-sm font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 dark:shadow-accent/30"
+                  className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 dark:shadow-accent/30"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Написать сообщение

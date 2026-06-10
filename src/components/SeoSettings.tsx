@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader2, Save, AlertCircle, Globe } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
@@ -118,7 +118,7 @@ export default function SeoSettings() {
                 <button
                   onClick={() => handleSave(setting.id)}
                   disabled={savingId === setting.id}
-                  className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50"
+                  className="bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50"
                 >
                   {savingId === setting.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Сохранить

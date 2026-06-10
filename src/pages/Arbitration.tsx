@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, Gavel, Loader2, AlertCircle, ExternalLink,
@@ -86,7 +86,7 @@ export default function ArbitrationPage() {
   };
 
   return (
-    <div className="space-y-6 transition-colors duration-300 max-w-5xl mx-auto">
+    <div className="space-y-6 transition-all duration-300 max-w-5xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
@@ -105,7 +105,7 @@ export default function ArbitrationPage() {
           <button
             type="button"
             onClick={() => setSearchType('case')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               searchType === 'case'
                 ? 'bg-slate-900 dark:bg-accent text-white'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -117,7 +117,7 @@ export default function ArbitrationPage() {
           <button
             type="button"
             onClick={() => setSearchType('company')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               searchType === 'company'
                 ? 'bg-slate-900 dark:bg-accent text-white'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -146,7 +146,7 @@ export default function ArbitrationPage() {
           <button
             type="submit"
             disabled={isLoading || query.length < 3}
-            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 px-8 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 px-8 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -220,7 +220,7 @@ function StatsDashboard({ stats }: { stats: KadStats }) {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold transition-colors relative ${
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-bold transition-all relative ${
               activeTab === tab.id
                 ? 'text-accent'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
@@ -390,7 +390,7 @@ function CaseCard({ caseItem, expanded, onToggle }: {
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full p-4 flex items-start justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        className="w-full p-4 flex items-start justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
       >
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2 mb-1">

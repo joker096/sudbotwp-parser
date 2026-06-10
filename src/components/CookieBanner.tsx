@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+﻿import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, X } from 'lucide-react';
@@ -37,7 +37,7 @@ function CookieBanner() {
                 <h3 className="font-bold text-sm">Конфиденциальность</h3>
                 <button 
                   onClick={() => setIsVisible(false)}
-                  className="text-slate-500 hover:text-slate-300 transition-colors p-1 -mr-2 -mt-2"
+                  className="text-slate-500 hover:text-slate-300 transition-all p-1 -mr-2 -mt-2"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -48,13 +48,13 @@ function CookieBanner() {
               <div className="flex gap-2">
                 <button 
                   onClick={handleAccept}
-                  className="flex-1 bg-accent hover:bg-accent-light text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-lg shadow-accent/20"
+                  className="flex-1 bg-accent hover:bg-accent-light text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-accent/20"
                 >
                   Понятно, спасибо
                 </button>
                 <button 
                   onClick={() => setIsVisible(false)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-300 transition-colors"
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-300 transition-all"
                 >
                   Скрыть
                 </button>

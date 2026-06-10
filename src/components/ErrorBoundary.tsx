@@ -1,4 +1,4 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+﻿import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -40,7 +40,7 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={this.handleRefresh}
-              className="bg-accent hover:bg-accent-light text-white font-bold py-2 px-6 rounded-xl transition-colors"
+              className="bg-accent hover:bg-accent-light text-white font-bold py-2 px-6 rounded-xl transition-all"
             >
               Перезагрузить страницу
             </button>

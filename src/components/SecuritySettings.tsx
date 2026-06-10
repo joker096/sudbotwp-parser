@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Shield, ShieldCheck, ShieldOff, Key, QrCode, Copy, Check, X, Loader2, Smartphone, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -174,14 +174,14 @@ export default function SecuritySettings() {
             <button 
               onClick={disable2FA} 
               disabled={isLoading}
-              className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all disabled:opacity-50"
             >
               Отключить
             </button>
           ) : (
             <button 
               onClick={handleSetup2FA}
-              className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-bold hover:bg-accent-light transition-colors"
+              className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-bold hover:bg-accent-light transition-all"
             >
               Настроить
             </button>
@@ -243,7 +243,7 @@ export default function SecuritySettings() {
                   </ul>
                   <button
                     onClick={startSetup}
-                    className="w-full py-3 bg-accent hover:bg-accent-light text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-accent hover:bg-accent-light text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
                   >
                     <Key className="w-5 h-5" />
                     Начать настройку
@@ -287,7 +287,7 @@ export default function SecuritySettings() {
                   <button
                     onClick={verifyAndEnable2FA}
                     disabled={isLoading || verificationCode.length !== 6}
-                    className="w-full py-3 bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -321,7 +321,7 @@ export default function SecuritySettings() {
                   
                   <button
                     onClick={copyBackupCodes}
-                    className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 mb-3"
+                    className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all flex items-center justify-center gap-2 mb-3"
                   >
                     <Copy className="w-5 h-5" />
                     Копировать коды
@@ -329,7 +329,7 @@ export default function SecuritySettings() {
                   
                   <button
                     onClick={() => setShowSetupModal(false)}
-                    className="w-full py-3 bg-accent hover:bg-accent-light text-white rounded-xl font-bold transition-colors"
+                    className="w-full py-3 bg-accent hover:bg-accent-light text-white rounded-xl font-bold transition-all"
                   >
                     Готово
                   </button>

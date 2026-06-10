@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
 
 export default function InstallPWA() {
@@ -39,7 +39,7 @@ export default function InstallPWA() {
   return (
     <button
       onClick={install}
-      className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-xl text-sm font-bold hover:bg-accent-light transition-colors shadow-sm"
+      className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-xl text-sm font-bold hover:bg-accent-light transition-all shadow-sm"
     >
       <Download className="w-4 h-4" />
       Установить приложение

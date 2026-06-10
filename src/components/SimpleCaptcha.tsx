@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Check, AlertCircle } from 'lucide-react';
 
 interface SimpleCaptchaProps {
@@ -145,7 +145,7 @@ export default function SimpleCaptcha({ onVerify, onError }: SimpleCaptchaProps)
       <button
         type="button"
         onClick={handleRefresh}
-        className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-accent transition-colors"
+        className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-accent transition-all"
       >
         <RefreshCw className="w-3 h-3" />
         Обновить картинку
@@ -159,7 +159,7 @@ export default function SimpleCaptcha({ onVerify, onError }: SimpleCaptchaProps)
           onChange={(e) => setUserInput(e.target.value.toUpperCase())}
           placeholder="Введите символы"
           maxLength={5}
-          className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-base font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent transition-colors"
+          className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-base font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent transition-all"
         />
         
         {error && (
@@ -173,7 +173,7 @@ export default function SimpleCaptcha({ onVerify, onError }: SimpleCaptchaProps)
           type="button"
           onClick={handleVerify}
           disabled={isLoading || !userInput}
-          className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>

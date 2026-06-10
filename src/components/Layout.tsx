@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+﻿import { useState, useEffect, memo } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Home, Search, Users, Calculator, Scale, Sun, Moon, BookOpen, MessageCircle, LogIn, Shield, Target, HelpCircle, UserCheck, AtSign, Phone, MapPin, Send, MessageSquare, ExternalLink, ChevronUp, ChevronDown, Menu, X, Sparkles, FolderOpen, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -148,11 +148,11 @@ export default memo(function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] dark:bg-black font-sans flex flex-col relative transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-[#f8f9fa] dark:bg-black font-sans flex flex-col relative transition-all duration-300 overflow-x-hidden">
       <OfflineBanner />
       <GoogleAnalytics />
       {/* Desktop Header */}
-      <header className="hidden md:block bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-300 overflow-hidden">
+      <header className="hidden md:block bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-all duration-300 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/" className="flex items-center gap-2 mr-6">
@@ -174,7 +174,7 @@ export default memo(function Layout() {
                   <motion.div key={item.path} variants={navItemVariants}>
                     <Link
                       to={item.path}
-                      className={`flex items-center gap-2 text-sm font-bold transition-colors ${isActive ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                      className={`flex items-center gap-2 text-sm font-bold transition-all ${isActive ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                     >
                       <Icon className="w-4 h-4" />
                       {item.label}
@@ -185,7 +185,7 @@ export default memo(function Layout() {
             </motion.nav>
 
             <div className="flex items-center gap-4">
-              <Link to="/messages" className="relative p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Messages">
+              <Link to="/messages" className="relative p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Messages">
                 <MessageCircle className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </Link>
@@ -198,7 +198,7 @@ export default memo(function Layout() {
                   stiffness: 100,
                   damping: 10
                 }}
-                className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                 aria-label="Toggle Dark Mode"
               >
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -206,13 +206,13 @@ export default memo(function Layout() {
               {isAuthenticated ? (
                 <>
                   <div className="flex items-center gap-3">
-                    <Link to="/profile" className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">
+                    <Link to="/profile" className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
                       Профиль
                     </Link>
                   </div>
                 </>
               ) : (
-                <Link to="/login" className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm">
+                <Link to="/login" className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm">
                   <div className="flex items-center gap-2">
                     <LogIn className="w-4 h-4" />
                     Войти
@@ -225,7 +225,7 @@ export default memo(function Layout() {
       </header>
 
       {/* Mobile Header */}
-      <header className="md:hidden bg-[#f8f9fa] dark:bg-black px-6 pt-6 pb-2 flex justify-between items-center sticky top-0 z-40 transition-colors duration-300">
+      <header className="md:hidden bg-[#f8f9fa] dark:bg-black px-6 pt-6 pb-2 flex justify-between items-center sticky top-0 z-40 transition-all duration-300">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2">
             <div className="bg-accent/10 p-1.5 rounded-lg">
@@ -237,7 +237,7 @@ export default memo(function Layout() {
           {/* Mobile Menu Toggle Button */}
           <motion.button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-slate-500 dark:text-slate-400 transition-colors rounded-full bg-white dark:bg-slate-900 shadow-sm"
+            className="p-2 text-slate-500 dark:text-slate-400 transition-all rounded-full bg-white dark:bg-slate-900 shadow-sm"
             aria-label={isMobileMenuOpen ? "Свернуть меню" : "Развернуть меню"}
             title={isMobileMenuOpen ? "Свернуть меню" : "Показать меню"}
             whileTap={{ scale: 0.95 }}
@@ -258,14 +258,14 @@ export default memo(function Layout() {
                 stiffness: 100,
                 damping: 10
               }}
-              className="p-2 text-slate-500 dark:text-slate-400 transition-colors rounded-full bg-white dark:bg-slate-900 shadow-sm"
+              className="p-2 text-slate-500 dark:text-slate-400 transition-all rounded-full bg-white dark:bg-slate-900 shadow-sm"
               aria-label="Toggle Dark Mode"
               title={isDark ? "Светлая тема" : "Тёмная тема"}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </motion.button>
             
-            <Link to="/messages" className="relative p-2 text-slate-500 dark:text-slate-400 transition-colors rounded-full bg-white dark:bg-slate-900 shadow-sm">
+            <Link to="/messages" className="relative p-2 text-slate-500 dark:text-slate-400 transition-all rounded-full bg-white dark:bg-slate-900 shadow-sm">
               <MessageCircle className="w-4 h-4" />
               <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 border border-white dark:border-slate-900 rounded-full"></span>
             </Link>
@@ -305,7 +305,7 @@ export default memo(function Layout() {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.nav 
-            className="md:hidden fixed bottom-0 w-full bg-slate-900 dark:bg-slate-900 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] px-4 py-4 flex justify-between items-center z-50 transition-colors duration-300 border-t border-slate-800"
+            className="md:hidden fixed bottom-0 w-full bg-slate-900 dark:bg-slate-900 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] px-4 py-4 flex justify-between items-center z-50 transition-all duration-300 border-t border-slate-800"
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -319,7 +319,7 @@ export default memo(function Layout() {
                   <Link
                     to={item.path}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-purple-500' : 'text-slate-500 hover:text-slate-300'}`}
+                    className={`flex flex-col items-center gap-1 transition-all ${isActive ? 'text-purple-500' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <div className={`p-2 rounded-2xl transition-all ${isActive ? 'bg-purple-500/10' : ''}`}>
                       <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${isActive ? 'fill-purple-500/20' : ''}`} />
@@ -343,7 +343,7 @@ export default memo(function Layout() {
         >
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-xs font-medium rounded-full shadow-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 dark:bg-slate-800 text-white text-xs font-medium rounded-full shadow-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-all"
           >
             <Menu className="w-3 h-3" />
             Меню
@@ -352,7 +352,7 @@ export default memo(function Layout() {
       )}
 
       {/* Footer - Desktop */}
-      <footer className="hidden md:block bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto transition-colors duration-300">
+      <footer className="hidden md:block bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* О сервисе */}
@@ -371,7 +371,7 @@ export default memo(function Layout() {
                   href="https://t.me/cvrname/4243" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-blue-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-blue-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                   aria-label="Telegram"
                 >
                   <Send className="w-5 h-5" />
@@ -384,27 +384,27 @@ export default memo(function Layout() {
               <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Полезные ссылки</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/blog" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/blog" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Блог
                   </Link>
                 </li>
                 <li>
-                  <Link to="/help" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/help" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Помощь
                   </Link>
                 </li>
                 <li>
-                  <Link to="/calculator" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/calculator" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Калькулятор пошлин
                   </Link>
                 </li>
                 <li>
-                  <Link to="/legal-acts" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/legal-acts" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Нормативные акты
                   </Link>
                 </li>
                 <li>
-                  <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Онлайн-консультация
                   </Link>
                 </li>
@@ -416,40 +416,40 @@ export default memo(function Layout() {
               <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Информация</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/privacy" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/privacy" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Политика конфиденциальности
                   </Link>
                 </li>
                 <li>
-                  <Link to="/privacy#terms" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/privacy#terms" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Условия использования
                   </Link>
                 </li>
                 <li>
-                  <Link to="/privacy#cookies" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/privacy#cookies" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Политика cookie
                   </Link>
                 </li>
                  <li>
-                  <Link to="/leads" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/leads" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Заявки юристам
                   </Link>
                 </li>
                 <li>
                   <button 
                     onClick={() => setShowLeadModal(true)}
-                    className="text-sm text-accent hover:text-accent-light font-medium transition-colors"
+                    className="text-sm text-accent hover:text-accent-light font-medium transition-all"
                   >
                     Оставить заявку
                   </button>
                 </li>
                 <li>
-                  <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/ai-lawyer" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     ИИ-Юрист
                   </Link>
                 </li>
                 <li>
-                  <Link to="/documents" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/documents" onClick={handleFooterLinkClick} className="text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Документы
                   </Link>
                 </li>
@@ -465,7 +465,7 @@ export default memo(function Layout() {
                     href="https://t.me/cvrname/4243" 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors"
+                    className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all"
                   >
                     <MessageSquare className="w-4 h-4 flex-shrink-0" />
                     <span>@cvrname</span>
@@ -496,7 +496,7 @@ export default memo(function Layout() {
       </footer>
 
       {/* Footer - Mobile */}
-      <footer className="md:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto transition-colors duration-300">
+      <footer className="md:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-auto transition-all duration-300">
         <div className="px-4 py-8">
           {/* Brand */}
           <div className="flex items-center gap-2 mb-4">
@@ -515,7 +515,7 @@ export default memo(function Layout() {
               href="https://t.me/cvrname/4243" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-blue-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-blue-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
               aria-label="Telegram"
             >
               <Send className="w-5 h-5" />
@@ -529,17 +529,17 @@ export default memo(function Layout() {
               <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Навигация</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/blog" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/blog" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Блог
                   </Link>
                 </li>
                 <li>
-                  <Link to="/help" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/help" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Помощь
                   </Link>
                 </li>
                 <li>
-                  <Link to="/calculator" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/calculator" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Пошлины
                   </Link>
                 </li>
@@ -549,24 +549,24 @@ export default memo(function Layout() {
               <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Информация</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/privacy" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/privacy" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Конфиденциальность
                   </Link>
                 </li>
                 <li>
-                  <Link to="/privacy#terms" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/privacy#terms" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Условия
                   </Link>
                 </li>
                 <li>
-                  <Link to="/leads" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-colors">
+                  <Link to="/leads" onClick={handleFooterLinkClick} className="text-xs text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent-light transition-all">
                     Заявки
                   </Link>
                 </li>
                 <li>
                   <button 
                     onClick={() => setShowLeadModal(true)}
-                    className="text-xs text-accent hover:text-accent-light font-medium transition-colors"
+                    className="text-xs text-accent hover:text-accent-light font-medium transition-all"
                   >
                     Оставить заявку
                   </button>

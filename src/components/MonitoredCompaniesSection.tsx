@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Bell, Plus, Trash2, Loader2, Building, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -193,7 +193,7 @@ export default function MonitoredCompaniesSection() {
           <button
             onClick={handleAdd}
             disabled={isAdding || newInn.length < 10}
-            className="bg-accent hover:bg-accent-light disabled:opacity-50 text-white py-3 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+            className="bg-accent hover:bg-accent-light disabled:opacity-50 text-white py-3 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
           >
             {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Добавить
@@ -276,7 +276,7 @@ export default function MonitoredCompaniesSection() {
               </div>
               <button
                 onClick={() => handleDelete(company.id)}
-                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                className="p-2 text-slate-400 hover:text-red-500 transition-all"
                 title="Удалить из мониторинга"
               >
                 <Trash2 className="w-4 h-4" />

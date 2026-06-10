@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Trash2, MessageSquare, UserX, UserCheck, AlertTriangle, Search, Filter, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { blogComments, blockedUsers, BlogComment, BlockedUser } from '../lib/supabase';
@@ -201,7 +201,7 @@ export default function AdminBlogComments() {
         </h2>
         <button
           onClick={activeTab === 'blocked' ? loadBlockedUsers : loadComments}
-          className="p-2 text-slate-500 hover:text-accent transition-colors"
+          className="p-2 text-slate-500 hover:text-accent transition-all"
           title="Обновить"
         >
           <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
@@ -214,7 +214,7 @@ export default function AdminBlogComments() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
               activeTab === tab.id
                 ? 'bg-accent text-white'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -273,7 +273,7 @@ export default function AdminBlogComments() {
                   </div>
                   <button
                     onClick={() => handleUnblock(user.id)}
-                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all"
                   >
                     <UserCheck className="w-4 h-4" />
                     Разблокировать
@@ -347,21 +347,21 @@ export default function AdminBlogComments() {
                     <>
                       <button
                         onClick={() => handleApprove(comment.id)}
-                        className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Одобрить
                       </button>
                       <button
                         onClick={() => setSelectedComment(selectedComment === comment.id ? null : comment.id)}
-                        className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                       >
                         <XCircle className="w-4 h-4" />
                         Отклонить
                       </button>
                       <button
                         onClick={() => handleSpam(comment.id)}
-                        className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                       >
                         <AlertTriangle className="w-4 h-4" />
                         Спам
@@ -374,7 +374,7 @@ export default function AdminBlogComments() {
                       setUserToBlock({ id: comment.user_id || undefined, email: comment.user_email });
                       setShowBlockModal(true);
                     }}
-                    className="flex items-center gap-1 bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ml-auto"
+                    className="flex items-center gap-1 bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all ml-auto"
                   >
                     <UserX className="w-4 h-4" />
                     Заблокировать
@@ -382,7 +382,7 @@ export default function AdminBlogComments() {
 
                   <button
                     onClick={() => handleDelete(comment.id)}
-                    className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                    className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
                     Удалить
@@ -465,14 +465,14 @@ export default function AdminBlogComments() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowBlockModal(false)}
-                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-all"
                 >
                   Отмена
                 </button>
                 <button
                   onClick={handleBlockUser}
                   disabled={!blockReason.trim()}
-                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white py-2.5 rounded-xl text-sm font-bold transition-all"
                 >
                   Заблокировать
                 </button>

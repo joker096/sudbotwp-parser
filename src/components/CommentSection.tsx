@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { MessageSquare, Save, Share2, Send } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import EmojiPicker from './EmojiPicker';
@@ -68,7 +68,7 @@ export default function CommentSection({
           <button
             onClick={handleSave}
             disabled={isSaving || localComment === comment}
-            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
           >
             {isSaving ? (
               <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -91,7 +91,7 @@ export default function CommentSection({
           </p>
           <button
             onClick={onShare}
-            className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light text-white py-2 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
           >
             <Send className="w-3 h-3" />
             Поделиться с юристом

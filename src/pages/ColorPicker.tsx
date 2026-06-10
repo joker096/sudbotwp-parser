@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+﻿import React, { useState, useRef, useCallback } from 'react';
 import { Download, Trash2, Check, Copy, ImageIcon } from 'lucide-react';
 
 export interface Swatch {
@@ -181,7 +181,7 @@ export default function ColorPickerPage() {
         data-testid="upload-zone"
         className="flex flex-col items-center justify-center w-[80vw] max-w-5xl mx-auto h-48
                    border-2 border-dashed border-gray-800 rounded-2xl cursor-pointer
-                   hover:border-accent/50 hover:bg-white/[0.02] transition-colors"
+                   hover:border-accent/50 hover:bg-white/[0.02] transition-all"
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
         onDrop={onDrop}
       >
@@ -243,7 +243,7 @@ export default function ColorPickerPage() {
           <button
             onClick={() => setShowExport(true)}
             className="inline-flex items-center gap-2 px-6 py-2 rounded-xl border border-white/10
-                       text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                       text-sm text-gray-300 hover:bg-white/5 transition-all uppercase tracking-wider"
           >
             <Download className="w-4 h-4" />
             Export
@@ -269,7 +269,7 @@ export default function ColorPickerPage() {
                     triggerDownload('palette.css', exportCSS(palette.map(s => s.hex)), 'text/css');
                     setShowExport(false);
                   }}
-                  className="w-full py-3 mb-2 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                  className="w-full py-3 mb-2 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-all uppercase tracking-wider"
                 >
                   CSS Variables
                 </button>
@@ -278,7 +278,7 @@ export default function ColorPickerPage() {
                     triggerDownload('palette.json', exportJSON(palette.map(s => s.hex)), 'application/json');
                     setShowExport(false);
                   }}
-                  className="w-full py-3 mb-2 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                  className="w-full py-3 mb-2 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-all uppercase tracking-wider"
                 >
                   JSON
                 </button>
@@ -287,7 +287,7 @@ export default function ColorPickerPage() {
                     triggerDownload('palette.txt', exportTXT(palette.map(s => s.hex)), 'text/plain');
                     setShowExport(false);
                   }}
-                  className="w-full py-3 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-colors uppercase tracking-wider"
+                  className="w-full py-3 rounded-xl border border-white/10 text-sm text-gray-300 hover:bg-white/5 transition-all uppercase tracking-wider"
                 >
                   Plain Hex
                 </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { ShieldCheck, Info, CheckCircle2, MoreVertical, ChevronDown, Paperclip, X, ArrowLeft, Phone, Video, Plus } from 'lucide-react';
 import MentionInput, { useLawyers } from '../components/MentionInput';
 import EncryptedFileUpload from '../components/EncryptedFileUpload';
@@ -107,7 +107,7 @@ export default function Messages() {
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Сообщения</h2>
           <button
             onClick={() => setShowLeadModal(true)}
-            className="p-2 bg-accent text-white rounded-xl hover:bg-accent-light transition-colors"
+            className="p-2 bg-accent text-white rounded-xl hover:bg-accent-light transition-all"
             title="Создать заявку"
           >
             <Plus className="w-5 h-5" />
@@ -118,7 +118,7 @@ export default function Messages() {
             <div 
               key={chat.id} 
               onClick={() => handleSelectChat(chat)}
-              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl cursor-pointer flex gap-3 items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${selectedChat?.id === chat.id ? 'bg-slate-100 dark:bg-slate-800' : ''}`}
+              className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl cursor-pointer flex gap-3 items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${selectedChat?.id === chat.id ? 'bg-slate-100 dark:bg-slate-800' : ''}`}
             >
               <div className="relative">
                 <img src={chat.lawyerAvatar} alt={chat.lawyerName} referrerPolicy="no-referrer" className="w-12 h-12 rounded-full object-cover" />
@@ -153,7 +153,7 @@ export default function Messages() {
             {/* Кнопка назад (мобильная) */}
             <button 
               onClick={handleBackToChats}
-              className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -177,13 +177,13 @@ export default function Messages() {
           
           {/* Правая часть - действия (скрыты на мобильных для экономии места) */}
           <div className="hidden sm:flex items-center gap-1">
-            <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+            <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
               <Phone className="w-5 h-5" />
             </button>
-            <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+            <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
               <Video className="w-5 h-5" />
             </button>
-            <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+            <button className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all">
               <MoreVertical className="w-5 h-5" />
             </button>
           </div>
@@ -210,7 +210,7 @@ export default function Messages() {
           </div>
           {showContractButton && (
             <button 
-              className="shrink-0 bg-accent hover:bg-accent-light text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5"
+              className="shrink-0 bg-accent hover:bg-accent-light text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
               onClick={() => setShowSafeDealModal(true)}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -247,7 +247,7 @@ export default function Messages() {
           <div className="mb-2 flex items-center gap-2">
             <button
               onClick={() => setShowFileUpload(!showFileUpload)}
-              className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
               title="Прикрепить документ"
             >
               <Paperclip className="w-5 h-5" />
@@ -275,7 +275,7 @@ export default function Messages() {
                   <span className="text-slate-600 dark:text-slate-300 truncate max-w-[100px]">{file.name}</span>
                   <button
                     onClick={() => handleFileDeleted(file.name)}
-                    className="p-0.5 text-slate-400 hover:text-red-500 rounded transition-colors"
+                    className="p-0.5 text-slate-400 hover:text-red-500 rounded transition-all"
                   >
                     <X className="w-3 h-3" />
                   </button>

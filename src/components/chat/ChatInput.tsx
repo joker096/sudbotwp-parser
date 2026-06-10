@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Send, Paperclip, Smile } from 'lucide-react';
 import EncryptedFileUpload from '../EncryptedFileUpload';
 
@@ -53,7 +53,7 @@ export default function ChatInput({ onSend, showContractButton, onContractClick 
       {showContractButton && (
         <button
           onClick={onContractClick}
-          className="mb-3 w-full bg-accent hover:bg-accent-light text-white py-2 rounded-xl text-sm font-bold transition-colors"
+          className="mb-3 w-full bg-accent hover:bg-accent-light text-white py-2 rounded-xl text-sm font-bold transition-all"
         >
           Заключить договор
         </button>
@@ -63,7 +63,7 @@ export default function ChatInput({ onSend, showContractButton, onContractClick 
       <div className="flex items-end gap-2">
         <button 
           onClick={() => setShowFileUpload(!showFileUpload)}
-          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
         >
           <Paperclip className="w-5 h-5 text-slate-500" />
         </button>
@@ -87,7 +87,7 @@ export default function ChatInput({ onSend, showContractButton, onContractClick 
         <button 
           onClick={handleSend}
           disabled={!message.trim() && attachedFiles.length === 0}
-          className="p-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white rounded-lg transition-colors"
+          className="p-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white rounded-lg transition-all"
         >
           <Send className="w-5 h-5" />
         </button>

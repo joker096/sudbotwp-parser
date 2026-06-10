@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 interface Tab {
   id: string;
@@ -21,7 +21,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({ tabs, activeTab, onTab
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`px-4 py-2.5 whitespace-nowrap transition-colors duration-200 ${
+          className={`px-4 py-2.5 whitespace-nowrap transition-all duration-200 ${
             activeTab === tab.id
               ? 'border-b-2 border-blue-500 text-blue-600 font-medium'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'

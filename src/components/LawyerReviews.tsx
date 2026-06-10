@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Star, Clock, Check, AlertCircle, Loader2, Gift, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SimpleCaptcha from './SimpleCaptcha';
@@ -145,7 +145,7 @@ export default function LawyerReviews({
         {!showWriteForm && (
           <button
             onClick={checkCanReview}
-            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-xl text-sm font-bold transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-xl text-sm font-bold transition-all"
           >
             <MessageSquare className="w-4 h-4" />
             Написать отзыв
@@ -217,7 +217,7 @@ export default function LawyerReviews({
                 placeholder="Поделитесь своим опытом работы с юристом..."
                 rows={4}
                 maxLength={1000}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent transition-colors resize-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent transition-all resize-none"
               />
             </div>
 
@@ -257,14 +257,14 @@ export default function LawyerReviews({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowWriteForm(false)}
-                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold transition-colors"
+                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold transition-all"
               >
                 Отмена
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting || !captchaToken}
-                className="flex-1 px-4 py-3 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>

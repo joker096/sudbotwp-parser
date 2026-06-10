@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Search, Filter, Calendar, ArrowRight, ChevronLeft, ChevronRight, Share2, Bookmark, Eye, ThumbsUp, MessageSquare, Settings, Plus, Edit } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -194,17 +194,17 @@ const BlogContentWithAds = ({ content, adSettings }: { content: string; adSettin
           
           adHtml = `
             <div class="blog-ad-container my-8">
-              <a href="${safeBannerUrl || '#'}"${targetAttr} class="w-full bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center gap-6 border border-slate-200 dark:border-slate-700 relative overflow-hidden group cursor-pointer transition-colors hover:border-accent dark:hover:border-accent text-decoration-none">
+              <a href="${safeBannerUrl || '#'}"${targetAttr} class="w-full bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] p-6 flex flex-col sm:flex-row items-center gap-6 border border-slate-200 dark:border-slate-700 relative overflow-hidden group cursor-pointer transition-all hover:border-accent dark:hover:border-accent text-decoration-none">
                 <div class="absolute top-4 right-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
                   Реклама
                 </div>
                 ${bannerImageHtml}
                 <div class="flex-1 text-center sm:text-left mt-2 sm:mt-0">
-                  <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-accent transition-colors">
+                  <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-accent transition-all">
                     ${adSettings.bannerText}
                   </h3>
                   ${adSettings.bannerDesc ? `<p class="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">${adSettings.bannerDesc}</p>` : ''}
-                  <span class="inline-flex items-center gap-1.5 text-sm font-bold text-accent hover:text-accent-light transition-colors">
+                  <span class="inline-flex items-center gap-1.5 text-sm font-bold text-accent hover:text-accent-light transition-all">
                     ${adSettings.bannerCta || 'Узнать подробнее'} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                   </span>
                 </div>
@@ -873,7 +873,7 @@ export default function Blog() {
             // Очищаем URL от slug
             window.history.pushState({}, '', '/blog');
           }}
-          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-accent transition-colors"
+          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-accent transition-all"
         >
           <ChevronLeft className="w-4 h-4" /> Назад к статьям
         </button>
@@ -926,7 +926,7 @@ export default function Blog() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={(e) => handleLike(selectedPost.id, e)}
-                  className={`flex items-center gap-2 transition-colors font-medium bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl ${
+                  className={`flex items-center gap-2 transition-all font-medium bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl ${
                     likedPosts.has(selectedPost.id) 
                       ? 'text-accent bg-accent/10' 
                       : 'text-slate-500 hover:text-accent'
@@ -934,14 +934,14 @@ export default function Blog() {
                 >
                   <ThumbsUp className={`w-5 h-5 ${likedPosts.has(selectedPost.id) ? 'fill-current' : ''}`} /> {getLikeCount(selectedPost)}
                 </button>
-                <button className="flex items-center gap-2 text-slate-500 hover:text-accent transition-colors font-medium bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl">
+                <button className="flex items-center gap-2 text-slate-500 hover:text-accent transition-all font-medium bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl">
                   <MessageSquare className="w-5 h-5" /> {selectedPost.comments}
                 </button>
               </div>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={(e) => handleBookmark(selectedPost.id, e)}
-                  className={`p-2 transition-colors bg-slate-50 dark:bg-slate-800 rounded-xl ${
+                  className={`p-2 transition-all bg-slate-50 dark:bg-slate-800 rounded-xl ${
                     bookmarkedPosts.has(selectedPost.id)
                       ? 'text-accent'
                       : 'text-slate-500 hover:text-accent'
@@ -951,7 +951,7 @@ export default function Blog() {
                 </button>
                 <button 
                   onClick={(e) => handleShare(selectedPost, e)}
-                  className="p-2 text-slate-500 hover:text-accent transition-colors bg-slate-50 dark:bg-slate-800 rounded-xl relative"
+                  className="p-2 text-slate-500 hover:text-accent transition-all bg-slate-50 dark:bg-slate-800 rounded-xl relative"
                 >
                   <Share2 className="w-5 h-5" />
                   {showShareTooltip && (
@@ -1108,21 +1108,21 @@ export default function Blog() {
   }
 
   return (
-    <div className="space-y-6 transition-colors duration-300">
+    <div className="space-y-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Блог</h1>
         {isAdmin && (
           <div className="flex gap-2">
             <button
               onClick={() => window.location.href = '/admin/blog'}
-              className="flex items-center gap-2 bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+              className="flex items-center gap-2 bg-accent hover:bg-accent-light text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
             >
               <Settings className="w-4 h-4" />
               Управление
             </button>
             <button
               onClick={() => window.location.href = '/admin/blog/new'}
-              className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+              className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all"
             >
               <Plus className="w-4 h-4" />
               Новая статья
@@ -1138,11 +1138,11 @@ export default function Blog() {
           value={searchQuery}
           onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
           placeholder="Поиск статей..." 
-          className="w-full bg-white dark:bg-slate-900 py-4 pl-12 pr-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+          className="w-full bg-white dark:bg-slate-900 py-4 pl-12 pr-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
         />
         <button 
           onClick={() => setShowFilters(!showFilters)}
-          className="absolute right-2 bg-accent text-white p-2.5 rounded-xl shadow-lg shadow-accent/30 hover:bg-accent-light transition-colors"
+          className="absolute right-2 bg-accent text-white p-2.5 rounded-xl shadow-lg shadow-accent/30 hover:bg-accent-light transition-all"
         >
           <Filter className={`w-4 h-4 ${showFilters ? 'rotate-180' : ''}`} />
         </button>
@@ -1200,7 +1200,7 @@ export default function Blog() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => { setSortBy('date'); setShowFilters(false); }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     sortBy === 'date'
                       ? 'bg-accent text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1210,7 +1210,7 @@ export default function Blog() {
                 </button>
                 <button
                   onClick={() => { setSortBy('views'); setShowFilters(false); }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     sortBy === 'views'
                       ? 'bg-accent text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1220,7 +1220,7 @@ export default function Blog() {
                 </button>
                 <button
                   onClick={() => { setSortBy('likes'); setShowFilters(false); }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     sortBy === 'likes'
                       ? 'bg-accent text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -1245,7 +1245,7 @@ export default function Blog() {
                 }
                 setSelectedPost(post);
               }}
-              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col border border-transparent dark:border-slate-800 transition-colors group cursor-pointer"
+              className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex flex-col border border-transparent dark:border-slate-800 transition-all group cursor-pointer"
             >
               <div className="relative h-48 sm:h-56 overflow-hidden">
                 <img src={post.image_url || post.img} alt={post.title} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
@@ -1258,13 +1258,13 @@ export default function Blog() {
                   <Calendar className="w-3.5 h-3.5" />
                   {post.date}
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight mb-2 group-hover:text-accent transition-colors">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight mb-2 group-hover:text-accent transition-all">
                   {post.title}
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-6 flex-1">
                   {post.excerpt}
                 </p>
-                <button className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white group-hover:text-accent transition-colors mt-auto">
+                <button className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white group-hover:text-accent transition-all mt-auto">
                   Читать далее <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
@@ -1287,7 +1287,7 @@ export default function Blog() {
           <button 
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -1297,7 +1297,7 @@ export default function Blog() {
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`w-10 h-10 rounded-xl text-sm font-bold transition-colors ${
+                className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
                   currentPage === i + 1
                     ? 'bg-accent text-white shadow-md shadow-accent/20'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm'
@@ -1311,7 +1311,7 @@ export default function Blog() {
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

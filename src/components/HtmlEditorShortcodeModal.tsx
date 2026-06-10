@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X } from 'lucide-react';
 
 interface Shortcode {
@@ -43,7 +43,7 @@ export const ShortcodeModal: React.FC<ShortcodeModalProps> = ({ isOpen, onClose,
             <button
               key={shortcode.id}
               onClick={() => onSelect(shortcode)}
-              className="w-full text-left p-4 bg-slate-50 dark:bg-slate-800 hover:bg-accent/10 dark:hover:bg-accent/10 rounded-xl mb-2 transition-colors"
+              className="w-full text-left p-4 bg-slate-50 dark:bg-slate-800 hover:bg-accent/10 dark:hover:bg-accent/10 rounded-xl mb-2 transition-all"
             >
               <p className="text-sm font-medium text-slate-900 dark:text-white">{shortcode.name}</p>
               <p className="text-xs text-slate-500 mt-1">{shortcode.description}</p>

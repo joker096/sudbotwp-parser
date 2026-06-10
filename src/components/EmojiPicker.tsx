@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface EmojiPickerProps {
@@ -60,7 +60,7 @@ export default function EmojiPicker({ onSelect }: EmojiPickerProps) {
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+        className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all"
         title="Добавить эмодзи"
       >
         <span className="text-base">😀</span>
@@ -82,7 +82,7 @@ export default function EmojiPicker({ onSelect }: EmojiPickerProps) {
                   key={emoji}
                   type="button"
                   onClick={() => handleSelect(emoji)}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors text-lg"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-all text-lg"
                 >
                   {emoji}
                 </button>

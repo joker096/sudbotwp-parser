@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Scale, Send, Loader2, Bot, User, FileText, Lightbulb, CheckCircle2, AlertCircle, Copy, Trash2, BookOpen, Sparkles, Download, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -416,7 +416,7 @@ export default function AILawyer() {
           {messages.length > 1 && (
             <button
               onClick={handleExportChat}
-              className="p-2 text-slate-500 hover:text-accent transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="p-2 text-slate-500 hover:text-accent transition-all rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Экспортировать чат"
             >
               <Download className="w-4 h-4" />
@@ -425,7 +425,7 @@ export default function AILawyer() {
           {messages.length > 0 && (
             <button
               onClick={handleClearChat}
-              className="p-2 text-slate-500 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="p-2 text-slate-500 hover:text-red-500 transition-all rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
               title="Очистить чат"
             >
               <Trash2 className="w-4 h-4" />
@@ -452,7 +452,7 @@ export default function AILawyer() {
                   disabled={isLoading}
                   className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 dark:hover:border-accent/30 hover:shadow-lg transition-all text-left group"
                 >
-                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-colors">
+                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-3 group-hover:bg-accent/20 transition-all">
                     <Icon className="w-5 h-5 text-accent" />
                   </div>
                   <h3 className="font-bold text-slate-900 dark:text-white text-sm">{action.title}</h3>
@@ -529,7 +529,7 @@ export default function AILawyer() {
                   <div className="flex items-center gap-1 mt-2 justify-start">
                     <button
                       onClick={() => handleCopyMessage(message.content)}
-                      className="p-1.5 text-slate-400 hover:text-accent transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="p-1.5 text-slate-400 hover:text-accent transition-all rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                       title="Копировать"
                     >
                       <Copy className="w-3.5 h-3.5" />
@@ -563,7 +563,7 @@ export default function AILawyer() {
             <button
               onClick={() => handleSendMessage()}
               disabled={!inputMessage.trim() || isLoading}
-              className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors self-end"
+              className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all self-end"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -582,7 +582,7 @@ export default function AILawyer() {
               <div className="mt-2 flex justify-center">
                 <Link 
                   to="/profile" 
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-light text-white text-sm font-medium rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-light text-white text-sm font-medium rounded-lg transition-all"
                 >
                   <Crown className="w-4 h-4" />
                   Оформить подписку

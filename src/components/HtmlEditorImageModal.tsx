@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Image } from 'lucide-react';
 
 interface ImageModalProps {
@@ -44,7 +44,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose, onInser
           <button
             onClick={() => { onInsert(imageUrl); setImageUrl('https://'); }}
             disabled={!imageUrl || !imageUrl.startsWith('http')}
-            className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors"
+            className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all"
           >
             Вставить
           </button>

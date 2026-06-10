@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ExternalLink, X } from 'lucide-react';
 
@@ -51,7 +51,7 @@ export default function SourceWarningModal({ isOpen, onClose, caseLink }: Source
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+                className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-all"
               >
                 Отмена
               </button>
@@ -59,7 +59,7 @@ export default function SourceWarningModal({ isOpen, onClose, caseLink }: Source
                 href={caseLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors text-center flex items-center justify-center gap-2"
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-bold transition-all text-center flex items-center justify-center gap-2"
               >
                 Перейти
                 <ExternalLink className="w-4 h-4" />

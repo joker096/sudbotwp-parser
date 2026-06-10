@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { supabase, lawyerApplications } from '../lib/supabase';
 import { Loader2, Check, X, Clock, User, MapPin, Phone, Mail, FileText, MessageSquare, ChevronDown, Search, Filter } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
@@ -152,7 +152,7 @@ export default function LawyerApplicationsAdmin() {
           {filteredApps.map(app => (
             <div
               key={app.id}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 hover:border-accent/50 transition-colors cursor-pointer"
+              className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 hover:border-accent/50 transition-all cursor-pointer"
               onClick={() => setSelectedApp(app)}
             >
               <div className="flex items-start justify-between gap-4">

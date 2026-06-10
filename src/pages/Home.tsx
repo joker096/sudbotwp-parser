@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, Scale, Users, Calculator, BookOpen, Star, Plus, Link as LinkIcon, ArrowRight, ChevronLeft, ChevronRight, X, Trash2, ExternalLink, RotateCcw, Loader2, Check, MapPin, Archive, Building, Gavel } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -283,10 +283,10 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="space-y-8 md:space-y-12 transition-colors duration-300">
+    <div className="space-y-8 md:space-y-12 transition-all duration-300">
       
       {/* H1 и SEO-блок с описанием сервиса */}
-      <section className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 md:p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-700 transition-colors duration-300">
+      <section className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 md:p-10 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-700 transition-all duration-300">
         <h1 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-white mb-3 md:mb-4 leading-tight">
           Мониторинг судебных дел онлайн — отслеживайте дела в судах РФ
         </h1>
@@ -339,7 +339,7 @@ export default function Home() {
       </div>
 
       {/* Add Case Section */}
-      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 transition-colors duration-300">
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 transition-all duration-300">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent shrink-0">
             <Plus className="w-6 h-6" />
@@ -358,13 +358,13 @@ export default function Home() {
               onChange={(e) => setCaseUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleTrackCase()}
               placeholder="https://sudrf.ru/..." 
-              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
             />
           </div>
           <button 
             onClick={handleTrackCase}
             disabled={isLoadingCase}
-            className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:opacity-50 text-white px-8 py-4 rounded-2xl text-sm font-bold transition-colors shadow-sm shrink-0 flex items-center gap-2"
+            className="bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:opacity-50 text-white px-8 py-4 rounded-2xl text-sm font-bold transition-all shadow-sm shrink-0 flex items-center gap-2"
           >
             {isLoadingCase ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {isLoadingCase ? 'Добавление...' : 'Отслеживать'}
@@ -380,9 +380,9 @@ export default function Home() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Поиск дел, юристов..." 
-          className="w-full bg-white dark:bg-slate-900 py-4 md:py-5 pl-12 pr-16 rounded-2xl md:rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm md:text-base font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+          className="w-full bg-white dark:bg-slate-900 py-4 md:py-5 pl-12 pr-16 rounded-2xl md:rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-none focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm md:text-base font-medium text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
         />
-        <button type="submit" className="absolute right-2 md:right-3 bg-accent text-white p-2.5 md:p-3.5 rounded-xl md:rounded-2xl shadow-lg shadow-accent/30 hover:bg-accent-light transition-colors">
+        <button type="submit" className="absolute right-2 md:right-3 bg-accent text-white p-2.5 md:p-3.5 rounded-xl md:rounded-2xl shadow-lg shadow-accent/30 hover:bg-accent-light transition-all">
           <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
         </button>
       </form>
@@ -393,7 +393,7 @@ export default function Home() {
         <div className="flex sm:grid sm:grid-cols-4 gap-3 overflow-x-auto sm:overflow-visible scrollbar-hide pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
           {categories.map(cat => (
             <Link to={cat.link} key={cat.id} className={`flex flex-col items-center justify-center gap-2 sm:gap-3 shrink-0 w-20 sm:w-auto py-3 sm:py-6 px-2 sm:px-4 sm:rounded-[2rem] sm:bg-white dark:sm:bg-slate-900 sm:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:sm:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all ${cat.active ? 'sm:ring-2 sm:ring-accent' : 'opacity-80 hover:opacity-100'}`}>
-              <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-2xl flex items-center justify-center shadow-sm transition-colors ${cat.active ? 'bg-accent text-white shadow-accent/30 shadow-lg' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+              <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] sm:rounded-2xl flex items-center justify-center shadow-sm transition-all ${cat.active ? 'bg-accent text-white shadow-accent/30 shadow-lg' : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
                 <cat.icon className="w-7 h-7 sm:w-8 sm:h-8" />
               </div>
               <span className={`text-xs sm:text-sm font-bold ${cat.active ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{cat.name}</span>
@@ -444,7 +444,7 @@ export default function Home() {
                 )}
                 <div className="flex justify-between items-center">
                   <span className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400">{lawyer.reviews_count || lawyer.reviews || 0} отзывов</span>
-                  <div className="bg-slate-900 dark:bg-slate-800 text-white p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                  <div className="bg-slate-900 dark:bg-slate-800 text-white p-2 sm:px-4 sm:py-2 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all flex items-center gap-2">
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline text-sm font-bold">Написать</span>
                   </div>
@@ -467,7 +467,7 @@ export default function Home() {
               <button
                 onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                 disabled={currentPage === 0}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -477,7 +477,7 @@ export default function Home() {
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={currentPage >= totalPages - 1}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -510,7 +510,7 @@ export default function Home() {
                       <Scale className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-colors">{caseItem.number}</h4>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-all">{caseItem.number}</h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{caseItem.court}</p>
                       <div className="flex items-center gap-1.5 flex-wrap mt-1">
                         {caseItem.category && (
@@ -544,7 +544,7 @@ export default function Home() {
                               e.stopPropagation();
                               handleRefreshCase(caseItem.id);
                             }}
-                            className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
+                            className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-all"
                             title="Обновить данные дела"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
@@ -564,7 +564,7 @@ export default function Home() {
                           }}
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-all"
                           title="Открыть в суде"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -574,7 +574,7 @@ export default function Home() {
                             e.stopPropagation();
                             handleDeleteCase(caseItem.id);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-all"
                           title="Удалить дело"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -584,7 +584,7 @@ export default function Home() {
                             e.stopPropagation();
                             handleArchiveCase(caseItem.id);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-accent dark:hover:text-accent transition-all"
                           title="Архивировать дело"
                         >
                           <Archive className="w-3.5 h-3.5" />
@@ -600,7 +600,7 @@ export default function Home() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                   disabled={currentPage === 0}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-bold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-sm font-bold"
                 >
                   Предыдущая
                 </button>
@@ -609,7 +609,7 @@ export default function Home() {
                     <button
                       key={i}
                       onClick={() => setCurrentPage(i)}
-                      className={`w-8 h-8 rounded-lg text-sm font-bold transition-colors ${
+                      className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
                         currentPage === i
                           ? 'bg-accent text-white'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -622,7 +622,7 @@ export default function Home() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
                   disabled={currentPage >= totalPages - 1}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-bold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-sm font-bold"
                 >
                   Следующая
                 </button>
@@ -649,7 +649,7 @@ export default function Home() {
           <div className="relative w-full max-w-full sm:max-w-2xl max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedCase(null)}
-              className="absolute top-4 right-4 z-10 p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className="absolute top-4 right-4 z-10 p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
             >
               <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             </button>
@@ -687,7 +687,7 @@ export default function Home() {
       />
 
       {/* SEO-блок с дополнительной информацией */}
-      <section className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 transition-colors duration-300">
+      <section className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800 transition-all duration-300">
         <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-4">
           Почему стоит использовать наш сервис мониторинга дел
         </h2>

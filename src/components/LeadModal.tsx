@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+﻿import { useState, memo } from 'react';
 import { X, CheckCircle2, Loader2, Send, Phone, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Lawyer } from '../types';
@@ -113,7 +113,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
           >
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
             >
               <X className="w-5 h-5 text-slate-500" />
             </button>
@@ -161,7 +161,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Иван Иванов"
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                     />
                   </div>
 
@@ -175,7 +175,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="+7 (999) 123-45-67"
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                     />
                   </div>
 
@@ -197,7 +197,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                     <select
                       value={formData.caseType}
                       onChange={(e) => setFormData({ ...formData, caseType: e.target.value as CaseType })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                     >
                       <option value="">Выберите тип дела</option>
                       {caseTypes.map((type) => (
@@ -215,7 +215,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Кратко опишите вашу ситуацию..."
                       rows={3}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors resize-none"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all resize-none"
                     />
                   </div>
 
@@ -227,7 +227,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                       <select
                         value={formData.budget}
                         onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                       >
                         <option value="">Не важно</option>
                         <option value=" до 10 000">до 10 000 ₽</option>
@@ -244,7 +244,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                       <select
                         value={formData.urgency}
                         onChange={(e) => setFormData({ ...formData, urgency: e.target.value as Urgency })}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                       >
                         <option value="low">Низкая</option>
                         <option value="medium">Средняя</option>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Pencil, Save, X } from 'lucide-react';
 
 interface EditableFieldProps {
@@ -64,7 +64,7 @@ export default function EditableField({
       <p className="text-sm font-bold text-slate-900 dark:text-white flex-1">{value}</p>
       <button 
         onClick={() => setIsEditing(true)} 
-        className="p-1 text-slate-400 hover:text-accent transition-colors"
+        className="p-1 text-slate-400 hover:text-accent transition-all"
       >
         <Pencil className="w-3 h-3" />
       </button>

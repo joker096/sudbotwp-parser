@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { X, Upload, User, Loader2 } from 'lucide-react';
 import { Lawyer } from '../types';
 
@@ -385,14 +385,14 @@ export default function LawyerModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={isUploading}
-              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-accent-light transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-accent-light transition-all disabled:opacity-50"
             >
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (lawyer ? 'Сохранить' : 'Добавить')}
             </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Filter, Scale, ChevronRight, Loader2, Link as LinkIcon, Building, User, Calendar, FileText, CheckCircle2, Clock, MapPin, AlertCircle, Gavel, Download, Pencil, X, Trash2, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -346,7 +346,7 @@ export default function CaseSearch() {
   } : null;
 
   return (
-    <div className="space-y-6 transition-colors duration-300 max-w-4xl mx-auto">
+    <div className="space-y-6 transition-all duration-300 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Поиск и добавление дел</h1>
       </div>
@@ -363,7 +363,7 @@ export default function CaseSearch() {
         />
         <button 
           onClick={() => handleSearch(query)}
-          className="absolute right-2 bg-accent text-white p-2.5 rounded-xl shadow-lg shadow-accent/30 hover:bg-accent-light transition-colors flex items-center justify-center"
+          className="absolute right-2 bg-accent text-white p-2.5 rounded-xl shadow-lg shadow-accent/30 hover:bg-accent-light transition-all flex items-center justify-center"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Filter className="w-4 h-4" />}
         </button>
@@ -373,7 +373,7 @@ export default function CaseSearch() {
       <div className="flex justify-center">
         <button
           onClick={() => setShowManualEntry(!showManualEntry)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-accent dark:hover:text-accent transition-all"
         >
           {showManualEntry ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
           {showManualEntry ? 'Отмена' : 'Ввести дело вручную'}
@@ -458,7 +458,7 @@ export default function CaseSearch() {
                         <Scale className="w-4 h-4 md:w-5 md:h-5" />
                       </div>
                        <div className="flex-1 min-w-0">
-                         <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-colors">{caseItem.number}</h4>
+                         <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base mb-0.5 truncate group-hover:text-accent transition-all">{caseItem.number}</h4>
                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{caseItem.court}</p>
                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
                            {String(caseItem.status || '').trim().toLowerCase() === 'archived' ? (
@@ -501,7 +501,7 @@ export default function CaseSearch() {
             <div className="relative w-full max-w-full sm:max-w-2xl max-h-[90vh] flex" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedCase(null)}
-                className="absolute -top-2 -right-2 sm:top-4 sm:right-4 z-[60] p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="absolute -top-2 -right-2 sm:top-4 sm:right-4 z-[60] p-2 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
               >
                 <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </button>

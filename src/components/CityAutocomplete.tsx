@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+﻿import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { MapPin, X, ChevronDown, Loader2 } from 'lucide-react';
 import { russianCities } from '../data/russianCities';
 
@@ -178,14 +178,14 @@ export default function CityAutocomplete({
           aria-autocomplete="list"
           aria-controls="city-listbox"
           aria-activedescendant={isOpen && filteredCities[activeIndex] ? `city-option-${activeIndex}` : undefined}
-          className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-12 pr-10 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-accent/20 transition-colors"
+          className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl pl-12 pr-10 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-accent/20 transition-all"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {query && (
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+              className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-all"
               aria-label="Очистить"
             >
               <X className="w-4 h-4 text-slate-400" />
@@ -216,7 +216,7 @@ export default function CityAutocomplete({
                 aria-selected={index === activeIndex}
                 onClick={() => handleSelect(city)}
                 onMouseEnter={() => setActiveIndex(index)}
-                className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center gap-2 ${
+                className={`px-4 py-2.5 text-sm cursor-pointer transition-all flex items-center gap-2 ${
                   index === activeIndex
                     ? 'bg-accent/10 text-accent dark:bg-accent/20'
                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import type { CounterpartyCheck } from '../lib/counterparty';
 import type { RosstatResult } from '../lib/rosstat';
@@ -52,7 +52,7 @@ export default function ExportButton({ check, rosstat, riskScore }: ExportButton
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 hover:border-accent/30 transition-colors shadow-sm"
+        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 hover:border-accent/30 transition-all shadow-sm"
       >
         <Download className="w-4 h-4" />
         Экспорт
@@ -62,14 +62,14 @@ export default function ExportButton({ check, rosstat, riskScore }: ExportButton
         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-10 overflow-hidden">
           <button
             onClick={downloadExcel}
-            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
             Excel (.xlsx)
           </button>
           <button
             onClick={downloadCSV}
-            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
           >
             <FileText className="w-4 h-4 text-blue-500" />
             CSV

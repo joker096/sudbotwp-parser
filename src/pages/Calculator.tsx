@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { FileText, ArrowRight, Calculator as CalcIcon, ChevronDown, Search, Loader2 } from 'lucide-react';
 import { useSeo } from '../hooks/useSeo';
 import { courts } from '../lib/supabase';
@@ -491,7 +491,7 @@ export default function Calculator() {
   // Теперь используется SafeLink в JSX
 
   return (
-    <div className="space-y-6 transition-colors duration-300">
+    <div className="space-y-6 transition-all duration-300">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <CalcIcon className="w-7 h-7 text-accent" />
@@ -499,7 +499,7 @@ export default function Calculator() {
         </h1>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden max-w-4xl mx-auto border border-transparent dark:border-slate-800 transition-colors">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden max-w-4xl mx-auto border border-transparent dark:border-slate-800 transition-all">
         <div className="p-4 sm:p-8">
           <form onSubmit={calculateFee} className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
@@ -510,7 +510,7 @@ export default function Calculator() {
                 <select 
                   value={courtType}
                   onChange={(e) => setCourtType(e.target.value as CourtType)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
                 >
                   <option value="common">Суд общей юрисдикции (ГПК РФ)</option>
                   <option value="arbitration">Арбитражный суд (АПК РФ)</option>
@@ -583,7 +583,7 @@ export default function Calculator() {
                 <select 
                   value={plaintiffType}
                   onChange={(e) => setPlaintiffType(e.target.value as PlaintiffType)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
                 >
                   <option value="individual">Физическое лицо</option>
                   <option value="company">Юридическое лицо</option>
@@ -600,7 +600,7 @@ export default function Calculator() {
                 value={payerName}
                 onChange={(e) => setPayerName(e.target.value)}
                 placeholder={plaintiffType === 'individual' ? 'Иванов Иван Иванович' : 'ООО "Ромашка"'}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
 
@@ -611,7 +611,7 @@ export default function Calculator() {
               <select 
                 value={claimType}
                 onChange={(e) => setClaimType(e.target.value as ClaimType)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
               >
                 <option value="property">Имущественное (с оценкой)</option>
                 <option value="property_no_value">Имущественное (без оценки)</option>
@@ -632,7 +632,7 @@ export default function Calculator() {
                     placeholder="Например: 150000"
                     min="0"
                     step="1"
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-bold">₽</span>
                 </div>
@@ -694,14 +694,14 @@ export default function Calculator() {
             <div className="flex gap-2">
               <button 
                 type="submit" 
-                className="flex-1 bg-accent hover:bg-accent-light text-white rounded-lg py-2 font-bold text-xs transition-colors shadow-sm"
+                className="flex-1 bg-accent hover:bg-accent-light text-white rounded-lg py-2 font-bold text-xs transition-all shadow-sm"
               >
                 Рассчитать
               </button>
               <button 
                 type="button"
                 onClick={resetCalculator}
-                className="px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg py-2 font-bold text-xs transition-colors"
+                className="px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg py-2 font-bold text-xs transition-all"
               >
                 Очистить
               </button>
@@ -710,7 +710,7 @@ export default function Calculator() {
         </div>
 
         {result !== null && (
-          <div className="bg-slate-900 dark:bg-slate-950 p-3 sm:p-8 text-white border-t border-slate-800 transition-colors">
+          <div className="bg-slate-900 dark:bg-slate-950 p-3 sm:p-8 text-white border-t border-slate-800 transition-all">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6">
               <div className="text-center sm:text-left">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Размер пошлины</p>
@@ -721,14 +721,14 @@ export default function Calculator() {
               <div className="flex gap-2 sm:gap-3 sm:w-auto w-full">
                 <button 
                   onClick={handleGenerateReceipt}
-                  className="flex-1 sm:flex-none px-3 bg-white/10 hover:bg-white/20 text-white py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 sm:flex-none px-3 bg-white/10 hover:bg-white/20 text-white py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1"
                 >
                   <FileText className="w-3 h-3" />
                   Квитанция
                 </button>
                 <SafeLink 
                   href="https://www.gosuslugi.ru/category/payment"
-                  className="flex-1 sm:flex-none px-4 bg-accent hover:bg-accent-light text-white py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 shadow-sm"
+                  className="flex-1 sm:flex-none px-4 bg-accent hover:bg-accent-light text-white py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 shadow-sm"
                 >
                   Госуслуги <ArrowRight className="w-3 h-3" />
                 </SafeLink>

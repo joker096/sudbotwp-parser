@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { Scale, Search, Loader2, ExternalLink, FileText, ChevronRight, RefreshCw, Building2, Users, Database } from 'lucide-react';
 import { useSeo } from '../hooks/useSeo';
 import { getPublicBlocks, getSubBlocks, searchDocuments, getDocumentsByBlock, BLOCK_CODES, DEMO_DOCUMENTS, type DocumentInfo, type PublicBlock } from '../lib/pravo';
@@ -200,7 +200,7 @@ export default function LegalActs() {
         </div>
         <button
           onClick={() => loadCategories()}
-          className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-colors"
+          className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-all"
           title="Обновить"
         >
           <RefreshCw className="w-5 h-5" />
@@ -234,7 +234,7 @@ export default function LegalActs() {
       <div className="flex gap-2">
         <button
           onClick={() => { setActiveTab('categories'); setSelectedCategory(null); setDocuments([]); }}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
             activeTab === 'categories'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -245,7 +245,7 @@ export default function LegalActs() {
         </button>
         <button
           onClick={() => setActiveTab('search')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
             activeTab === 'search'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -256,7 +256,7 @@ export default function LegalActs() {
         </button>
         <button
           onClick={handleShowRegional}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
             activeTab === 'regional'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -268,7 +268,7 @@ export default function LegalActs() {
         {selectedCategory && (
           <button
             onClick={() => setActiveTab('recent')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
               activeTab === 'recent'
                 ? 'bg-slate-900 dark:bg-accent text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -296,7 +296,7 @@ export default function LegalActs() {
             <button
               onClick={() => handleSearch(1)}
               disabled={isLoadingDocs || !searchQuery.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-accent hover:bg-accent-light text-white px-4 py-1.5 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-accent hover:bg-accent-light text-white px-4 py-1.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Найти
             </button>
@@ -337,14 +337,14 @@ export default function LegalActs() {
                       {!['laws', 'decrees', 'govacts', 'fedorgs', 'assembly', 'government'].includes(category.code) && '📄'}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-accent transition-colors">
+                      <h3 className="font-bold text-slate-900 dark:text-white group-hover:text-accent transition-all">
                         {category.name}
                       </h3>
                       <p className="text-xs text-slate-500 mt-1">
                         {category.type || 'Документы'}
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-accent transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-accent transition-all" />
                   </div>
                 </button>
               ))}
@@ -381,7 +381,7 @@ export default function LegalActs() {
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors"
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-all"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -408,7 +408,7 @@ export default function LegalActs() {
                       href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-colors flex-shrink-0"
+                      className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-all flex-shrink-0"
                       title="Открыть на портале"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -425,7 +425,7 @@ export default function LegalActs() {
               <button
                 onClick={() => activeTab === 'search' ? handleSearch(currentPage - 1) : loadDocuments(selectedCategory!, currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
                 Назад
               </button>
@@ -435,7 +435,7 @@ export default function LegalActs() {
               <button
                 onClick={() => activeTab === 'search' ? handleSearch(currentPage + 1) : loadDocuments(selectedCategory!, currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
                 Вперёд
               </button>
@@ -471,7 +471,7 @@ export default function LegalActs() {
                 {regionalDocs.slice((regionalPage - 1) * regionalPageSize, regionalPage * regionalPageSize).map((doc) => (
                   <div
                     key={doc.id}
-                    className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors"
+                    className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-all"
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -489,7 +489,7 @@ export default function LegalActs() {
                         href={doc.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-colors flex-shrink-0"
+                        className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-all flex-shrink-0"
                         title="Открыть на портале"
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -505,7 +505,7 @@ export default function LegalActs() {
                   <button
                     onClick={() => setRegionalPage(p => Math.max(1, p - 1))}
                     disabled={regionalPage === 1}
-                    className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                   >
                     Назад
                   </button>
@@ -515,7 +515,7 @@ export default function LegalActs() {
                   <button
                     onClick={() => setRegionalPage(p => Math.min(Math.ceil(regionalDocs.length / regionalPageSize), p + 1))}
                     disabled={regionalPage >= Math.ceil(regionalDocs.length / regionalPageSize)}
-                    className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                   >
                     Вперёд
                   </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, X, Gavel, Hourglass, Bell, Pencil, Check } from 'lucide-react';
 
@@ -111,23 +111,23 @@ export default function EventModal({ isOpen, onClose, onSave, eventToEdit, initi
               <div className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Название события *</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Например: Заседание, Срок подачи жалобы..." className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors" />
+                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Например: Заседание, Срок подачи жалобы..." className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Дата *</label>
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors" />
+                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Время</label>
-                    <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors" />
+                    <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Тип события</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[{ value: 'hearing', label: 'Заседание', icon: Gavel }, { value: 'deadline', label: 'Срок', icon: Hourglass }, { value: 'reminder', label: 'Напоминание', icon: Bell }, { value: 'custom', label: 'Другое', icon: Pencil }].map((typeInfo) => (
-                      <button key={typeInfo.value} onClick={() => setType(typeInfo.value as any)} className={`px-4 py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 ${type === typeInfo.value ? 'bg-accent text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+                      <button key={typeInfo.value} onClick={() => setType(typeInfo.value as any)} className={`px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${type === typeInfo.value ? 'bg-accent text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
                         <typeInfo.icon className="w-4 h-4" />
                         {typeInfo.label}
                       </button>
@@ -163,7 +163,7 @@ export default function EventModal({ isOpen, onClose, onSave, eventToEdit, initi
               </div>
             </div>
             <div className="p-6 bg-slate-50 dark:bg-slate-900">
-              <button onClick={handleInternalSave} className="w-full bg-accent hover:bg-accent-light text-white py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+              <button onClick={handleInternalSave} className="w-full bg-accent hover:bg-accent-light text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2">
                 <Check className="w-5 h-5" />
                 {eventToEdit ? 'Сохранить изменения' : 'Добавить событие'}
               </button>

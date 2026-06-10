@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X, Check, Loader2 } from 'lucide-react';
 
@@ -78,7 +78,7 @@ export function ConfirmModal({
                   </div>
                   <button
                     onClick={onCancel}
-                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -90,14 +90,14 @@ export function ConfirmModal({
                 <button
                   onClick={onCancel}
                   disabled={isLoading}
-                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
                 >
                   {cancelText}
                 </button>
                 <button
                   onClick={onConfirm}
                   disabled={isLoading}
-                  className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${styles.button}`}
+                  className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${styles.button}`}
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

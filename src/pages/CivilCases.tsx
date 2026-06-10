@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Search, Gavel, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { searchCivilCases, type CivilCase } from '../lib/counterparty';
 import { useSeo } from '../hooks/useSeo';
@@ -48,7 +48,7 @@ export default function CivilCasesPage() {
   };
 
   return (
-    <div className="space-y-6 transition-colors duration-300 max-w-5xl mx-auto">
+    <div className="space-y-6 transition-all duration-300 max-w-5xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
@@ -76,7 +76,7 @@ export default function CivilCasesPage() {
           <button
             type="submit"
             disabled={isLoading || query.length < 3}
-            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 px-8 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+            className="bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 px-8 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -147,7 +147,7 @@ export default function CivilCasesPage() {
                       href={caseItem.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-4 text-accent hover:text-accent-light transition-colors"
+                      className="ml-4 text-accent hover:text-accent-light transition-all"
                     >
                       <ExternalLink className="w-5 h-5" />
                     </a>

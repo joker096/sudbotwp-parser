@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, Trash2, ArrowLeft, Image, Eye, Settings, Search, Calendar, User, Clock, Tag, ExternalLink, Loader2, Plus, X, Edit2, Power, PowerOff, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -542,7 +542,7 @@ export default function AdminBlog() {
           </div>
           <button
             onClick={() => navigate('/blog')}
-            className="flex items-center gap-2 text-sm text-slate-500 hover:text-accent transition-colors"
+            className="flex items-center gap-2 text-sm text-slate-500 hover:text-accent transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
             Вернуться к блогу
@@ -553,7 +553,7 @@ export default function AdminBlog() {
         <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setActiveSection('posts')}
-            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
               activeSection === 'posts'
                 ? 'bg-accent text-white'
                 : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -563,7 +563,7 @@ export default function AdminBlog() {
           </button>
           <button
             onClick={() => setActiveSection('categories')}
-            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all ${
               activeSection === 'categories'
                 ? 'bg-accent text-white'
                 : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -584,7 +584,7 @@ export default function AdminBlog() {
                   setCategoryForm({ name: '', slug: '', description: '', color: '#6366f1' });
                   setShowCategoryModal(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-xl text-sm font-bold transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-xl text-sm font-bold transition-all"
               >
                 <Plus className="w-4 h-4" />
                 Добавить категорию
@@ -602,7 +602,7 @@ export default function AdminBlog() {
                     key={category.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`bg-white dark:bg-slate-900 rounded-2xl p-6 border transition-colors ${
+                    className={`bg-white dark:bg-slate-900 rounded-2xl p-6 border transition-all ${
                       category.is_enabled === false 
                         ? 'border-red-200 dark:border-red-800 opacity-75' 
                         : 'border-slate-200 dark:border-slate-700 hover:border-accent/30'
@@ -636,7 +636,7 @@ export default function AdminBlog() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleToggleCategory(category.id, category.is_enabled !== false)}
-                          className={`p-2 transition-colors ${
+                          className={`p-2 transition-all ${
                             category.is_enabled === false 
                               ? 'text-emerald-400 hover:text-emerald-600' 
                               : 'text-amber-400 hover:text-amber-600'
@@ -651,7 +651,7 @@ export default function AdminBlog() {
                         </button>
                         <button
                           onClick={() => handleEditCategory(category)}
-                          className="p-2 text-slate-400 hover:text-accent transition-colors"
+                          className="p-2 text-slate-400 hover:text-accent transition-all"
                           title="Редактировать"
                         >
                           <Edit2 className="w-5 h-5" />
@@ -659,7 +659,7 @@ export default function AdminBlog() {
                         <button
                           onClick={() => handleDeleteCategory(category.id)}
                           disabled={isDeleting}
-                          className="p-2 text-red-400 hover:text-red-600 transition-colors"
+                          className="p-2 text-red-400 hover:text-red-600 transition-all"
                           title="Удалить"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -692,7 +692,7 @@ export default function AdminBlog() {
         {/* Кнопка создания */}
         <button
           onClick={() => navigate('/admin/blog/new')}
-          className="w-full py-4 bg-accent hover:bg-accent-light text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-4 bg-accent hover:bg-accent-light text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
         >
           <Save className="w-5 h-5" />
           Создать новую статью
@@ -710,7 +710,7 @@ export default function AdminBlog() {
                 key={post.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:border-accent/30 transition-colors"
+                className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:border-accent/30 transition-all"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -752,7 +752,7 @@ export default function AdminBlog() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleTogglePost(post.id!, post.published)}
-                      className={`p-2 transition-colors ${
+                      className={`p-2 transition-all ${
                         post.published 
                           ? 'text-amber-400 hover:text-amber-600' 
                           : 'text-emerald-400 hover:text-emerald-600'
@@ -767,14 +767,14 @@ export default function AdminBlog() {
                     </button>
                     <button
                       onClick={() => navigate(post.slug ? `/blog/${post.slug}` : `/blog?post=${post.id}`)}
-                      className="p-2 text-slate-400 hover:text-accent transition-colors"
+                      className="p-2 text-slate-400 hover:text-accent transition-all"
                       title="Просмотр"
                     >
                       <Eye className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => navigate(`/admin/blog/${post.id}`)}
-                      className="p-2 text-slate-400 hover:text-accent transition-colors"
+                      className="p-2 text-slate-400 hover:text-accent transition-all"
                       title="Редактировать"
                     >
                       <Settings className="w-5 h-5" />
@@ -804,7 +804,7 @@ export default function AdminBlog() {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/admin/blog')}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-accent transition-colors"
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-accent transition-all"
         >
           <ArrowLeft className="w-4 h-4" />
           К списку статей
@@ -812,7 +812,7 @@ export default function AdminBlog() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
           >
             <Eye className="w-4 h-4" />
             Preview
@@ -821,7 +821,7 @@ export default function AdminBlog() {
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
             >
               <Trash2 className="w-4 h-4" />
               {isDeleting ? 'Удаление...' : 'Удалить'}
@@ -829,7 +829,7 @@ export default function AdminBlog() {
           )}
           <button
             onClick={handlePublish}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
               post.published
                 ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/30'
                 : 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/30'
@@ -844,7 +844,7 @@ export default function AdminBlog() {
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-4">
         <button
           onClick={() => setActiveTab('content')}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
             activeTab === 'content'
               ? 'bg-accent text-white'
               : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -854,7 +854,7 @@ export default function AdminBlog() {
         </button>
         <button
           onClick={() => setActiveTab('seo')}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
             activeTab === 'seo'
               ? 'bg-accent text-white'
               : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -899,7 +899,7 @@ export default function AdminBlog() {
                 <button
                   type="button"
                   onClick={handleRegenerateSlug}
-                  className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-accent hover:text-white transition-colors"
+                  className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-accent hover:text-white transition-all"
                   title="Обновить slug из заголовка"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -953,7 +953,7 @@ export default function AdminBlog() {
                   <img src={post.image_url} alt={post.title} className="w-full h-40 object-cover" />
                   <button
                     onClick={() => setPost(prev => ({ ...prev, image_url: '' }))}
-                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-colors"
+                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-lg hover:bg-black/70 transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -987,7 +987,7 @@ export default function AdminBlog() {
                       setCategoryForm({ name: '', slug: '', description: '', color: '#6366f1' });
                       setShowCategoryModal(true);
                     }}
-                    className="p-1.5 text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                    className="p-1.5 text-accent hover:bg-accent/10 rounded-lg transition-all"
                     title="Создать категорию"
                   >
                     <Plus className="w-4 h-4" />
@@ -1000,7 +1000,7 @@ export default function AdminBlog() {
                           handleEditCategory(cat);
                         }
                       }}
-                      className="p-1.5 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-all"
                       title="Редактировать категорию"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -1186,14 +1186,14 @@ export default function AdminBlog() {
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 px-5 py-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3">
         <button
           onClick={() => navigate('/admin/blog')}
-          className="px-3 py-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+          className="px-3 py-1.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-all"
         >
           Отмена
         </button>
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-1.5 px-4 py-1.5 sm:px-5 sm:py-2 bg-accent hover:bg-accent-light text-white text-xs sm:text-sm rounded-lg sm:rounded-xl font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-4 py-1.5 sm:px-5 sm:py-2 bg-accent hover:bg-accent-light text-white text-xs sm:text-sm rounded-lg sm:rounded-xl font-semibold transition-all disabled:opacity-50"
         >
           {isSaving ? (
             <>
@@ -1301,14 +1301,14 @@ export default function AdminBlog() {
                     setEditingCategory(null);
                     setCategoryForm({ name: '', slug: '', description: '', color: '#6366f1' });
                   }}
-                  className="flex-1 px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="flex-1 px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:text-slate-900 dark:hover:text-white transition-all"
                 >
                   Отмена
                 </button>
                 <button
                   onClick={handleCreateCategory}
                   disabled={isSaving}
-                  className="flex-1 flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-xl font-bold transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-xl font-bold transition-all disabled:opacity-50"
                 >
                   {isSaving ? (
                     <>

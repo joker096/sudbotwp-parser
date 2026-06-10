@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { UserCheck, Search, AlertCircle, CheckCircle, XCircle, Info, Scale, Gavel, Shield, Loader2 } from 'lucide-react';
 import { checkTaxpayerStatus, isValidInn, TaxpayerStatusResponse } from '../lib/npd';
 import { checkFssp, checkEfrsb, FsspResponse, EfrsbResponse } from '../lib/counterparty';
@@ -117,7 +117,7 @@ export default function TaxpayerCheck() {
   ];
 
   return (
-    <div className="space-y-6 md:space-y-8 transition-colors duration-300 max-w-3xl mx-auto">
+    <div className="space-y-6 md:space-y-8 transition-all duration-300 max-w-3xl mx-auto">
       {/* Header */}
       <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-4 mb-4">
@@ -149,7 +149,7 @@ export default function TaxpayerCheck() {
                 value={inn}
                 onChange={(e) => setInn(e.target.value.replace(/\D/g, '').slice(0, 12))}
                 placeholder="000000000000"
-                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-colors"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-4 py-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/20 text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
                 maxLength={12}
               />
             </div>
@@ -158,7 +158,7 @@ export default function TaxpayerCheck() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-2xl text-sm font-bold transition-colors shadow-sm flex items-center justify-center gap-2"
+            className="w-full bg-slate-900 dark:bg-accent hover:bg-slate-800 dark:hover:bg-accent-light disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-2xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -218,7 +218,7 @@ export default function TaxpayerCheck() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-bold whitespace-nowrap transition-colors relative ${
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-bold whitespace-nowrap transition-all relative ${
                     activeTab === tab.id
                       ? 'text-accent'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'

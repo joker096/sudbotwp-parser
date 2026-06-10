@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { Upload, File, X, Loader2, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { documents } from '../lib/supabase';
@@ -173,7 +173,7 @@ export default function EncryptedFileUpload({
         />
         <label
           htmlFor="file-upload"
-          className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl cursor-pointer transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl cursor-pointer transition-all"
         >
           <Upload className="w-4 h-4" />
           <span>Загрузить документ</span>
@@ -211,14 +211,14 @@ export default function EncryptedFileUpload({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDownloadFile(file.name, index)}
-                  className="p-1.5 text-slate-400 hover:text-accent rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-accent rounded-lg transition-all"
                   title="Скачать"
                 >
                   <Download className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDeleteFile(file.name, index)}
-                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-all"
                   title="Удалить"
                 >
                   <Trash2 className="w-4 h-4" />

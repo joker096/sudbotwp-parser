@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Youtube } from 'lucide-react';
 
 interface YouTubeModalProps {
@@ -39,7 +39,7 @@ export const YouTubeModal: React.FC<YouTubeModalProps> = ({ isOpen, onClose, onI
           <button
             onClick={() => { onInsert(youTubeUrl); setYouTubeUrl(''); }}
             disabled={!youTubeUrl}
-            className="w-full py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors"
+            className="w-full py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all"
           >
             Вставить
           </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 
 interface ChatListProps {
@@ -46,7 +46,7 @@ export default function ChatList({ chats, selectedChat, onSelectChat, onMobileBa
           <button
             key={chat.id}
             onClick={() => onSelectChat(chat)}
-            className={`w-full p-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800/50 ${
+            className={`w-full p-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-b border-slate-50 dark:border-slate-800/50 ${
               selectedChat?.id === chat.id ? 'bg-slate-50 dark:bg-slate-800' : ''
             }`}
           >

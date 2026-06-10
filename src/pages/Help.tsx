@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { 
   HelpCircle, Users, CreditCard, FileText, Search, 
   TrendingUp, Shield, AlertTriangle, CheckCircle, ArrowRight,
@@ -306,7 +306,7 @@ export default function Help() {
           >
             <button
               onClick={() => toggleSection(sectionIndex)}
-              className="w-full flex items-center gap-4 p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="w-full flex items-center gap-4 p-5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
             >
               <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0">
                 <section.icon className="w-5 h-5 text-accent" />
@@ -380,7 +380,7 @@ export default function Help() {
         
         <SafeLink 
             href="https://t.me/cvrname/4243" 
-            className="flex items-center justify-center gap-2 bg-accent hover:bg-accent-light rounded-xl px-6 py-3 transition-colors"
+            className="flex items-center justify-center gap-2 bg-accent hover:bg-accent-light rounded-xl px-6 py-3 transition-all"
           >
             <MessageSquare className="w-5 h-5" />
             Telegram чат

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { X, Check, AlertCircle, Loader2, Trophy, Gift, FileText, Scale } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -122,7 +122,7 @@ export default function CaseOutcomeModal({
 
                 <button
                   onClick={handleClose}
-                  className="w-full bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-sm font-bold transition-colors"
+                  className="w-full bg-accent hover:bg-accent-light text-white py-3 rounded-xl text-sm font-bold transition-all"
                 >
                   Закрыть
                 </button>
@@ -155,7 +155,7 @@ export default function CaseOutcomeModal({
             <div className="p-6 pb-0">
               <button
                 onClick={handleClose}
-                className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -216,7 +216,7 @@ export default function CaseOutcomeModal({
                   placeholder="Опишите подробности исхода..."
                   rows={3}
                   maxLength={500}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent transition-colors resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-accent transition-all resize-none"
                 />
               </div>
 
@@ -243,14 +243,14 @@ export default function CaseOutcomeModal({
             <div className="p-6 pt-0 flex gap-3">
               <button
                 onClick={handleClose}
-                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold transition-colors"
+                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-sm font-bold transition-all"
               >
                 Отмена
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting || !selectedOutcome}
-                className="flex-1 px-4 py-3 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>

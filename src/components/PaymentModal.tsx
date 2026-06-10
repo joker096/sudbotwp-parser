@@ -1,4 +1,4 @@
-import { useState, memo, useEffect } from 'react';
+﻿import { useState, memo, useEffect } from 'react';
 import { X, CreditCard, Smartphone, CheckCircle2, Loader2, FileText, Download, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParsedCase } from '../types';
@@ -473,7 +473,7 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
           >
             <button 
               onClick={handleClose}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
             >
               <X className="w-5 h-5 text-slate-500" />
             </button>
@@ -517,12 +517,12 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
                         placeholder="your@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-colors"
+                        className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-accent/20 transition-all"
                       />
                       <button
                         onClick={handleSendEmail}
                         disabled={isSendingEmail || !email}
-                        className="bg-slate-900 dark:bg-slate-700 text-white px-4 rounded-xl font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 flex items-center justify-center w-32"
+                        className="bg-slate-900 dark:bg-slate-700 text-white px-4 rounded-xl font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-600 transition-all disabled:opacity-50 flex items-center justify-center w-32"
                       >
                         {isSendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Отправить'}
                       </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FolderOpen, Upload, FileText, File, Image, Download, Trash2, Search, Lock, Eye, FileCheck, Scale, Loader2, X, FileDigit, Building2, ExternalLink, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -599,7 +599,7 @@ export default function DocumentsLibrary() {
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
         <button
           onClick={() => setActiveTab('my')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
             activeTab === 'my' && isAuthenticated
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer'
@@ -611,7 +611,7 @@ export default function DocumentsLibrary() {
         </button>
         <button
           onClick={() => setActiveTab('templates')}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
             activeTab === 'templates'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -622,7 +622,7 @@ export default function DocumentsLibrary() {
         </button>
         <button
           onClick={handleShowOfficial}
-          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${
+          className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
             activeTab === 'official'
               ? 'bg-slate-900 dark:bg-accent text-white'
               : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -664,7 +664,7 @@ export default function DocumentsLibrary() {
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
               dragActive
                 ? 'border-accent bg-accent/5'
                 : 'border-slate-200 dark:border-slate-700'
@@ -694,7 +694,7 @@ export default function DocumentsLibrary() {
                 />
                 <label
                   htmlFor="file-upload"
-                  className="inline-block mt-4 bg-accent hover:bg-accent-light text-white px-6 py-2 rounded-xl text-sm font-bold cursor-pointer transition-colors"
+                  className="inline-block mt-4 bg-accent hover:bg-accent-light text-white px-6 py-2 rounded-xl text-sm font-bold cursor-pointer transition-all"
                 >
                   Выбрать файлы
                 </label>
@@ -714,7 +714,7 @@ export default function DocumentsLibrary() {
                   key={doc.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors group"
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-all group"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
@@ -734,7 +734,7 @@ export default function DocumentsLibrary() {
                       <a
                         href={doc.url}
                         download={doc.name}
-                        className="flex-1 bg-accent/10 hover:bg-accent/20 text-accent py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                        className="flex-1 bg-accent/10 hover:bg-accent/20 text-accent py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all"
                       >
                         <Download className="w-3.5 h-3.5" />
                         Скачать
@@ -742,7 +742,7 @@ export default function DocumentsLibrary() {
                     )}
                     <button
                       onClick={() => handleDelete(doc)}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -770,7 +770,7 @@ export default function DocumentsLibrary() {
             Для загрузки и управления личными документами нужна авторизация. 
             Шаблоны документов доступны всем посетителям.
           </p>
-          <Link to="/login" className="inline-block bg-accent hover:bg-accent-light text-white px-8 py-3 rounded-xl text-sm font-bold transition-colors">
+          <Link to="/login" className="inline-block bg-accent hover:bg-accent-light text-white px-8 py-3 rounded-xl text-sm font-bold transition-all">
             Войти
           </Link>
         </div>
@@ -803,7 +803,7 @@ export default function DocumentsLibrary() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                     selectedCategory === category
                       ? 'bg-accent text-white'
                       : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -840,7 +840,7 @@ export default function DocumentsLibrary() {
                       <a
                         href={template.file_url}
                         download={template.file_name || template.name}
-                        className="flex-1 bg-accent/10 hover:bg-accent/20 text-accent py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                        className="flex-1 bg-accent/10 hover:bg-accent/20 text-accent py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all"
                       >
                         <Download className="w-3.5 h-3.5" />
                         Скачать
@@ -851,7 +851,7 @@ export default function DocumentsLibrary() {
                         недоступно
                       </button>
                     )}
-                    <button className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-colors">
+                    <button className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-xl transition-all">
                       <Eye className="w-4 h-4" />
                     </button>
                   </div>
@@ -907,7 +907,7 @@ export default function DocumentsLibrary() {
               <button
                 key={category}
                 onClick={() => { setPravoCategory(category); setPravoSubcategory('Все'); setPravoPage(1); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                   pravoCategory === category
                     ? 'bg-accent text-white'
                     : 'bg-white dark:bg-slate-900 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -926,7 +926,7 @@ export default function DocumentsLibrary() {
                 <button
                   key={sub}
                   onClick={() => { setPravoSubcategory(sub); setPravoPage(1); }}
-                  className={`px-2 py-1 rounded-md text-xs transition-colors ${
+                  className={`px-2 py-1 rounded-md text-xs transition-all ${
                     pravoSubcategory === sub
                       ? 'bg-blue-500 text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -957,7 +957,7 @@ export default function DocumentsLibrary() {
                 <div
                   key={doc.id}
                   onClick={() => setSelectedDoc(doc)}
-                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors cursor-pointer"
+                  className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-all cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -986,7 +986,7 @@ export default function DocumentsLibrary() {
               <button
                 onClick={() => setPravoPage(p => Math.max(1, p - 1))}
                 disabled={pravoPage === 1}
-                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
                 Назад
               </button>
@@ -996,7 +996,7 @@ export default function DocumentsLibrary() {
               <button
                 onClick={() => setPravoPage(p => Math.min(Math.ceil(filteredPravoDocs.length / pravoPageSize), p + 1))}
                 disabled={pravoPage >= Math.ceil(filteredPravoDocs.length / pravoPageSize)}
-                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
                 Вперёд
               </button>
@@ -1034,7 +1034,7 @@ export default function DocumentsLibrary() {
                 </div>
                 <button
                   onClick={() => setSelectedDoc(null)}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1078,7 +1078,7 @@ export default function DocumentsLibrary() {
                   <p className="text-xs text-slate-500 mb-3">Нужна помощь юриста? Получите консультацию прямо сейчас.</p>
                   <Link
                     to="/ai-lawyer"
-                    className="inline-block px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-light transition-colors"
+                    className="inline-block px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-light transition-all"
                   >
                     Получить консультацию
                   </Link>
@@ -1094,7 +1094,7 @@ export default function DocumentsLibrary() {
                   href={selectedDoc.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full px-4 py-3 bg-blue-500 text-white text-center rounded-xl hover:bg-blue-600 transition-colors font-medium"
+                  className="block w-full px-4 py-3 bg-blue-500 text-white text-center rounded-xl hover:bg-blue-600 transition-all font-medium"
                 >
                   <ExternalLink className="w-4 h-4 inline mr-2" />
                   Открыть документ на pravo.gov.ru

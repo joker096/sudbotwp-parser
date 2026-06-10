@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -89,7 +89,7 @@ export default function PushSubscribeButton() {
     <button
       onClick={isSubscribed ? unsubscribe : subscribe}
       disabled={isLoading}
-      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
         isSubscribed
           ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'
           : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'

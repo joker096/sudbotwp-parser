@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Link as LinkIcon } from 'lucide-react';
 
 interface LinkModalProps {
@@ -50,7 +50,7 @@ export const LinkModal: React.FC<LinkModalProps> = ({ isOpen, onClose, onInsert 
           <button
             onClick={() => { onInsert(linkUrl, linkText); setLinkUrl('https://'); setLinkText(''); }}
             disabled={!linkUrl || linkUrl === 'https://'}
-            className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-colors"
+            className="w-full py-2 bg-accent hover:bg-accent-light disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white disabled:text-slate-500 text-sm font-medium rounded-lg transition-all"
           >
             Вставить
           </button>
