@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   MapPin, Clock, Briefcase, Filter, Search,
   Eye, Lock, CheckCircle, X, ChevronDown, Phone, Mail,
-  AlertTriangle, TrendingUp, CreditCard, RefreshCw
+  AlertTriangle, TrendingUp, CreditCard, RefreshCw, Ban
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { leads, leadPurchases, Lead, LeadPurchase } from '../lib/supabase';
@@ -26,8 +26,7 @@ function RubleIcon({ className }: { className?: string }) {
       className={className}
       aria-hidden="true"
     >
-      <line x1="12" x2="12" y1="2" y2="22"></line>
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      <text x="12" y="16" fontSize="14" fontWeight="bold" textAnchor="middle" fill="currentColor" stroke="none">₽</text>
     </svg>
   );
 }
@@ -64,22 +63,6 @@ export default function Leads() {
   }, [setSeo]);
 
   const [searchParams] = useSearchParams();
-  const [purchasedLeads, setPurchasedLeads] = useState<Map<string, LeadPurchase>>(new Map());
-
-  // Кеширование списка лидов с помощью React Query
-  const { data: leadsList = [], isLoading: loading } = useQuery({
-    queryKey: ['leads'],
-    queryFn: async () => {
-      const { data, error } = await leads.getAvailable();
-      if (error) {
-        console.error('Error loading leads:', error);
-        return getDemoLeads();
-      }
-      return data && data.length > 0 ? data : getDemoLeads();
-    },
-    staleTime: 1000 * 60 * 5, // 5 минут
-    gcTime: 1000 * 60 * 10, // 10 минут
-  });
   const [activeTab, setActiveTab] = useState<'available' | 'purchased' | 'my'>('available');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -87,7 +70,29 @@ export default function Leads() {
   const [filterUrgency, setFilterUrgency] = useState('');
   const [filterMinPrice, setFilterMinPrice] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
-  
+
+  // Кеширование списка лидов с помощью React Query
+  const { data: leadsList = [], isLoading: loading } = useQuery({
+    queryKey: ['leads'],
+    enabled: activeTab === 'available' || activeTab === 'my',
+    queryFn: async () => {
+      try {
+        const { data, error } = await leads.getAvailable();
+        if (error) {
+          console.error('Error loading leads:', error);
+          return getDemoLeads();
+        }
+        return (data && data.length > 0 ? data : getDemoLeads()) as Lead[];
+      } catch (e) {
+        console.error('Failed to load leads:', e);
+        return getDemoLeads();
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 минут
+    gcTime: 1000 * 60 * 10, // 10 минут
+  });
+  const [purchasedLeads, setPurchasedLeads] = useState<Map<string, LeadPurchase>>(new Map());
+
   // Модальное окно покупки
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);

@@ -44,7 +44,7 @@ export function useSeo(pagePath?: string): UseSeoReturn {
     const loadSeoFromServer = async () => {
       // Проверяем кэш
       if (seoCache.has(pagePath)) {
-        applySeo(seoCache.get(pagePath)!);
+        applySeo(pagePath, seoCache.get(pagePath)!);
         return;
       }
 
@@ -63,23 +63,23 @@ export function useSeo(pagePath?: string): UseSeoReturn {
         }
 
         if (data) {
-          // Преобразуем meta_* поля в формат, ожидаемый фронтендом
-          const seoData: SeoData = {
-            title: data.meta_title,
-            description: data.meta_description,
-            keywords: data.meta_keywords,
-            author: data.meta_author,
-            ogTitle: data.og_title,
-            ogDescription: data.og_description,
-            ogImage: data.og_image,
-            ogType: data.og_type,
-            ogUrl: data.og_url,
-            canonicalUrl: data.canonical_url,
-            noindex: data.noindex,
-            nofollow: data.nofollow,
-          };
-          seoCache.set(pagePath, seoData);
-          applySeo(seoData);
+      // Преобразуем meta_* поля в формат, ожидаемый фронтендом
+      const seoData: SeoData = {
+        title: data.meta_title,
+        description: data.meta_description,
+        keywords: data.meta_keywords,
+        author: data.meta_author,
+        ogTitle: data.og_title,
+        ogDescription: data.og_description,
+        ogImage: data.og_image,
+        ogType: data.og_type,
+        ogUrl: data.og_url,
+        canonicalUrl: data.canonical_url,
+        noindex: data.noindex,
+        nofollow: data.nofollow,
+      };
+      seoCache.set(pagePath, seoData);
+      applySeo(pagePath, seoData);
         }
       } catch (error) {
         console.error(`Error loading SEO for ${pagePath}:`, error);
@@ -90,18 +90,18 @@ export function useSeo(pagePath?: string): UseSeoReturn {
   }, [pagePath]);
 
   const setSeo = useCallback((data: SeoData) => {
-    applySeo({ ...DEFAULT_SEO, ...data });
-  }, []);
+    applySeo(pagePath, { ...DEFAULT_SEO, ...data });
+  }, [pagePath]);
 
   const resetSeo = useCallback(() => {
-    applySeo(DEFAULT_SEO);
-  }, []);
+    applySeo(pagePath, DEFAULT_SEO);
+  }, [pagePath]);
 
   return { setSeo, resetSeo };
 }
 
 // Применение SEO данных к документу
-function applySeo(data: SeoData) {
+function applySeo(pagePath: string | undefined, data: SeoData) {
   // Title
   if (data.title) {
     document.title = data.title;
@@ -128,6 +128,14 @@ function applySeo(data: SeoData) {
   // Canonical URL
   if (data.canonicalUrl) {
     setLinkTag('canonical', data.canonicalUrl);
+  } else if (data.ogUrl) {
+    const base = 'https://sud.cvr.name';
+    const href = data.ogUrl.startsWith('http') ? data.ogUrl : base + data.ogUrl;
+    setLinkTag('canonical', href);
+  } else if (pagePath) {
+    const base = 'https://sud.cvr.name';
+    const href = pagePath.startsWith('http') ? pagePath : base + pagePath;
+    setLinkTag('canonical', href);
   }
 
   // Robots

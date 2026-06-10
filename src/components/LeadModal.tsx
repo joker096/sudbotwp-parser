@@ -5,6 +5,7 @@ import type { Lawyer } from '../types';
 import { leads } from '../lib/supabase';
 import { useToast } from '../hooks/useToast';
 import CityAutocomplete from './CityAutocomplete';
+import MathCaptcha from './MathCaptcha';
 
 interface LeadModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const { showToast } = useToast();
 
   const caseTypes = [
@@ -41,6 +43,12 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!captchaVerified) {
+      showToast('Пожалуйста, подтвердите, что вы не робот', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -245,10 +253,16 @@ function LeadModal({ isOpen, onClose, lawyer, lawyerId }: LeadModalProps) {
                     </div>
                   </div>
 
+                  <MathCaptcha onVerify={(valid) => setCaptchaVerified(valid)} />
+
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-accent hover:bg-accent-light disabled:bg-slate-300 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2"
+                    disabled={isSubmitting || !captchaVerified}
+                    className={`w-full ${
+                      !captchaVerified
+                        ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed'
+                        : 'bg-accent hover:bg-accent-light'
+                    } text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2`}
                   >
                     {isSubmitting ? (
                       <>

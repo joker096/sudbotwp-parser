@@ -57,13 +57,24 @@ export default function MonitoredCompaniesSection() {
   };
 
   const loadEvents = async () => {
-    if (!user) return;
+    if (!user?.id) return;
 
-    const { data, error } = await supabase
-      .rpc('get_user_events', { p_user_id: user.id });
+    try {
+      const { data, error } = await supabase
+        .rpc('get_user_events', { p_user_id: user.id });
 
-    if (!error && data) {
-      setEvents(data);
+      if (error) {
+        console.warn('get_user_events error:', error);
+        setEvents([]);
+        return;
+      }
+
+      if (data) {
+        setEvents(data);
+      }
+    } catch (err) {
+      console.warn('get_user_events exception:', err);
+      setEvents([]);
     }
   };
 

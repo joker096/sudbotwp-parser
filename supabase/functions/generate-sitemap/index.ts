@@ -4,15 +4,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 const SITE_URL = Deno.env.get('SITE_URL') || 'https://sud.cvr.name';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
 
 // Static pages
 const pages = [
@@ -25,6 +20,10 @@ const pages = [
   { url: '/login', priority: '0.6', changefreq: 'monthly' },
   { url: '/taxpayer', priority: '0.8', changefreq: 'daily' },
   { url: '/privacy', priority: '0.5', changefreq: 'monthly' },
+  { url: '/legal-acts', priority: '0.7', changefreq: 'weekly' },
+  { url: '/arbitration', priority: '0.7', changefreq: 'weekly' },
+  { url: '/civil-cases', priority: '0.7', changefreq: 'weekly' },
+  { url: '/documents', priority: '0.6', changefreq: 'monthly' },
 ];
 
 serve(async (req) => {

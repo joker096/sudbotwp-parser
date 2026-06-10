@@ -179,6 +179,11 @@ export default function Home() {
       console.error('Case not found:', caseId);
       return;
     }
+
+    if (caseToRefresh.status === 'archived') {
+      showToast('Архивные дела не обновляются автоматически');
+      return;
+    }
     
     try {
       showToast('Обновление данных дела...');

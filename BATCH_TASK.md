@@ -12,59 +12,59 @@
 
 ## Осталось заполнить
 
-- [ ] Как подать иск в суд онлайн через ГАС Правосудие
+- [x] Как подать иск в суд онлайн через ГАС Правосудие
   - slug: kak-podat-isk-v-sud-onlayn-cherez-gas-pravosudie
   - category: Инструкции
 
-- [ ] Банкротство физических лиц: пошаговое руководство 2026
+- [x] Банкротство физических лиц: пошаговое руководство 2026
   - slug: bankrotstvo-fizicheskikh-lits-poshagovoe-rukovodstvo-2026
   - category: Инструкции
 
-- [ ] Новые государственные пошлины: что изменилось в этом году
+- [x] Новые государственные пошлины: что изменилось в этом году
   - slug: novye-gosudarstvennye-poshliny-chto-izmenilos-v-etom-godu
   - category: Новости
 
-- [ ] Раздел имущества при разводе: судебная практика
+- [x] Раздел имущества при разводе: судебная практика
   - slug: razdel-imushchestva-pri-razvode-sudebnaya-praktika
   - category: Советы
 
-- [ ] Как выбрать хорошего адвоката: чек-лист
+- [x] Как выбрать хорошего адвоката: чек-лист
   - slug: kak-vybrat-khoroshego-advokata-chek-list
   - category: Советы
 
-- [ ] Защита прав потребителей в суде
+- [x] Защита прав потребителей в суде
   - slug: zashchita-prav-potrebiteley-v-sude
   - category: Инструкции
 
-- [ ] Гражданские дела: сроки иначе прерываются
+- [x] Гражданские дела: сроки иначе прерываются
   - slug: grazhdanskie-dela-sroki-inache-preryvayutsya
   - category: Инструкции
 
-- [ ] Судебные расходы: кому и до какой суммы компенсируют
+- [x] Судебные расходы: кому и до какой суммы компенсируют
   - slug: sudebnye-raskhody-komu-i-do-kakoy-summy-kompensiruyut
   - category: Инструкции
 
-- [ ] Арбитражные суды: как подать жалобу на компанию
+- [x] Арбитражные суды: как подать жалобу на компанию
   - slug: arbitrazhnye-sudy-kak-podat-zhalobu-na-kompaniyu
   - category: Инструкции
 
-- [ ] Составление искового заявления: образец и реквизиты
+- [x] Составление искового заявления: образец и реквизиты
   - slug: sostavlenie-iskovogo-zayavleniya-obrazets-i-rekvizity
   - category: Инструкции
 
-- [ ] Судебный анализ дел: как правильно читать сведения
+- [x] Судебный анализ дел: как правильно читать сведения
   - slug: sudebnyy-analiz-del-kak-pravilno-chitat-svedeniya
   - category: Инструкции
 
-- [ ] Электронные суды: мой суд vs гас правосудие
+- [x] Электронные суды: мой суд vs гас правосудие
   - slug: elektronnye-sudy-moy-sud-vs-gas-pravosudie
   - category: Инструкции
 
-- [ ] Порядок обжалования судебных решений
+- [x] Порядок обжалования судебных решений
   - slug: poryadok-obzhalovaniya-sudebnykh-resheniy
   - category: Инструкции
 
-- [ ] Признание сделки недействительной: основания и последствия
+- [x] Признание сделки недействительной: основания и последствия
   - slug: priznanie-sdelki-nedeystvitelnoy-osnovaniya-i-posledstviya
   - category: Инструкции
 

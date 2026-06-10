@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogIn, ShieldCheck, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/supabase';
@@ -82,13 +83,13 @@ export default function Login() {
           <div className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
             <p>
               Нажав «Войти с Google», вы соглашаетесь с{' '}
-              <a href="/help" className="underline hover:text-slate-600 dark:hover:text-slate-300">
+              <Link to="/help" className="underline hover:text-slate-600 dark:hover:text-slate-300">
                 Условиями использования
-              </a>{' '}
+              </Link>{' '}
               и{' '}
-              <a href="/privacy" className="underline hover:text-slate-600 dark:hover:text-slate-300">
+              <Link to="/privacy" className="underline hover:text-slate-600 dark:hover:text-slate-300">
                 Политикой конфиденциальности
-              </a>
+              </Link>
             </p>
           </div>
         </div>

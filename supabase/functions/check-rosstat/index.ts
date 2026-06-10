@@ -44,19 +44,37 @@ serve(async (req) => {
     }
 
     // Шаг 1: Поиск организации по ИНН
-    const searchRes = await fetch(`https://bo.nalog.ru/nbo/organizations/?inn=${inn}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
+    let searchRes: Response;
+    try {
+      searchRes = await fetch(`https://bo.nalog.ru/nbo/organizations/?inn=${inn}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      });
+    } catch (networkError) {
+      console.error('bo.nalog.ru search network error:', networkError);
+      return new Response(
+        JSON.stringify({ error: 'Сервис ФНС недоступен из текущей сети. Используйте сервер в РФ.', success: false }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!searchRes.ok) {
+      const errorText = await searchRes.text().catch(() => '');
+      console.error('bo.nalog.ru search failed:', searchRes.status, errorText.slice(0, 200));
       throw new Error(`bo.nalog.ru search failed: ${searchRes.status}`);
     }
 
-    const searchData = await searchRes.json();
+    const searchText = await searchRes.text();
+    let searchData: any;
+    try {
+      searchData = JSON.parse(searchText);
+    } catch (e) {
+      console.error('bo.nalog.ru search non-JSON:', searchText.slice(0, 200));
+      throw new Error('bo.nalog.ru вернул неожиданный формат ответа');
+    }
 
     if (!searchData.data || searchData.data.length === 0) {
       return new Response(
@@ -69,22 +87,41 @@ serve(async (req) => {
     const orgId = org.id;
 
     // Шаг 2: Получение бухгалтерских данных (БФО)
-    const reportsRes = await fetch(`https://bo.nalog.ru/nbo/organizations/${orgId}/bfo/`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
+    let reportsRes: Response;
+    try {
+      reportsRes = await fetch(`https://bo.nalog.ru/nbo/organizations/${orgId}/bfo/`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      });
+    } catch (networkError) {
+      console.error('bo.nalog.ru reports network error:', networkError);
+      return new Response(
+        JSON.stringify({ error: 'Сервис ФНС недоступен из текущей сети. Используйте сервер в РФ.', success: false }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!reportsRes.ok) {
+      const errorText = await reportsRes.text().catch(() => '');
+      console.error('bo.nalog.ru reports failed:', reportsRes.status, errorText.slice(0, 200));
       throw new Error(`bo.nalog.ru reports failed: ${reportsRes.status}`);
     }
 
-    const reportsData = await reportsRes.json();
+    const reportsText = await reportsRes.text();
+    let reportsData: any;
+    try {
+      reportsData = JSON.parse(reportsText);
+    } catch (e) {
+      console.error('bo.nalog.ru reports non-JSON:', reportsText.slice(0, 200));
+      throw new Error('bo.nalog.ru вернул неожиданный формат ответа');
+    }
 
     // Парсим отчёты — извлекаем ключевые показатели
-    const reports: Report[] = (reportsData.data || []).map((report: any) => ({
+    const rawReports = Array.isArray(reportsData.data) ? reportsData.data : [];
+    const reports: Report[] = rawReports.map((report: any) => ({
       year: report.year,
       period: report.period || 'годовой',
       assets: getIndicator(report, '1600'),      // Активы (итого)

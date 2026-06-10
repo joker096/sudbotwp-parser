@@ -143,9 +143,7 @@ function PaymentModal({ isOpen, onClose, caseData, onSuccess, userEmail, brandin
       <head>
         <title>Отчёт по делу ${caseData?.number || ''}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          
-          body { 
+          body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 40px;

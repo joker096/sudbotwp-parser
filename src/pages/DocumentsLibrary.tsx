@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { FolderOpen, Upload, FileText, File, Image, Download, Trash2, Search, Lock, Eye, FileCheck, Scale, Loader2, X, FileDigit, Building2, ExternalLink, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
@@ -769,9 +770,9 @@ export default function DocumentsLibrary() {
             Для загрузки и управления личными документами нужна авторизация. 
             Шаблоны документов доступны всем посетителям.
           </p>
-          <a href="/login" className="inline-block bg-accent hover:bg-accent-light text-white px-8 py-3 rounded-xl text-sm font-bold transition-colors">
+          <Link to="/login" className="inline-block bg-accent hover:bg-accent-light text-white px-8 py-3 rounded-xl text-sm font-bold transition-colors">
             Войти
-          </a>
+          </Link>
         </div>
       ) : null}
 
@@ -1075,12 +1076,12 @@ export default function DocumentsLibrary() {
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-700">
                   <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Юридическая консультация</p>
                   <p className="text-xs text-slate-500 mb-3">Нужна помощь юриста? Получите консультацию прямо сейчас.</p>
-                  <a
-                    href="/ai-lawyer"
+                  <Link
+                    to="/ai-lawyer"
                     className="inline-block px-4 py-2 bg-accent text-white text-sm rounded-lg hover:bg-accent-light transition-colors"
                   >
                     Получить консультацию
-                  </a>
+                  </Link>
                 </div>
               </div>
 

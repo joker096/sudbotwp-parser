@@ -764,6 +764,17 @@ export const refreshCase = async (
   const parsedData = result.data;
   console.log('Refreshed case data:', parsedData);
 
+  // Получаем текущий статус дела, чтобы сохранить архивный/удаленный статус
+  const { data: currentCaseRow } = await withRetry<any>(() =>
+    supabase
+      .from('cases')
+      .select('status')
+      .eq('id', caseId)
+      .single()
+  );
+
+  const currentStatus = currentCaseRow?.status;
+
   // Подготавливаем данные для обновления
   const updates: any = {
     number: parsedData.number || '',
@@ -778,6 +789,11 @@ export const refreshCase = async (
     events: parsedData.events || [],
     appeals: parsedData.appeals || [],
   };
+
+  // Сохраняем архивный/удаленный статус
+  if (currentStatus === 'archived' || currentStatus === 'deleted') {
+    updates.status = currentStatus;
+  }
 
   // Если это ручное обновление - записываем время
   if (!isAutoRefresh) {
@@ -1089,6 +1105,28 @@ export const leads = {
     );
   },
 
+  // Удалить лид
+  remove: async (id: string) => {
+    return withRetry<{ error: any }>(() =>
+      supabase
+        .from('leads')
+        .delete()
+        .eq('id', id)
+    );
+  },
+
+  // Отправить лид в спам
+  markSpam: async (id: string) => {
+    return withRetry<Lead>(() =>
+      supabase
+        .from('leads')
+        .update({ status: 'spam', updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+    );
+  },
+
   // Получить лиды пользователя
   getUserLeads: async (userId: string) => {
     return withRetry<Lead[]>(() =>
@@ -1097,6 +1135,18 @@ export const leads = {
         .select('*')
         .eq('created_by', userId)
         .order('created_at', { ascending: false })
+    );
+  },
+
+  // Удалить лид (мягкое удаление)
+  delete: async (id: string) => {
+    return withRetry<Lead>(() =>
+      supabase
+        .from('leads')
+        .update({ status: 'deleted', updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
     );
   },
 };

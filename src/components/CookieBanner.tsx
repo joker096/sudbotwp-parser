@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, X } from 'lucide-react';
 
@@ -42,7 +43,7 @@ function CookieBanner() {
                 </button>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                Мы используем файлы cookie для улучшения работы сервиса и аналитики. Продолжая использовать сайт, вы соглашаетесь с нашей <a href="/privacy" rel="nofollow" className="text-accent hover:underline">Политикой обработки данных</a>.
+                Мы используем файлы cookie для улучшения работы сервиса и аналитики. Продолжая использовать сайт, вы соглашаетесь с нашей <Link to="/privacy" rel="nofollow" className="text-accent hover:underline">Политикой обработки данных</Link>.
               </p>
               <div className="flex gap-2">
                 <button 

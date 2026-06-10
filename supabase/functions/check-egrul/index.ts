@@ -49,20 +49,30 @@ serve(async (req) => {
     }
 
     // Шаг 1: Получаем токен
-    const tokenResponse = await fetch('https://egrul.nalog.ru/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-      body: JSON.stringify({}), // Пустой POST для получения токена
-    });
+    let tokenResponse: Response;
+    try {
+      tokenResponse = await fetch('https://egrul.nalog.ru/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        body: JSON.stringify({ query: inn }),
+      });
+    } catch (networkError) {
+      console.error('Token request network error:', networkError);
+      return new Response(
+        JSON.stringify({ error: 'Сервис ФНС недоступен из текущей сети. Используйте сервер в РФ.' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!tokenResponse.ok) {
-      console.error('Token request failed:', tokenResponse.status);
+      const errorText = await tokenResponse.text().catch(() => '');
+      console.error('Token request failed:', tokenResponse.status, errorText);
       return new Response(
-        JSON.stringify({ error: 'Сервис ФНС временно недоступен. Попробуйте позже.' }),
+        JSON.stringify({ error: 'Сервис ФНС временно недоступен. Попробуйте позже.', details: errorText }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -79,10 +89,12 @@ serve(async (req) => {
     // Альтернативно: получаем токен из тела ответа
     if (!token) {
       try {
-        const tokenData = await tokenResponse.json();
+        const tokenText = await tokenResponse.text();
+        const tokenData = JSON.parse(tokenText);
         token = tokenData.t || '';
       } catch (e) {
         // Не JSON — парсим текст
+        console.error('Token response is not JSON');
       }
     }
 
@@ -106,25 +118,45 @@ serve(async (req) => {
     searchUrl.searchParams.set('dtto', '');
     searchUrl.searchParams.set('q', inn);
 
-    const searchResponse = await fetch(searchUrl.toString(), {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Cookie': `token=${token}`,
-      },
-    });
+    let searchResponse: Response;
+    try {
+      searchResponse = await fetch(searchUrl.toString(), {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Cookie': `token=${token}`,
+        },
+      });
+    } catch (networkError) {
+      console.error('Search request network error:', networkError);
+      return new Response(
+        JSON.stringify({ error: 'Сервис ФНС недоступен из текущей сети. Используйте сервер в РФ.' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!searchResponse.ok) {
-      console.error('Search request failed:', searchResponse.status);
+      const errorText = await searchResponse.text().catch(() => '');
+      console.error('Search request failed:', searchResponse.status, errorText.slice(0, 200));
       return new Response(
         JSON.stringify({ error: 'Ошибка поиска в ЕГРЮЛ. Попробуйте позже.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const searchData = await searchResponse.json();
+    const searchText = await searchResponse.text();
+    let searchData: any;
+    try {
+      searchData = JSON.parse(searchText);
+    } catch (e) {
+      console.error('Search response is not JSON:', searchText.slice(0, 200));
+      return new Response(
+        JSON.stringify({ error: 'Сервис ФНС вернул неожиданный формат. Попробуйте позже.' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (!searchData.items || searchData.items.length === 0) {
+    if (!Array.isArray(searchData.items) || searchData.items.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Компания или ИП с указанным ИНН не найдены' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

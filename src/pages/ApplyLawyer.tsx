@@ -6,6 +6,7 @@ import { useSeo } from '../hooks/useSeo';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { lawyerApplications } from '../lib/supabase';
+import MathCaptcha from '../components/MathCaptcha';
 
 const SPECIALIZATIONS = [
   'Гражданские дела',
@@ -47,6 +48,7 @@ export default function ApplyLawyer() {
   const [loading, setLoading] = useState(false);
   const [existingApplication, setExistingApplication] = useState<any>(null);
   const [checkComplete, setCheckComplete] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -113,7 +115,7 @@ export default function ApplyLawyer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       showToast('Для подачи заявки необходимо войти в аккаунт', 'error');
       navigate('/login');
@@ -121,6 +123,11 @@ export default function ApplyLawyer() {
     }
 
     if (!validateForm()) return;
+
+    if (!captchaVerified) {
+      showToast('Пожалуйста, подтвердите, что вы не робот', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -394,10 +401,16 @@ export default function ApplyLawyer() {
           {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
         </div>
 
+        <MathCaptcha onVerify={(valid) => setCaptchaVerified(valid)} />
+
         <button
           type="submit"
-          disabled={loading || !user}
-          className="w-full bg-accent text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          disabled={loading || !user || !captchaVerified}
+          className={`w-full ${
+            !captchaVerified
+              ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed'
+              : 'bg-accent hover:bg-accent/90'
+          } text-white py-4 px-6 rounded-xl font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           {loading ? (
             <>

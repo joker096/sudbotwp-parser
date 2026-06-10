@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { AlertCircle, ExternalLink, X } from 'lucide-react';
 
 interface SourceWarningModalProps {
@@ -39,13 +40,13 @@ export default function SourceWarningModal({ isOpen, onClose, caseLink }: Source
               <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
                 Хотите получать уведомления о новых событиях по вашему делу?
               </p>
-              <a 
-                href="/monitoring" 
+              <Link 
+                to="/monitoring" 
                 className="inline-block text-xs font-bold text-accent hover:underline"
                 onClick={onClose}
               >
                 Подключить мониторинг →
-              </a>
+              </Link>
             </div>
             <div className="flex gap-3">
               <button

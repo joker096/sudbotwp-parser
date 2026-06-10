@@ -55,17 +55,31 @@ serve(async (req) => {
     
     const apiUrl = `https://api-ip.fssprus.ru/api/v1.0/search/${endpoint}`;
     
-    const searchResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        token: '', // API ФССП может работать без токена для базового поиска
-        inn: inn,
-      }),
-    });
+    let searchResponse: Response;
+    try {
+      searchResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          token: '', // API ФССП может работать без токена для базового поиска
+          inn: inn,
+        }),
+      });
+    } catch (networkError) {
+      console.error('FSSP search network error:', networkError);
+      return new Response(
+        JSON.stringify({ 
+          status: 'error',
+          error: 'Сервис ФССП недоступен из текущей сети. Используйте сервер в РФ.',
+          count: 0,
+          productions: [],
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!searchResponse.ok) {
       console.error('FSSP search error:', searchResponse.status);
@@ -81,7 +95,22 @@ serve(async (req) => {
       );
     }
 
-    const searchData = await searchResponse.json();
+    const searchText = await searchResponse.text();
+    let searchData: any;
+    try {
+      searchData = JSON.parse(searchText);
+    } catch (e) {
+      console.error('FSSP search non-JSON response:', searchText.slice(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          status: 'error',
+          error: 'Сервис ФССП вернул неожиданный формат ответа',
+          count: 0,
+          productions: [],
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // ФССП возвращает task ID, затем нужно получить результаты
     const task = searchData.response?.result?.[0];
@@ -104,10 +133,18 @@ serve(async (req) => {
     let productions: FsspResult['productions'] = [];
     
     if (statusResponse.ok) {
-      const statusData = await statusResponse.json();
-      const results = statusData.response?.result || [];
+      const statusText = await statusResponse.text();
+      let statusData: any;
+      try {
+        statusData = JSON.parse(statusText);
+      } catch (e) {
+        console.error('FSSP status non-JSON response:', statusText.slice(0, 200));
+        statusData = {};
+      }
+      const results = statusData.response?.result;
+      const resultsArray = Array.isArray(results) ? results : [];
       
-      productions = results.map((item: any) => ({
+      productions = resultsArray.map((item: any) => ({
         number: item.number || '',
         date: item.date || '',
         debtor: item.debtor?.name || '',

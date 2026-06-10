@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { MessageSquare, ThumbsUp, Reply, Flag, Trash2, Edit2, Send, User, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { blogComments, BlogComment } from '../lib/supabase';
@@ -224,12 +225,12 @@ export default function BlogComments({ postId }: BlogCommentsProps) {
           <p className="text-slate-600 dark:text-slate-300 mb-3">
             Войдите, чтобы оставить комментарий
           </p>
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="inline-block bg-accent hover:bg-accent-light text-white px-6 py-2 rounded-xl text-sm font-bold transition-colors"
           >
             Войти
-          </a>
+          </Link>
         </div>
       )}
 

@@ -163,10 +163,9 @@ const generateDutyReceipt = (
 <head>
   <meta charset="UTF-8">
   <title>Квитанция об уплате государственной пошлины</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    <style>
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 5px;
       background-color: #f8f9fa;

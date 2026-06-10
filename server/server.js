@@ -10,9 +10,26 @@ import cors from 'cors';
 import * as cheerio from 'cheerio';
 import iconv from 'iconv-lite';
 import axios from 'axios';
+import { execSync } from 'child_process';
+import { isIPBlocked, blockIP, cleanupExpired } from './spam-ip-tracker.js';
+import { cron } from './spam-cron.js';
 
 const app = express();
 const PORT = process.env.PORT || 3007;
+
+// Enable rate limiting and IP blocking middleware
+app.use((req, res, next) => {
+  const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.connection.remoteAddress || 'unknown';
+  
+  if (isIPBlocked(clientIP)) {
+    return res.status(429).json({
+      error: 'IP temporarily blocked due to spam detection',
+      blocked_until: new Date(Date.now() + 3600000).toISOString(),
+    });
+  }
+  
+  next();
+});
 
 app.use(cors());
 app.use(express.json());
@@ -250,7 +267,292 @@ app.post('/parse-case', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// =====================================================
+// COUNTERPARTY CHECKS — Проверка контрагентов (РФ API)
+// Сервер в РФ обходит блокировку иностранных IP
+// =====================================================
+
+// ЕГРЮЛ / ЕГРИП (ФНС)
+app.post('/api/check-egrul', async (req, res) => {
+  const { inn } = req.body;
+  if (!inn || (inn.length !== 10 && inn.length !== 12)) {
+    return res.status(400).json({ error: 'ИНН должен содержать 10 (ЮЛ) или 12 (физлицо/ИП) цифр' });
+  }
+
+  try {
+    // Шаг 1: получаем токен
+    const tokenRes = await axios.post('https://egrul.nalog.ru/', {}, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      timeout: 15000,
+    });
+
+    let token = '';
+    const setCookie = tokenRes.headers['set-cookie'];
+    if (setCookie) {
+      const m = setCookie.join(';').match(/token=([^;]+)/);
+      if (m) token = m[1];
+    }
+    if (!token && typeof tokenRes.data === 'object') {
+      token = tokenRes.data.t || '';
+    }
+
+    // Шаг 2: поиск по ИНН
+    const searchUrl = new URL('https://egrul.nalog.ru/');
+    searchUrl.searchParams.set('token', token);
+    searchUrl.searchParams.set('b', 'true');
+    searchUrl.searchParams.set('type', 'all');
+    searchUrl.searchParams.set('q', inn);
+
+    const searchRes = await axios.get(searchUrl.toString(), {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Cookie': `token=${token}`,
+      },
+      timeout: 15000,
+    });
+
+    const searchData = searchRes.data;
+    if (!searchData.items || searchData.items.length === 0) {
+      return res.status(404).json({ error: 'Компания или ИП с указанным ИНН не найдены' });
+    }
+
+    const item = searchData.items[0];
+    const result = {
+      inn: item.i || inn,
+      ogrn: item.o || '',
+      name: item.c || '',
+      fullName: item.n || item.c || '',
+      address: item.a || '',
+      director: item.g || '',
+      founder: item.f || '',
+      capital: item.capital || '',
+      okved: item.k || '',
+      okpo: item.p || '',
+      oktmo: item.r || '',
+      status: item.s || '',
+      regDate: item.dt || '',
+      kpp: item.kpp || '',
+      ogrnDate: item.ogrndt || '',
+    };
+
+    res.json({ success: true, data: result, raw: item });
+  } catch (error) {
+    console.error('[check-egrul error]', error.message);
+    res.status(502).json({ error: 'Сервис ФНС временно недоступен. Попробуйте позже.' });
+  }
+});
+
+// ФССП
+app.post('/api/check-fssp', async (req, res) => {
+  const { inn } = req.body;
+  if (!inn || (inn.length !== 10 && inn.length !== 12)) {
+    return res.status(400).json({ error: 'ИНН должен содержать 10 или 12 цифр' });
+  }
+
+  try {
+    const isCompany = inn.length === 10;
+    const endpoint = isCompany ? 'legal' : 'physical';
+    const apiUrl = `https://api-ip.fssprus.ru/api/v1.0/search/${endpoint}`;
+
+    const searchRes = await axios.post(apiUrl, {
+      token: '',
+      inn,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      timeout: 20000,
+    });
+
+    const searchData = searchRes.data;
+    const task = searchData.response?.result?.[0];
+
+    if (!task) {
+      return res.json({ status: 'not_found', count: 0, productions: [] });
+    }
+
+    const statusUrl = `https://api-ip.fssprus.ru/api/v1.0/status/${task}`;
+    const statusRes = await axios.get(statusUrl, { timeout: 20000 });
+    const statusData = statusRes.data;
+    const results = statusData.response?.result || [];
+
+    const productions = results.map((item) => ({
+      number: item.number || '',
+      date: item.date || '',
+      debtor: item.debtor?.name || '',
+      type: item.exe_production_type || '',
+      subject: item.subject_type || '',
+      department: item.department || '',
+      bailiff: item.bailiff || '',
+      endDate: item.end_date || undefined,
+      sum: item.exe_amount || undefined,
+    }));
+
+    res.json({
+      status: productions.length > 0 ? 'found' : 'not_found',
+      count: productions.length,
+      productions,
+    });
+  } catch (error) {
+    console.error('[check-fssp error]', error.message);
+    res.json({ status: 'error', error: 'Сервис ФССП временно недоступен', count: 0, productions: [] });
+  }
+});
+
+// Росстат (bo.nalog.ru)
+app.post('/api/check-rosstat', async (req, res) => {
+  const { inn } = req.body;
+  if (!inn || (inn.length !== 10 && inn.length !== 12)) {
+    return res.status(400).json({ error: 'ИНН должен содержать 10 или 12 цифр' });
+  }
+
+  try {
+    const searchRes = await axios.get(`https://bo.nalog.ru/nbo/organizations/?inn=${inn}`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      timeout: 15000,
+    });
+
+    const searchData = searchRes.data;
+    if (!searchData.data || searchData.data.length === 0) {
+      return res.status(404).json({ error: 'Организация не найдена в бухгалтерской базе' });
+    }
+
+    const org = searchData.data[0];
+    const orgId = org.id;
+
+    const reportsRes = await axios.get(`https://bo.nalog.ru/nbo/organizations/${orgId}/bfo/`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      timeout: 15000,
+    });
+
+    const reportsData = reportsRes.data;
+    const reports = (reportsData.data || []).map((report) => ({
+      year: report.year,
+      period: report.period || 'годовой',
+      assets: getIndicator(report, '1600'),
+      liabilities: getIndicator(report, '1700'),
+      capital: getIndicator(report, '1300'),
+      revenue: getIndicator(report, '2110'),
+      profit: getIndicator(report, '2400'),
+      expenses: getIndicator(report, '2120'),
+      receivables: getIndicator(report, '1230'),
+      payables: getIndicator(report, '1520'),
+    }));
+
+    res.json({
+      success: true,
+      company: { name: org.name, inn: org.inn, ogrn: org.ogrn },
+      reports: reports.sort((a, b) => b.year - a.year),
+    });
+  } catch (error) {
+    console.error('[check-rosstat error]', error.message);
+    res.status(502).json({ error: String(error), success: false });
+  }
+});
+
+function getIndicator(report, code) {
+  const indicator = report.indicators?.find((i) => i.code === code);
+  return indicator ? parseFloat(indicator.value) : null;
+}
+
+// ЕФРСБ
+app.post('/api/check-efrsb', async (req, res) => {
+  const { inn } = req.body;
+  if (!inn || (inn.length !== 10 && inn.length !== 12)) {
+    return res.status(400).json({ error: 'ИНН должен содержать 10 или 12 цифр' });
+  }
+
+  try {
+    const searchRes = await axios.get(`https://bankrot.fedresurs.ru/backend/prsnbankrupts?searchString=${encodeURIComponent(inn)}&isActive=true`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      timeout: 15000,
+    });
+
+    const searchData = searchRes.data;
+    const bankrupts = searchData.pageData || [];
+    const cases = [];
+
+    for (const bankrupt of bankrupts) {
+      try {
+        const caseRes = await axios.get(`https://bankrot.fedresurs.ru/backend/prsnbankrupts/${bankrupt.guid}`, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          timeout: 10000,
+        });
+        const caseData = caseRes.data;
+        cases.push({
+          number: caseData.number || '',
+          type: caseData.caseType || '',
+          date: caseData.startDate || '',
+          court: caseData.courtName || '',
+          judge: caseData.judgeName || '',
+          status: caseData.status || '',
+        });
+      } catch (e) {
+        console.warn('EFRSB case detail failed:', e.message);
+      }
+    }
+
+    res.json({
+      hasBankruptcy: cases.length > 0,
+      cases,
+      registry: [],
+    });
+  } catch (error) {
+    console.error('[check-efrsb error]', error.message);
+    res.json({ hasBankruptcy: false, cases: [], registry: [], error: 'Сервис ЕФРСБ временно недоступен' });
+  }
+});
+
+function getPidOnPort(port) {
+  try {
+    return execSync(`lsof -ti :${port}`).toString().trim();
+  } catch (e) {
+    try {
+      return execSync(`fuser ${port}/tcp 2>/dev/null`).toString().trim();
+    } catch (e2) {
+      return null;
+    }
+  }
+}
+
+// =====================================================
+const server = app.listen(PORT, () => {
   console.log(`[Sud Parser Server] Running on port ${PORT}`);
   console.log(`[Sud Parser Server] Endpoint: http://localhost:${PORT}/parse-case`);
+  console.log(`[Sud Parser Server] Counterparty checks: /api/check-egrul, /api/check-fssp, /api/check-rosstat, /api/check-efrsb`);
+});
+
+// Start periodic spam checks
+cron();
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    const pid = getPidOnPort(PORT);
+    if (pid) {
+      console.error(`[FATAL] Port ${PORT} is already in use by process PID ${pid}. Stop that process before starting this server.`);
+    } else {
+      console.error(`[FATAL] Port ${PORT} is already in use by another process.`);
+    }
+    process.exit(1);
+  }
+  console.error('[FATAL] Server error:', err);
+  process.exit(1);
 });

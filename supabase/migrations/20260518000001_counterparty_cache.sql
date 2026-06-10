@@ -41,6 +41,27 @@ CREATE POLICY "Allow insert/update via service role" ON counterparty_checks
     USING (true)
     WITH CHECK (true);
 
+-- Политика: разрешаем вставку/обновление кэша для всех пользователей (кэш — публичные данные)
+DROP POLICY IF EXISTS "Allow cache writes" ON counterparty_checks;
+CREATE POLICY "Allow cache writes" ON counterparty_checks
+    FOR INSERT
+    TO authenticated, anon
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow cache updates" ON counterparty_checks;
+CREATE POLICY "Allow cache updates" ON counterparty_checks
+    FOR UPDATE
+    TO authenticated, anon
+    USING (true)
+    WITH CHECK (true);
+
+-- Политика: разрешаем удаление кэша для всех пользователей
+DROP POLICY IF EXISTS "Allow cache delete" ON counterparty_checks;
+CREATE POLICY "Allow cache delete" ON counterparty_checks
+    FOR DELETE
+    TO authenticated, anon
+    USING (true);
+
 -- Функция очистки старых записей (старше 7 дней)
 CREATE OR REPLACE FUNCTION cleanup_counterparty_cache()
 RETURNS void AS $$

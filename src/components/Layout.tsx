@@ -9,6 +9,57 @@ import GoogleAnalytics from './GoogleAnalytics';
 import LeadModal from './LeadModal';
 import OfflineBanner from './OfflineBanner';
 
+const OpenGraphScript = () => (
+  <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://sud.cvr.name",
+    "name": "Sud — Мониторинг судебных дел",
+    "url": "https://sud.cvr.name",
+    "description": "Сервис для автоматического отслеживания судебных дел в судах Российской Федерации",
+    "email": "admin@cvr.name",
+    "telephone": "+7",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Санкт-Петербург",
+      "addressCountry": "RU"
+    },
+    "sameAs": [
+      { "@type": "WebSite", "url": "https://sud.cvr.name" }
+    ],
+    "knowsAbout": [
+      "Судебные дела",
+      "Мониторинг судов",
+      "Правосудие",
+      "Юридическая информация",
+      "Суды Российской Федерации"
+    ]
+  })}} />
+);
+
+const SchemaOrgScript = () => (
+  <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Sud — Мониторинг судебных дел",
+    "url": "https://sud.cvr.name",
+    "description": "Автоматическое отслеживание судебных дел в реальном времени",
+    "about": [
+      "Судебные дела РФ",
+      "Мониторинг судебных заседаний",
+      "Увед о новых событиях",
+      "Правосудие России"
+    ],
+    "hasPart": [
+      { "@type": "WebPage", "name": "Поиск дел", "url": "https://sud.cvr.name/search" },
+      { "@type": "WebPage", "name": "Мониторинг", "url": "https://sud.cvr.name/monitoring" },
+      { "@type": "WebPage", "name": "Юристы", "url": "https://sud.cvr.name/lawyers" },
+      { "@type": "WebPage", "name": "Калькулятор пошлин", "url": "https://sud.cvr.name/calculator" },
+      { "@type": "WebPage", "name": "Блог", "url": "https://sud.cvr.name/blog" }
+    ]
+  })}} />
+);
+
 export default memo(function Layout() {
   const location = useLocation();
   
@@ -535,6 +586,10 @@ export default memo(function Layout() {
 
       {/* Floating Buttons */}
       <FloatingButtons />
+
+      {/* Open Graph & Schema.org Microdata */}
+      <OpenGraphScript />
+      <SchemaOrgScript />
 
       {/* Общая форма заявки (без привязки к юристу) */}
       <LeadModal

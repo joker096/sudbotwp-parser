@@ -25,7 +25,7 @@ $env:VDS_USER = "user0"
 | Параметр | Значение по умолчанию |
 |----------|------------------------|
 | `-Server` | `130.49.175.224` |
-| `-User` | `root` |
+| `-User` | `user0` |
 | `-ServerPath` | `/var/www/sud.cvr.name` |
 
 Пример:
@@ -37,12 +37,12 @@ $env:VDS_USER = "user0"
 ## Что делает скрипт
 
 1. **Build** — запускает `npm run build` (vite + generate-sitemap)
-2. **Upload** — scp `dist/sitemap.xml` на сервер
+2. **Upload** — scp `dist/` на сервер
 3. **Verify** — проверяет что sitemap.xml отдаётся (HTTP 200)
 
 ## На сервере
 
-Файл должен быть в: `/var/www/sud.cvr.name/dist/sitemap.xml`
+Файл должен быть в: `/var/www/sud.cvr.name/sitemap.xml`
 
 Убедись, что nginx не делает редирект на Supabase:
 

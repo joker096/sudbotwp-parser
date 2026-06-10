@@ -50,12 +50,26 @@ serve(async (req) => {
     // ЕФРСБ API
     const searchUrl = 'https://bankrot.fedresurs.ru/backend/prsnbankrupts';
     
-    const searchResponse = await fetch(`${searchUrl}?searchString=${encodeURIComponent(inn)}&isActive=true`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
+    let searchResponse: Response;
+    try {
+      searchResponse = await fetch(`${searchUrl}?searchString=${encodeURIComponent(inn)}&isActive=true`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      });
+    } catch (networkError) {
+      console.error('EFRSB search network error:', networkError);
+      return new Response(
+        JSON.stringify({ 
+          hasBankruptcy: false,
+          cases: [],
+          registry: [],
+          error: 'Сервис ЕФРСБ недоступен из текущей сети. Используйте сервер в РФ.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!searchResponse.ok) {
       console.error('EFRSB search error:', searchResponse.status);
@@ -70,7 +84,22 @@ serve(async (req) => {
       );
     }
 
-    const searchData = await searchResponse.json();
+    const searchText = await searchResponse.text();
+    let searchData: any;
+    try {
+      searchData = JSON.parse(searchText);
+    } catch (e) {
+      console.error('EFRSB search non-JSON:', searchText.slice(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          hasBankruptcy: false,
+          cases: [],
+          registry: [],
+          error: 'Сервис ЕФРСБ вернул неожиданный формат',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     const bankrupts = searchData.pageData || [];
 
     const cases: EfrsbResult['cases'] = [];
@@ -87,7 +116,14 @@ serve(async (req) => {
         });
         
         if (caseResponse.ok) {
-          const caseData = await caseResponse.json();
+          const caseText = await caseResponse.text();
+          let caseData: any;
+          try {
+            caseData = JSON.parse(caseText);
+          } catch (e) {
+            console.warn('EFRSB case details non-JSON:', caseText.slice(0, 200));
+            caseData = {};
+          }
           cases.push({
             number: caseData.number || '',
             type: caseData.caseType || '',

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building, FileText, User, Calendar, Gavel, AlertCircle, Download, Link as LinkIcon, X, Trash2, ExternalLink, Share2, CalendarPlus, Archive, Copy, Scale, Pencil, Save } from 'lucide-react';
 import { ParsedCase, CaseEvent } from '../types';
@@ -738,13 +739,13 @@ ${localCaseData.appeals && Array.isArray(localCaseData.appeals) && localCaseData
                 <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
                   Хотите получать уведомления о новых событиях по вашему делу?
                 </p>
-                <a 
-                  href="/monitoring" 
+                <Link 
+                  to="/monitoring" 
                   className="inline-block text-xs font-bold text-accent hover:underline"
                   onClick={() => setShowSourceWarning(false)}
                 >
                   Подключить мониторинг →
-                </a>
+                </Link>
               </div>
               <div className="flex gap-3">
                 <button

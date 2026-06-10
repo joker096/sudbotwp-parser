@@ -28,7 +28,7 @@ export async function getCachedCheck(inn: string): Promise<CachedCheck | null> {
     .select('*')
     .eq('inn', inn)
     .gt('expires_at', new Date().toISOString())
-    .single();
+    .maybeSingle();
 
   if (error || !data) return null;
 
@@ -62,7 +62,7 @@ export async function saveCheckCache(
     risk_score: riskScore,
     checked_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-  });
+  }, { onConflict: 'inn' });
 }
 
 /**

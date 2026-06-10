@@ -32,11 +32,14 @@ if (-not $BuildOnly) {
   Write-Host "`n[2/3] Uploading dist/ to server..." -ForegroundColor Yellow
   scp -r dist/* "${User}@${Server}:${ServerPath}/dist/"
   if ($LASTEXITCODE -ne 0) { throw "Upload failed" }
+  # Upload sitemap.xml to server root (required by robots.txt)
+  scp dist/sitemap.xml "${User}@${Server}:${ServerPath}/sitemap.xml"
+  if ($LASTEXITCODE -ne 0) { throw "Sitemap upload failed" }
   Write-Host "Upload OK" -ForegroundColor Green
 
   # Verify sitemap
   Write-Host "`n[3/3] Verifying sitemap.xml..." -ForegroundColor Yellow
-  $sitemapUrl = "https://${Server}/sitemap.xml"
+  $sitemapUrl = "https://sud.cvr.name/sitemap.xml"
   try {
     $resp = Invoke-WebRequest -Uri $sitemapUrl -Method HEAD -TimeoutSec 10
     if ($resp.StatusCode -eq 200) {

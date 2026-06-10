@@ -714,6 +714,7 @@ export default function Blog() {
         ogDescription: selectedPost.og_description || selectedPost.seo_description || selectedPost.excerpt,
         ogImage: selectedPost.og_image || selectedPost.image_url || selectedPost.img,
         ogUrl: postUrl,
+        canonicalUrl: postUrl,
       });
       
 

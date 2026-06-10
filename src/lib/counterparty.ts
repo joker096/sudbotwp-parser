@@ -1,6 +1,6 @@
 /**
  * API layer для проверки контрагентов
- * Обёртки над Edge Functions
+ * Обёртки над Supabase Edge Functions
  */
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';

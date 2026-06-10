@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Building, AlertTriangle, Scale, Shield, Bell, CheckCircle2, XCircle, TrendingUp, Clock, FileText, Loader2, Star, Zap, Crown, UserCheck, ExternalLink, Gavel } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { checkTaxpayerStatus, isValidInn, TaxpayerStatusResponse } from '../lib/npd';
 import { useSeo } from '../hooks/useSeo';
-import { apiConfig } from '../lib/apiConfig';
+import { checkEgrul } from '../lib/counterparty';
 import MonitoredCompaniesSection from '../components/MonitoredCompaniesSection';
 
 interface CompanyData {
@@ -82,38 +83,28 @@ export default function Monitoring() {
     setCompanyData(null);
 
     try {
-      const response = await fetch(apiConfig.searchCompanyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inn }),
-      });
+      const result = await checkEgrul(inn);
 
-      if (!response.ok) {
-        throw new Error('Ошибка при запросе к API');
-      }
+      if (result.success && result.data) {
+        const data = result.data;
+        const statusLower = (data.status || '').toLowerCase();
+        const status: CompanyData['status'] =
+          statusLower.includes('ликвид') ? 'liquidating' :
+          statusLower.includes('банкрот') ? 'bankrupt' :
+          'active';
 
-      const result = await response.json();
-      
-      if (result.suggestions && result.suggestions.length > 0) {
-        const company = result.suggestions[0];
-        const data = company.data;
-        
         setCompanyData({
           inn: data.inn || inn,
-          name: company.value || 'Неизвестная компания',
+          name: data.name || data.fullName || 'Неизвестная компания',
           ogrn: data.ogrn || '',
-          address: data.address?.value || 'Адрес не указан',
-          status: data.state?.status === 'ACTIVE' ? 'active' : data.state?.status === 'LIQUIDATING' ? 'liquidating' : 'bankrupt',
+          address: data.address || 'Адрес не указан',
+          status,
           riskScore: Math.floor(Math.random() * 50) + 10,
           casesCount: Math.floor(Math.random() * 500),
           activeCases: Math.floor(Math.random() * 50),
           lostCases: Math.floor(Math.random() * 100),
           lastCase: new Date().toLocaleDateString('ru-RU'),
-          foundingDate: data.state?.registration_date || '01.01.2000',
-          revenue: data.finances?.revenue ? `${(data.finances.revenue / 1000000).toFixed(0)} млн ₽` : '—',
-          employees: data.employees ? `${data.employees}` : '—',
+          foundingDate: data.regDate || '01.01.2000',
         });
       } else {
         setError('Компания с указанным ИНН не найдена');
@@ -170,8 +161,8 @@ export default function Monitoring() {
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <a
-          href="/counterparty"
+        <Link
+          to="/counterparty"
           className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
@@ -182,9 +173,9 @@ export default function Monitoring() {
             <p className="text-xs text-slate-500">ЕГРЮЛ, ФССП, ЕФРСБ, риск-скоринг</p>
           </div>
           <ExternalLink className="w-4 h-4 text-slate-400" />
-        </a>
-        <a
-          href="/arbitration"
+        </Link>
+        <Link
+          to="/arbitration"
           className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-accent/30 transition-colors shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)]"
         >
           <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
@@ -195,7 +186,7 @@ export default function Monitoring() {
             <p className="text-xs text-slate-500">Поиск по КАД, статистика судей</p>
           </div>
           <ExternalLink className="w-4 h-4 text-slate-400" />
-        </a>
+        </Link>
       </div>
 
       {/* Search Section */}

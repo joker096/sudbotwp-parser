@@ -4,15 +4,19 @@
   "type": "module",
   "scripts": {
     "start": "PORT=3002 node server.js",
-    "dev": "PORT=3002 node --watch server.js"
+    "dev": "PORT=3002 node --watch server.js",
+    "spam-check": "node --watch ../scripts/check-spam-cron.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "better-sqlite3": "^12.4.1",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.18.2",
     "axios": "^1.6.0",
     "iconv-lite": "^0.7.0",
+    "node-fetch": "^3.3.2",
     "qs": "^6.14.0"
   }
 }

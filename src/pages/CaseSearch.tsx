@@ -270,6 +270,11 @@ export default function CaseSearch() {
       showToast('У дела нет ссылки для обновления');
       return;
     }
+
+    if (caseToRefresh.status === 'archived') {
+      showToast('Архивные дела не обновляются автоматически');
+      return;
+    }
     
     showToast('Обновление данных дела...');
     const { data, error, normalizedCase } = await refreshUserCase(caseId, caseToRefresh);

@@ -1,0 +1,78 @@
+# 301 redirect: www → non-www
+server {
+    listen 443;
+    server_name www.sud.cvr.name;
+    return 301 https://sud.cvr.name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name sud.cvr.name;
+    root /var/www/sud.cvr.name;
+    index index.html;
+    ssl_certificate /etc/letsencrypt/live/sud.cvr.name/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/sud.cvr.name/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    # Service worker
+    location = /static/sw.js {
+        add_header Service-Worker-Allowed "/";
+        add_header Cache-Control "no-cache";
+    }
+
+    # Sitemap
+    location = /sitemap.xml {
+        try_files $uri =404;
+    }
+
+    # Статические ассеты — если файла нет, отдаём 404
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|webmanifest|json|txt|map)$ {
+        expires 6M;
+        access_log off;
+        try_files $uri =404;
+    }
+
+    # Бэкенд-прокси
+    location /parse-case {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 180;
+        proxy_connect_timeout 60;
+    }
+
+    location /api/yandex/ {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 15;
+    }
+
+    # ВСЁ остальное — fallback в index.html (React Router разберётся)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Страница 404
+    error_page 404 /404.html;
+    location = /404.html {
+        internal;
+        serve static;
+    }
+}

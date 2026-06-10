@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 vi.mock('./supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ gt: vi.fn(() => ({ single: vi.fn() }) ) }) ) })),
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ gt: vi.fn(() => ({ maybeSingle: vi.fn() }) ) }) ) })),
       upsert: vi.fn(() => Promise.resolve({ error: null })),
       delete: vi.fn(() => ({ eq: vi.fn(() => Promise.resolve({ error: null })) })),
     })),
@@ -22,7 +22,7 @@ describe('cache', () => {
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           gt: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } }),
           }),
         }),
       }),
@@ -37,7 +37,7 @@ describe('cache', () => {
     const mockUpsert = vi.fn().mockResolvedValue({ error: null });
     const mockFrom = vi.fn().mockReturnValue({
       upsert: mockUpsert,
-      select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ gt: vi.fn().mockReturnValue({ single: vi.fn() }) }) }),
+      select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ gt: vi.fn().mockReturnValue({ maybeSingle: vi.fn() }) }) }),
       delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
     });
     (supabase.from as any) = mockFrom;
@@ -53,13 +53,14 @@ describe('cache', () => {
     await saveCheckCache('1234567890', mockCheck, null, null);
     expect(mockUpsert).toHaveBeenCalled();
     expect(mockUpsert.mock.calls[0][0].inn).toBe('1234567890');
+    expect(mockUpsert.mock.calls[0][1]).toEqual({ onConflict: 'inn' });
   });
 
   it('invalidates cache by inn', async () => {
     const mockDelete = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
     const mockFrom = vi.fn().mockReturnValue({
       upsert: vi.fn().mockResolvedValue({ error: null }),
-      select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ gt: vi.fn().mockReturnValue({ single: vi.fn() }) }) }),
+      select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ gt: vi.fn().mockReturnValue({ maybeSingle: vi.fn() }) }) }),
       delete: mockDelete,
     });
     (supabase.from as any) = mockFrom;

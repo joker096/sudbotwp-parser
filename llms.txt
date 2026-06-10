@@ -1,0 +1,32 @@
+# LLMs.txt - AI-optimized site structure
+
+## Site
+**Name:** Sud - Мониторинг судебных дел онлайн  
+**URL:** https://sud.cvr.name  
+**Description:** Сервис мониторинга судебных дел в РФ. Поиск по базе судов РФ, отслеживание дел в режиме онлайн.
+
+## Navigation
+- Главная: /
+- Поиск дел: /search
+- Мониторинг: /monitoring
+- Личный кабинет: /profile
+- Сообщения: /messages
+
+## Sitemap
+- Sitemap: https://sud.cvr.name/sitemap.xml
+
+## API
+- API: /api/
+- Parse Case: /parse-case
+
+## Content
+- Blog: /blog
+- Cases: /cases
+
+## Policies
+- Privacy: /privacy
+- Terms: /terms
+- Contact: /contact
+
+## Robots
+- Full robots.txt: https://sud.cvr.name/robots.txt
